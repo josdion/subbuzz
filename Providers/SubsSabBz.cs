@@ -31,7 +31,7 @@ namespace subbuzz.Providers
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
 
-        public string Name => "subs.sab.bz";
+        public string Name => $"[{Plugin.NAME}] <b>subs.sab.bz</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
@@ -209,7 +209,7 @@ namespace subbuzz.Providers
                                 {
                                     ThreeLetterISOLanguageName = language.ThreeLetterISOLanguageName,
                                     Id = Utils.Base64UrlEncode(subLink + UrlSeparator + file + UrlSeparator + language.TwoLetterISOLanguageName),
-                                    ProviderName = $"[{Plugin.NAME}] <b>{Name}</b>",
+                                    ProviderName = Name,
                                     Name = file,
                                     Format = file.Split('.').LastOrDefault().ToUpper(),
                                     Author = subUploader,
