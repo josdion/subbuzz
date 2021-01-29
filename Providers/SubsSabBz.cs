@@ -187,7 +187,9 @@ namespace subbuzz.Providers
                             var regex = new Regex(@"ddrivetip\(\'<div.*/></div>(.*)\',\'#[0-9]+\'\)");
                             subNotes = regex.Replace(subNotes, "$1");
                             string subInfo = subNotes.Substring(subNotes.LastIndexOf("<b>Доп. инфо</b>")+17);
+
                             subInfo = Utils.TrimString(subInfo, "<br />");
+                            subInfo = subInfo.Replace("<br /><br />", "<br />").Replace("<br /><br />", "<br />");
 
                             string subYear = linkNode.NextSibling.InnerText.Trim(new[] { ' ', '(', ')' });
 
