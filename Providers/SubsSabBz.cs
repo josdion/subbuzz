@@ -17,6 +17,7 @@ using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 using SharpCompress.Readers;
 using System.Linq;
+using subbuzz.Helpers;
 
 namespace subbuzz.Providers
 {
@@ -51,7 +52,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                string[] ids = Base64UrlDecode(id).Split(new[] { UrlSeparator }, StringSplitOptions.None);
+                string[] ids = Utils.Base64UrlDecode(id).Split(new[] { UrlSeparator }, StringSplitOptions.None);
                 string link = ids[0];
                 string file = ids[1];
                 string lang = ids[2];
@@ -104,7 +105,7 @@ namespace subbuzz.Providers
                 BaseItem libItem = _libraryManager.FindByPath(request.MediaPath, false);
                 if (libItem == null)
                 {
-                    _logger.Info("Subs.Sab.Bz= No library info for " + request.MediaPath);
+                    _logger.Info($"{Name} No library info for {request.MediaPath}");
                     return res;
                 }
 
@@ -128,8 +129,7 @@ namespace subbuzz.Providers
                 var language = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
                 var lang = language.TwoLetterISOLanguageName.ToLower();
 
-                _logger?.Info(
-                    $"Subs.Sab.Bz= Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
+                _logger?.Info($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
 
                 if (lang != "bg" && lang != "en")
                 {
@@ -151,7 +151,7 @@ namespace subbuzz.Providers
                     { "movie", searchText},
                     { "select-language", lang == "en" ? "1" : "2" },
                     { "upldr", "" },
-                    { "yr", Convert.ToString(request.ProductionYear) },
+                    { "yr", request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "" },
                     { "release", "" }
                 };
 
@@ -166,12 +166,14 @@ namespace subbuzz.Providers
                         var htmlDoc = new HtmlDocument();
                         htmlDoc.LoadHtml(html);
 
-                        var trNodes = htmlDoc.DocumentNode.SelectNodes(".//tr[@class='subs-row']");
+                        var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr[@class='subs-row']");
                         if (trNodes == null) return res;
 
                         for (int i = 0; i < trNodes.Count; i++)
                         {
                             var tdNodes = trNodes[i].SelectNodes("td");
+                            if (tdNodes == null || tdNodes.Count < 12) continue;
+
                             HtmlNode linkNode = tdNodes[3].SelectSingleNode("a[@href]");
                             if (linkNode == null) continue;
                             
@@ -181,13 +183,11 @@ namespace subbuzz.Providers
 
                             string subTitle = linkNode.InnerText;
 
-                            string subNotes = linkNode.Attributes["onmouseover"].Value;
-                            subNotes = subNotes.Replace("&lt;", "<");
-                            subNotes = subNotes.Replace("&gt;", ">");
+                            string subNotes = linkNode.Attributes["onmouseover"].DeEntitizeValue;
                             var regex = new Regex(@"ddrivetip\(\'<div.*/></div>(.*)\',\'#[0-9]+\'\)");
                             subNotes = regex.Replace(subNotes, "$1");
                             string subInfo = subNotes.Substring(subNotes.LastIndexOf("<b>Доп. инфо</b>")+17);
-                            subInfo = TrimString(subInfo, "<br />");
+                            subInfo = Utils.TrimString(subInfo, "<br />");
 
                             string subYear = linkNode.NextSibling.InnerText.Trim(new[] { ' ', '(', ')' });
 
@@ -206,13 +206,13 @@ namespace subbuzz.Providers
                                 var item = new RemoteSubtitleInfo
                                 {
                                     ThreeLetterISOLanguageName = language.ThreeLetterISOLanguageName,
-                                    Id = Base64UrlEncode(subLink + UrlSeparator + file + UrlSeparator + language.TwoLetterISOLanguageName),
+                                    Id = Utils.Base64UrlEncode(subLink + UrlSeparator + file + UrlSeparator + language.TwoLetterISOLanguageName),
                                     ProviderName = $"[{Plugin.NAME}] <b>{Name}</b>",
                                     Name = file,
                                     Format = file.Split('.').LastOrDefault().ToUpper(),
                                     Author = subUploader,
                                     Comment = subInfo,
-                                    DateCreated = DateTimeOffset.Parse(subDate),
+                                    //DateCreated = DateTimeOffset.Parse(subDate),
                                     CommunityRating = Convert.ToInt32(subRating),
                                     DownloadCount = Convert.ToInt32(subDownloads),
                                     IsHashMatch = false,
@@ -272,56 +272,6 @@ namespace subbuzz.Providers
             return res;
         }
 
-        private string Base64UrlDecode(string str)
-        {
-            byte[] decbuff = Convert.FromBase64String(str.Replace(",", "=").Replace("-", "+").Replace("/", "_"));
-            return System.Text.Encoding.UTF8.GetString(decbuff);
-        }
-
-        private string Base64UrlEncode(string input)
-        {
-            byte[] encbuff = System.Text.Encoding.UTF8.GetBytes(input ?? "");
-            return Convert.ToBase64String(encbuff).Replace("=", ",").Replace("+", "-").Replace("_", "/");
-        }
-
-        private string TrimStringStart(string str, string remove, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
-        {
-            if (string.IsNullOrEmpty(str) || string.IsNullOrEmpty(remove))
-            {
-                return str;
-            }
-
-            while (true)
-            {
-                str = str.TrimStart();
-                if (!str.StartsWith(remove, comparisonType)) break;
-                str = str.Substring(remove.Length);
-            }
-
-            return str;
-        }
-
-        private string TrimStringEnd(string str, string remove, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
-        {
-            if (string.IsNullOrEmpty(str) || string.IsNullOrEmpty(remove))
-            {
-                return str;
-            }
-
-            while (true)
-            {
-                str = str.TrimEnd();
-                if (!str.EndsWith(remove, comparisonType)) break;
-                str = str.Substring(0, str.Length - remove.Length);
-            }
-
-            return str;
-        }
-
-        public string TrimString(string str, string remove, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
-        {
-            return TrimStringStart(TrimStringEnd(str, remove, comparisonType), remove, comparisonType);
-        }
 
     }
 }
