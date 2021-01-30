@@ -1,30 +1,29 @@
-﻿using MediaBrowser.Common.Net;
+﻿using HtmlAgilityPack;
+using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
+using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
+using subbuzz.Helpers;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
-using MediaBrowser.Model.Globalization;
-using HtmlAgilityPack;
-using System.Text.RegularExpressions;
-using SharpCompress.Readers;
-using System.Linq;
-using System.Globalization;
-using subbuzz.Helpers;
 
 namespace subbuzz.Providers
 {
     public class SubsUnacsNet : ISubtitleProvider, IHasOrder
     {
-        private const string UrlSeparator = "*|*";
+        private const string HttpReferer = "https://subsunacs.net/search.php";
 
         private readonly IHttpClient _httpClient;
         private readonly ILogger _logger;
@@ -37,7 +36,7 @@ namespace subbuzz.Providers
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
-        public int Order => 2;
+        public int Order => 0;
 
         public SubsUnacsNet(ILogger logger, IFileSystem fileSystem, IHttpClient httpClient,
             ILocalizationManager localizationManager, ILibraryManager libraryManager)
@@ -51,6 +50,15 @@ namespace subbuzz.Providers
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
+            try
+            {
+                return await Download.ArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                _logger.ErrorException(Name + ":GetSubtitles:Exception:", e);
+            }
+
             return new SubtitleResponse();
         }
 
@@ -99,7 +107,7 @@ namespace subbuzz.Providers
                 {
                     Url = "https://subsunacs.net/search.php",
                     UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0",
-                    Referer = "https://subsunacs.net/index.php",
+                    Referer = HttpReferer,
                     TimeoutMs = 10000, //10 seconds timeout
                     EnableKeepAlive = false,
                 };
@@ -116,7 +124,7 @@ namespace subbuzz.Providers
                     { "u", "" }, // uploader
                     { "g", "" }, // genre
                     { "t", "" },
-                    { "imdbcheck", "1" }                
+                    { "imdbcheck", "1" }
                 };
 
                 opts.SetPostData(post_params);
@@ -142,7 +150,7 @@ namespace subbuzz.Providers
                             if (linkNode == null) continue;
 
                             string subLink = "https://subsunacs.net" + linkNode.Attributes["href"].Value;
-                            
+
                             string subNotes = linkNode.Attributes["title"].DeEntitizeValue;
 
                             var regex = new Regex(@"(?:.*<b>Инфо: </b><br>)(.*)(?:</div>)");
@@ -154,16 +162,19 @@ namespace subbuzz.Providers
                             string subUploader = tdNodes[5].InnerText;
                             string subDownloads = tdNodes[6].InnerText;
 
-                            var files = await GetSubFileNames(subLink);
+                            var files = await Download.ArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
                             foreach (var file in files)
                             {
+                                string fileExt = file.Split('.').LastOrDefault().ToLower();
+                                if (fileExt != "srt" && fileExt != "sub") continue;
+
                                 var item = new RemoteSubtitleInfo
                                 {
                                     ThreeLetterISOLanguageName = language.ThreeLetterISOLanguageName,
-                                    Id = Utils.Base64UrlEncode(subLink + UrlSeparator + file + UrlSeparator + language.TwoLetterISOLanguageName),
+                                    Id = Utils.Base64UrlEncode(subLink + Download.UrlSeparator + file + Download.UrlSeparator + language.TwoLetterISOLanguageName),
                                     ProviderName = Name,
                                     Name = file,
-                                    Format = file.Split('.').LastOrDefault().ToUpper(),
+                                    Format = fileExt,
                                     Author = subUploader,
                                     Comment = subInfo,
                                     //DateCreated = DateTimeOffset.Parse(subDate),
@@ -189,41 +200,5 @@ namespace subbuzz.Providers
             return res;
         }
 
-        private async Task<IEnumerable<string>> GetSubFileNames(string link)
-        {
-            var res = new List<string>();
-
-            var opts = new HttpRequestOptions
-            {
-                Url = link,
-                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0",
-                Referer = "https://subsunacs.net/search.php",
-                TimeoutMs = 10000, //10 seconds timeout
-                EnableKeepAlive = false,
-            };
-
-            try
-            {
-                using (var response = await _httpClient.Get(opts).ConfigureAwait(false))
-                {
-                    var arcreader = ReaderFactory.Open(response);
-                    while (arcreader.MoveToNextEntry())
-                    {
-                        string fileExt = arcreader.Entry.Key.Split('.').LastOrDefault().ToLower();
-
-                        if (!arcreader.Entry.IsDirectory && (fileExt == "srt" || fileExt == "sub"))
-                        {
-                            res.Add(arcreader.Entry.Key);
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.ErrorException(Name + ":GetSubFileNames:Exception:", e);
-            }
-
-            return res;
-        }
     }
 }

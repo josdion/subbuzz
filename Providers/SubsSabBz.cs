@@ -1,29 +1,28 @@
-﻿using MediaBrowser.Common.Net;
+﻿using HtmlAgilityPack;
+using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
+using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
+using subbuzz.Helpers;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
-using MediaBrowser.Model.Globalization;
-using HtmlAgilityPack;
-using System.Text.RegularExpressions;
-using SharpCompress.Readers;
-using System.Linq;
-using subbuzz.Helpers;
 
 namespace subbuzz.Providers
 {
     public class SubsSabBz : ISubtitleProvider, IHasOrder
     {
-        private const string UrlSeparator = "*|*";
+        private const string HttpReferer = "http://subs.sab.bz/index.php?";
 
         private readonly IHttpClient _httpClient;
         private readonly ILogger _logger;
@@ -35,10 +34,10 @@ namespace subbuzz.Providers
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
-        
-        public int Order => 1;
 
-        public SubsSabBz(ILogger logger, IFileSystem fileSystem, IHttpClient httpClient, 
+        public int Order => 0;
+
+        public SubsSabBz(ILogger logger, IFileSystem fileSystem, IHttpClient httpClient,
             ILocalizationManager localizationManager, ILibraryManager libraryManager)
         {
             _logger = logger;
@@ -52,40 +51,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                string[] ids = Utils.Base64UrlDecode(id).Split(new[] { UrlSeparator }, StringSplitOptions.None);
-                string link = ids[0];
-                string file = ids[1];
-                string lang = ids[2];
-
-                var opts = new HttpRequestOptions
-                {
-                    Url = link,
-                    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0",
-                    Referer = "http://subs.sab.bz/",
-                    TimeoutMs = 10000, //10 seconds timeout
-                    EnableKeepAlive = false,
-                };
-
-                using (var response = await _httpClient.Get(opts).ConfigureAwait(false))
-                {
-                    var arcreader = ReaderFactory.Open(response);
-                    while (arcreader.MoveToNextEntry())
-                    {
-                        if (file == arcreader.Entry.Key)
-                        {
-                            byte[] buf = new byte[arcreader.Entry.Size];
-                            arcreader.OpenEntryStream().Read(buf, 0, buf.Length);
-
-                            return new SubtitleResponse
-                            {
-                                Language = lang,
-                                Format = arcreader.Entry.Key.Split('.').LastOrDefault().ToLower(),
-                                IsForced = false,
-                                Stream = new MemoryStream(buf)
-                            };
-                        }
-                    }
-                }
+                return await Download.ArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -101,7 +67,7 @@ namespace subbuzz.Providers
             var res = new List<RemoteSubtitleInfo>();
 
             try
-            {            
+            {
                 BaseItem libItem = _libraryManager.FindByPath(request.MediaPath, false);
                 if (libItem == null)
                 {
@@ -121,9 +87,9 @@ namespace subbuzz.Providers
                     Episode ep = libItem as Episode;
                     searchText = String.Format("{0} {1:D2} {2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
                 }
-                else 
-                { 
-                    return res;  
+                else
+                {
+                    return res;
                 }
 
                 var language = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
@@ -140,7 +106,7 @@ namespace subbuzz.Providers
                 {
                     Url = "http://subs.sab.bz/index.php?",
                     UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0",
-                    Referer = "http://subs.sab.bz/",
+                    Referer = HttpReferer,
                     TimeoutMs = 10000, //10 seconds timeout
                     EnableKeepAlive = false,
                 };
@@ -176,7 +142,7 @@ namespace subbuzz.Providers
 
                             HtmlNode linkNode = tdNodes[3].SelectSingleNode("a[@href]");
                             if (linkNode == null) continue;
-                            
+
                             string subLink = linkNode.Attributes["href"].Value;
                             var regexLink = new Regex(@"(?<g1>.*index.php\?)(?<g2>s=.*&amp;)?(?<g3>.*)");
                             subLink = regexLink.Replace(subLink, "${g1}${g3}");
@@ -186,7 +152,7 @@ namespace subbuzz.Providers
                             string subNotes = linkNode.Attributes["onmouseover"].DeEntitizeValue;
                             var regex = new Regex(@"ddrivetip\(\'<div.*/></div>(.*)\',\'#[0-9]+\'\)");
                             subNotes = regex.Replace(subNotes, "$1");
-                            string subInfo = subNotes.Substring(subNotes.LastIndexOf("<b>Доп. инфо</b>")+17);
+                            string subInfo = subNotes.Substring(subNotes.LastIndexOf("<b>Доп. инфо</b>") + 17);
 
                             subInfo = Utils.TrimString(subInfo, "<br />");
                             subInfo = subInfo.Replace("<br /><br />", "<br />").Replace("<br /><br />", "<br />");
@@ -202,13 +168,16 @@ namespace subbuzz.Providers
                             string subRating = tdNodes[11].SelectSingleNode(".//img").Attributes["title"].Value;
                             subRating = subRating.Substring(subRating.LastIndexOf("Rating: ") + 8);
 
-                            var files = await GetSubFileNames(subLink);
+                            var files = await Download.ArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
                             foreach (var file in files)
                             {
+                                string fileExt = file.Split('.').LastOrDefault().ToLower();
+                                if (fileExt != "srt" && fileExt != "sub") continue;
+
                                 var item = new RemoteSubtitleInfo
                                 {
                                     ThreeLetterISOLanguageName = language.ThreeLetterISOLanguageName,
-                                    Id = Utils.Base64UrlEncode(subLink + UrlSeparator + file + UrlSeparator + language.TwoLetterISOLanguageName),
+                                    Id = Utils.Base64UrlEncode(subLink + Download.UrlSeparator + file + Download.UrlSeparator + language.TwoLetterISOLanguageName),
                                     ProviderName = Name,
                                     Name = file,
                                     Format = file.Split('.').LastOrDefault().ToUpper(),
@@ -236,44 +205,6 @@ namespace subbuzz.Providers
 
             return res;
         }
-
-        private async Task<IEnumerable<string>> GetSubFileNames(string link)
-        {
-            var res = new List<string>();
-
-            var opts = new HttpRequestOptions
-            {
-                Url = link,
-                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0",
-                Referer = "http://subs.sab.bz/",
-                TimeoutMs = 10000, //10 seconds timeout
-                EnableKeepAlive = false,
-            };
-
-            try
-            {
-                using (var response = await _httpClient.Get(opts).ConfigureAwait(false))
-                {
-                    var arcreader = ReaderFactory.Open(response);
-                    while (arcreader.MoveToNextEntry())
-                    {
-                        string fileExt = arcreader.Entry.Key.Split('.').LastOrDefault().ToLower();
-
-                        if (!arcreader.Entry.IsDirectory && (fileExt == "srt" || fileExt == "sub"))
-                        {
-                            res.Add(arcreader.Entry.Key);
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.ErrorException(Name + ":GetSubFileNames:Exception:", e);
-            }
-
-            return res;
-        }
-
 
     }
 }
