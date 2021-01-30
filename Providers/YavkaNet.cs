@@ -146,9 +146,12 @@ namespace subbuzz.Providers
                             var regex = new Regex(@"(?s)<p.*><img [A-z0-9=\'/\. :;#]*>(.*)</p>");
                             string subInfo = regex.Replace(subNotes, "$1");
 
-                            string subYear = tdNodes[0].SelectSingleNode(".//span").InnerText.Trim(new[] { ' ', '(', ')' });
-                            string subFps =  trNodes[i].SelectSingleNode(".//span[@title='Кадри в секунда']").InnerText;
-                            string subDownloads = trNodes[i].SelectSingleNode(".//div//strong").InnerText;
+                            //string subYear = tdNodes[0].SelectSingleNode(".//span").InnerText.Trim(new[] { ' ', '(', ')' });
+                            //string subFps =  trNodes[i].SelectSingleNode(".//span[@title='Кадри в секунда']").InnerText;
+
+                            string subDownloads = "0";
+                            var dnldNode = trNodes[i].SelectSingleNode(".//div//strong");
+                            if (dnldNode != null) subDownloads = dnldNode.InnerText;
 
                             //var upl = trNodes[i].SelectSingleNode(".//a[@class='click']");
 

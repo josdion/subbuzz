@@ -95,7 +95,7 @@ namespace subbuzz.Providers
                 if (request.ContentType == VideoContentType.Episode)
                 {
                     Episode ep = libItem as Episode;
-                    searchText = String.Format("{0} {1:D2} {2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
+                    searchText = String.Format("{0} {1:D2}x{2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
                 }
                 else
                 {
@@ -159,7 +159,11 @@ namespace subbuzz.Providers
 
                             string subNumCd = tdNodes[1].InnerText;
                             string subFps = tdNodes[2].InnerText;
-                            string subRating = tdNodes[3].SelectSingleNode(".//img").Attributes["title"].Value;
+
+                            string subRating = "0";
+                            var rtImgNode = tdNodes[3].SelectSingleNode(".//img");
+                            if (rtImgNode != null) subRating = rtImgNode.Attributes["title"].Value;
+                            
                             string subUploader = tdNodes[5].InnerText;
                             string subDownloads = tdNodes[6].InnerText;
 

@@ -94,7 +94,7 @@ namespace subbuzz.Providers
                 if (request.ContentType == VideoContentType.Episode)
                 {
                     Episode ep = libItem as Episode;
-                    searchText = String.Format("{0} {1:D2} {2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
+                    searchText = String.Format("{0} {1:D2}x{2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
                 }
                 else
                 {
@@ -166,8 +166,14 @@ namespace subbuzz.Providers
                             string subUploader = tdNodes[8].InnerText;
                             // subImdb =  tdNodes[9]
                             string subDownloads = tdNodes[10].InnerText;
-                            string subRating = tdNodes[11].SelectSingleNode(".//img").Attributes["title"].Value;
-                            subRating = subRating.Substring(subRating.LastIndexOf("Rating: ") + 8);
+
+                            string subRating = "0";
+                            var rtImgNode = tdNodes[11].SelectSingleNode(".//img");
+                            if (rtImgNode != null)
+                            {
+                                subRating = rtImgNode.Attributes["title"].Value;
+                                subRating = subRating.Replace("Rating: ", "").Trim();
+                            }
 
                             var files = await Download.ArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
                             foreach (var file in files)
