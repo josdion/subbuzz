@@ -13,6 +13,8 @@ using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -132,7 +134,48 @@ namespace subbuzz.Providers
 
                         for (int i = 0; i < trNodes.Count; i++)
                         {
+                            var tdNodes = trNodes[i].SelectNodes(".//td");
+                            if (tdNodes == null) continue;
 
+                            HtmlNode linkNode = tdNodes[0].SelectSingleNode("a[@class='balon' or @class='selector']");
+                            if (linkNode == null) continue;
+
+                            string subLink = "http://yavka.net/" + linkNode.Attributes["href"].Value;
+
+                            string subNotes = linkNode.Attributes["content"].DeEntitizeValue;
+                            var regex = new Regex(@"(?s)<p.*><img [A-z0-9=\'/\. :;#]*>(.*)</p>");
+                            string subInfo = regex.Replace(subNotes, "$1");
+
+                            string subYear = tdNodes[0].SelectSingleNode(".//span").InnerText.Trim(new[] { ' ', '(', ')' });
+                            string subFps =  trNodes[i].SelectSingleNode(".//span[@title='Кадри в секунда']").InnerText;
+                            string subDownloads = trNodes[i].SelectSingleNode(".//div//strong").InnerText;
+
+                            //var upl = trNodes[i].SelectSingleNode(".//a[@class='click']");
+
+                            var files = await Download.ArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
+                            foreach (var file in files)
+                            {
+                                string fileExt = file.Split('.').LastOrDefault().ToLower();
+                                if (fileExt != "srt" && fileExt != "sub") continue;
+
+                                var item = new RemoteSubtitleInfo
+                                {
+                                    ThreeLetterISOLanguageName = languageInfo.ThreeLetterISOLanguageName,
+                                    Id = Utils.Base64UrlEncode(subLink + Download.UrlSeparator + file + Download.UrlSeparator + languageInfo.TwoLetterISOLanguageName),
+                                    ProviderName = Name,
+                                    Name = file,
+                                    Format = fileExt,
+                                    //Author = subUploader,
+                                    Comment = subInfo,
+                                    //DateCreated = DateTimeOffset.Parse(subDate),
+                                    //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
+                                    DownloadCount = int.Parse(subDownloads),
+                                    IsHashMatch = false,
+                                    IsForced = false,
+                                };
+
+                                res.Add(item);
+                            }
                         }
                     }
                 }
