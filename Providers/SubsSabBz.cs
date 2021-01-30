@@ -52,7 +52,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await Download.ArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
+                return await Download.GetArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -175,7 +175,7 @@ namespace subbuzz.Providers
                                 subRating = subRating.Replace("Rating: ", "").Trim();
                             }
 
-                            var files = await Download.ArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
+                            var files = await Download.GetArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
                             foreach (var file in files)
                             {
                                 string fileExt = file.Split('.').LastOrDefault().ToLower();

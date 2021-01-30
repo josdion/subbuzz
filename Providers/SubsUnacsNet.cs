@@ -1,10 +1,12 @@
 ﻿using HtmlAgilityPack;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -53,7 +55,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await Download.ArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
+                return await Download.GetArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -86,16 +88,24 @@ namespace subbuzz.Providers
                 }
 
                 string searchText = "";
+                float? videoFps = null;
 
                 if (request.ContentType == VideoContentType.Movie)
                 {
+                    Movie mv = libItem as Movie;
+                    MediaStream media = mv.GetDefaultVideoStream();
+                    if (media != null) videoFps = media.AverageFrameRate;
+
                     searchText = libItem.OriginalTitle;
                 }
                 else
                 if (request.ContentType == VideoContentType.Episode)
                 {
                     Episode ep = libItem as Episode;
-                    searchText = String.Format("{0} {1:D2}x{2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
+                    MediaStream media = ep.GetDefaultVideoStream();
+                    if (media != null) videoFps = media.AverageFrameRate;
+
+                     searchText = String.Format("{0} {1:D2}x{2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
                 }
                 else
                 {
@@ -168,7 +178,7 @@ namespace subbuzz.Providers
                             string subUploader = tdNodes[5].InnerText;
                             string subDownloads = tdNodes[6].InnerText;
 
-                            var files = await Download.ArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
+                            var files = await Download.GetArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
                             foreach (var file in files)
                             {
                                 string fileExt = file.Split('.').LastOrDefault().ToLower();
