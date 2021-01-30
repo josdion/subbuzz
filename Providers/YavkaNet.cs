@@ -165,7 +165,7 @@ namespace subbuzz.Providers
                                 var item = new RemoteSubtitleInfo
                                 {
                                     ThreeLetterISOLanguageName = languageInfo.ThreeLetterISOLanguageName,
-                                    Id = Utils.Base64UrlEncode(subLink + Download.UrlSeparator + file + Download.UrlSeparator + languageInfo.TwoLetterISOLanguageName),
+                                    Id = Download.GetId(subLink, file, languageInfo.TwoLetterISOLanguageName),
                                     ProviderName = Name,
                                     Name = file,
                                     Format = fileExt,

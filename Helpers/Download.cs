@@ -11,12 +11,17 @@ namespace subbuzz.Helpers
 {
     class Download
     {
-        public const string UrlSeparator = "*:*";
+        protected const string _UrlSeparator = "*:*";
         public const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0";
 
-        public static async Task<SubtitleResponse> GetArchiveSubFile(IHttpClient httpClient, string urlid, string referer)
+        public static string GetId(string link, string file, string lang)
         {
-            string[] ids = Utils.Base64UrlDecode(urlid).Split(new[] { UrlSeparator }, StringSplitOptions.None);
+            return Utils.Base64UrlEncode(link + _UrlSeparator + file + _UrlSeparator + lang);
+        }
+
+        public static async Task<SubtitleResponse> GetArchiveSubFile(IHttpClient httpClient, string id, string referer)
+        {
+            string[] ids = Utils.Base64UrlDecode(id).Split(new[] { _UrlSeparator }, StringSplitOptions.None);
             string link = ids[0];
             string file = ids[1];
             string lang = ids[2];
@@ -50,17 +55,17 @@ namespace subbuzz.Helpers
         {
             var res = new List<string>();
 
-            Stream stream = await GetStream(httpClient, link, referer).ConfigureAwait(false);
-
-            IArchive arcreader = ArchiveFactory.Open(stream);
-            foreach (IArchiveEntry entry in arcreader.Entries)
+            using (Stream stream = await GetStream(httpClient, link, referer).ConfigureAwait(false))
             {
-                if (!entry.IsDirectory)
+                IArchive arcreader = ArchiveFactory.Open(stream);
+                foreach (IArchiveEntry entry in arcreader.Entries)
                 {
-                    res.Add(entry.Key);
+                    if (!entry.IsDirectory)
+                    {
+                        res.Add(entry.Key);
+                    }
                 }
             }
-
             return res;
         }
 
@@ -82,6 +87,7 @@ namespace subbuzz.Helpers
                 Stream memStream = new MemoryStream();
                 response.CopyTo(memStream);
                 // TODO: store to cache
+                memStream.Seek(0, SeekOrigin.Begin);
                 return memStream;
             }
         }
