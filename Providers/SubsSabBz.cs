@@ -23,6 +23,7 @@ namespace subbuzz.Providers
     public class SubsSabBz : ISubtitleProvider, IHasOrder
     {
         private const string HttpReferer = "http://subs.sab.bz/index.php?";
+        private readonly List<string> Languages = new List<string> { "bg", "en" };
 
         private readonly IHttpClient _httpClient;
         private readonly ILogger _logger;
@@ -66,6 +67,14 @@ namespace subbuzz.Providers
         {
             var res = new List<RemoteSubtitleInfo>();
 
+            var languageInfo = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
+            var lang = languageInfo.TwoLetterISOLanguageName.ToLower();
+
+            if (!Languages.Contains(lang))
+            {
+                return res;
+            }
+
             try
             {
                 BaseItem libItem = _libraryManager.FindByPath(request.MediaPath, false);
@@ -92,20 +101,12 @@ namespace subbuzz.Providers
                     return res;
                 }
 
-                var language = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
-                var lang = language.TwoLetterISOLanguageName.ToLower();
-
                 _logger?.Info($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
-
-                if (lang != "bg" && lang != "en")
-                {
-                    return res;
-                }
 
                 var opts = new HttpRequestOptions
                 {
                     Url = "http://subs.sab.bz/index.php?",
-                    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0",
+                    UserAgent = Download.UserAgent,
                     Referer = HttpReferer,
                     TimeoutMs = 10000, //10 seconds timeout
                     EnableKeepAlive = false,
@@ -176,8 +177,8 @@ namespace subbuzz.Providers
 
                                 var item = new RemoteSubtitleInfo
                                 {
-                                    ThreeLetterISOLanguageName = language.ThreeLetterISOLanguageName,
-                                    Id = Utils.Base64UrlEncode(subLink + Download.UrlSeparator + file + Download.UrlSeparator + language.TwoLetterISOLanguageName),
+                                    ThreeLetterISOLanguageName = languageInfo.ThreeLetterISOLanguageName,
+                                    Id = Utils.Base64UrlEncode(subLink + Download.UrlSeparator + file + Download.UrlSeparator + languageInfo.TwoLetterISOLanguageName),
                                     ProviderName = Name,
                                     Name = file,
                                     Format = file.Split('.').LastOrDefault().ToUpper(),
