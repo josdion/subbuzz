@@ -151,6 +151,7 @@ namespace subbuzz.Providers
                             if (linkNode == null) continue;
 
                             string subLink = "https://subsunacs.net" + linkNode.Attributes["href"].Value;
+                            string subTitle = linkNode.InnerText;
 
                             string subNotes = linkNode.Attributes["title"].DeEntitizeValue;
 

@@ -141,6 +141,7 @@ namespace subbuzz.Providers
                             if (linkNode == null) continue;
 
                             string subLink = "http://yavka.net/" + linkNode.Attributes["href"].Value;
+                            string subTitle = linkNode.InnerText;
 
                             string subNotes = linkNode.Attributes["content"].DeEntitizeValue;
                             var regex = new Regex(@"(?s)<p.*><img [A-z0-9=\'/\. :;#]*>(.*)</p>");
