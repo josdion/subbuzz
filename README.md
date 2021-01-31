@@ -1,5 +1,5 @@
 # subbuzz
-Subtitle plugin for emby
+Subtitle plugin for emby/jellyfin
 
 ## Supported subtitles providers:
 * Subs.sab.bz
