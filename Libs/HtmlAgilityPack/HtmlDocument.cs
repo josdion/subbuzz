@@ -12,6 +12,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 
+#pragma warning disable 0618
+
 namespace HtmlAgilityPack
 {
     /// <summary>

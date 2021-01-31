@@ -78,8 +78,10 @@ namespace subbuzz.Helpers
                 Url = link,
                 UserAgent = UserAgent,
                 Referer = referer,
-                TimeoutMs = 10000, //10 seconds timeout
                 EnableKeepAlive = false,
+#if EMBY
+                TimeoutMs = 10000, //10 seconds timeout
+#endif
             };
 
             using (var response = await httpClient.Get(opts).ConfigureAwait(false))

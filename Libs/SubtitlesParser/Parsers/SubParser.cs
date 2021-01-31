@@ -120,7 +120,7 @@ namespace SubtitlesParser.Classes.Parsers
                     var items = parser.ParseStream(seekableStream, encoding);
                     return items;
                 }
-                catch(Exception ex)
+                catch//(Exception ex)
                 {
                     continue; // Let's try the next parser...
                     //Console.WriteLine(ex);

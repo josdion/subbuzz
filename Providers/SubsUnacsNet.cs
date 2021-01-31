@@ -9,7 +9,6 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
-using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 using subbuzz.Helpers;
 using System;
@@ -20,6 +19,15 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if EMBY
+using subbuzz.Logging;
+using ILogger = MediaBrowser.Model.Logging.ILogger;
+#else
+using System.Net.Http;
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubsUnacsNet>;
+#endif
 
 namespace subbuzz.Providers
 {
@@ -59,7 +67,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.ErrorException(Name + ":GetSubtitles:Exception:", e);
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -70,7 +78,11 @@ namespace subbuzz.Providers
         {
             var res = new List<RemoteSubtitleInfo>();
 
+#if EMBY
             var languageInfo = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
+#else
+            var languageInfo = _localizationManager.FindLanguageInfo(request.Language);
+#endif
             var lang = languageInfo.TwoLetterISOLanguageName.ToLower();
 
             if (!Languages.Contains(lang))
@@ -83,7 +95,7 @@ namespace subbuzz.Providers
                 BaseItem libItem = _libraryManager.FindByPath(request.MediaPath, false);
                 if (libItem == null)
                 {
-                    _logger.Info($"{Name} No library info for {request.MediaPath}");
+                    _logger.LogInformation($"{Name} No library info for {request.MediaPath}");
                     return res;
                 }
 
@@ -96,7 +108,7 @@ namespace subbuzz.Providers
                     MediaStream media = mv.GetDefaultVideoStream();
                     if (media != null) videoFps = media.AverageFrameRate;
 
-                    searchText = libItem.OriginalTitle;
+                    searchText = !String.IsNullOrEmpty(libItem.OriginalTitle) ? libItem.OriginalTitle : libItem.Name;
                 }
                 else
                 if (request.ContentType == VideoContentType.Episode)
@@ -105,22 +117,27 @@ namespace subbuzz.Providers
                     MediaStream media = ep.GetDefaultVideoStream();
                     if (media != null) videoFps = media.AverageFrameRate;
 
-                     searchText = String.Format("{0} {1:D2}x{2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
+                    searchText = String.Format("{0} {1:D2}x{2:D2}",
+                        !String.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name,
+                        request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
                 }
                 else
                 {
                     return res;
                 }
 
-                _logger?.Info($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
 
                 var opts = new HttpRequestOptions
                 {
                     Url = "https://subsunacs.net/search.php",
                     UserAgent = Download.UserAgent,
                     Referer = HttpReferer,
-                    TimeoutMs = 10000, //10 seconds timeout
                     EnableKeepAlive = false,
+                    CancellationToken = cancellationToken,
+#if EMBY
+                    TimeoutMs = 10000, //10 seconds timeout
+#endif
                 };
 
                 var post_params = new Dictionary<string, string>
@@ -138,7 +155,13 @@ namespace subbuzz.Providers
                     { "imdbcheck", "1" }
                 };
 
+#if EMBY
                 opts.SetPostData(post_params);
+#else
+                ByteArrayContent formUrlEncodedContent = new FormUrlEncodedContent(post_params);
+                opts.RequestContent = await formUrlEncodedContent.ReadAsStringAsync();
+                opts.RequestContentType = "application/x-www-form-urlencoded";
+#endif
 
                 using (var response = await _httpClient.Post(opts).ConfigureAwait(false))
                 {
@@ -167,6 +190,7 @@ namespace subbuzz.Providers
 
                             var regex = new Regex(@"(?:.*<b>Инфо: </b><br>)(.*)(?:</div>)");
                             string subInfo = regex.Replace(subNotes, "$1");
+                            subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
 
                             string subNumCd = tdNodes[1].InnerText;
                             string subFps = tdNodes[2].InnerText;
@@ -197,7 +221,9 @@ namespace subbuzz.Providers
                                     CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                                     DownloadCount = int.Parse(subDownloads),
                                     IsHashMatch = false,
+#if EMBY
                                     IsForced = false,
+#endif
                                 };
 
                                 res.Add(item);
@@ -210,7 +236,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.ErrorException(Name + ":Search:Exception:", e);
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             return res;

@@ -7,7 +7,6 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
-using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 using subbuzz.Helpers;
 using System;
@@ -18,6 +17,15 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using System.IO.Compression;
+
+#if EMBY
+using subbuzz.Logging;
+using ILogger = MediaBrowser.Model.Logging.ILogger;
+#else
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.YavkaNet>;
+#endif
 
 namespace subbuzz.Providers
 {
@@ -57,7 +65,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.ErrorException(Name + ":GetSubtitles:Exception:", e);
+                _logger.LogError(e, "GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -68,7 +76,11 @@ namespace subbuzz.Providers
         {
             var res = new List<RemoteSubtitleInfo>();
 
+#if EMBY
             var languageInfo = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
+#else
+            var languageInfo = _localizationManager.FindLanguageInfo(request.Language);
+#endif
             var lang = languageInfo.TwoLetterISOLanguageName.ToLower();
 
             if (!Languages.Contains(lang))
@@ -81,7 +93,7 @@ namespace subbuzz.Providers
                 BaseItem libItem = _libraryManager.FindByPath(request.MediaPath, false);
                 if (libItem == null)
                 {
-                    _logger.Info($"{Name} No library info for {request.MediaPath}");
+                    _logger.LogInformation($"{Name} No library info for {request.MediaPath}");
                     return res;
                 }
 
@@ -89,20 +101,22 @@ namespace subbuzz.Providers
 
                 if (request.ContentType == VideoContentType.Movie)
                 {
-                    searchText = libItem.OriginalTitle;
+                    searchText = !String.IsNullOrEmpty(libItem.OriginalTitle) ? libItem.OriginalTitle : libItem.Name;
                 }
                 else
                 if (request.ContentType == VideoContentType.Episode)
                 {
                     Episode ep = libItem as Episode;
-                    searchText = String.Format("{0} s{1:D2}e{2:D2}", ep.Series.OriginalTitle, request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
+                    searchText = String.Format("{0} s{1:D2}e{2:D2}",
+                        !String.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name,
+                        request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
                 }
                 else
                 {
                     return res;
                 }
 
-                _logger?.Info($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
 
                 var opts = new HttpRequestOptions
                 {
@@ -115,14 +129,23 @@ namespace subbuzz.Providers
 
                     UserAgent = Download.UserAgent,
                     Referer = HttpReferer,
-                    TimeoutMs = 10000, //10 seconds timeout
                     EnableKeepAlive = false,
+                    CancellationToken = cancellationToken,
+#if EMBY
+                    TimeoutMs = 10000, //10 seconds timeout
                     DecompressionMethod = CompressionMethod.Gzip,
+#else
+                    DecompressionMethod = CompressionMethods.Gzip,
+#endif
                 };
 
                 using (var response = await _httpClient.GetResponse(opts).ConfigureAwait(false))
                 {
-                    using (var reader = new StreamReader(response.Content, System.Text.Encoding.UTF8))
+                    GZipStream gz;
+                    if (response.Content.GetType() == typeof(GZipStream)) gz = response.Content as GZipStream;
+                    else gz = new GZipStream(response.Content, CompressionMode.Decompress);
+
+                    using (var reader = new StreamReader(gz, System.Text.Encoding.UTF8)) //response.ContentHeaders.ContentType.CharSet;
                     {
                         var html = await reader.ReadToEndAsync().ConfigureAwait(false);
 
@@ -175,7 +198,9 @@ namespace subbuzz.Providers
                                     //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                                     DownloadCount = int.Parse(subDownloads),
                                     IsHashMatch = false,
+#if EMBY
                                     IsForced = false,
+#endif
                                 };
 
                                 res.Add(item);
@@ -186,7 +211,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.ErrorException(Name + ":Search:Exception:", e);
+                _logger.LogError(e, "Search error: {e}");
             }
 
             return res;
