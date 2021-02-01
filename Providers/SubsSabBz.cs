@@ -40,6 +40,23 @@ namespace subbuzz.Providers
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
 
+        private static Dictionary<string, string> InconsistentTvs = new Dictionary<string, string>
+        {
+            { "Marvel's Daredevil", "Daredevil" },
+            { "Marvel's Luke Cage", "Luke Cage" },
+            { "Marvel's Iron Fist", "Iron Fist" },
+            { "Marvel's Jessica Jones", "Jessica Jones" },
+            { "DC's Legends of Tomorrow", "Legends of Tomorrow" },
+            { "Doctor Who (2005)", "Doctor Who" },
+            { "Star Trek: Deep Space Nine", "Star Trek DS9" },
+            { "Star Trek: The Next Generation", "Star Trek TNG" },
+        };
+
+        private static Dictionary<string, string> InconsistentMovies = new Dictionary<string, string>
+        {
+            { "Back to the Future Part", "Back to the Future" },
+        };
+
         public string Name => $"[{Plugin.NAME}] <b>subs.sab.bz</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
@@ -78,7 +95,14 @@ namespace subbuzz.Providers
 
             try
             {
-                SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} {1:D2}x{2:D2}");
+                SearchInfo si = SearchInfo.GetSearchInfo(
+                    request, 
+                    _localizationManager, 
+                    _libraryManager, 
+                    "{0} {1:D2}x{2:D2}",
+                    InconsistentTvs,
+                    InconsistentMovies);
+
                 _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))

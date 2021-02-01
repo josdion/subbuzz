@@ -7,6 +7,9 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace subbuzz.Helpers
 {
@@ -23,7 +26,10 @@ namespace subbuzz.Helpers
             SubtitleSearchRequest request,
             ILocalizationManager localize,
             ILibraryManager lib,
-            string episode_format = "")
+            string episode_format = "",
+            Dictionary<string, string> inconsistentTvs = null,
+            Dictionary<string, string> inconsistentMovies = null
+            )
         {
             var res = new SearchInfo();
 
@@ -47,6 +53,11 @@ namespace subbuzz.Helpers
                 if (media != null) res.VideoFps = media.AverageFrameRate;
 
                 res.SearchText = !String.IsNullOrEmpty(mv.OriginalTitle) ? mv.OriginalTitle : mv.Name;
+                if (inconsistentMovies != null)
+                {
+                    res.SearchText = inconsistentMovies.Aggregate(res.SearchText, (current, value) =>
+                        Regex.Replace(current, Regex.Escape(value.Key), value.Value, RegexOptions.IgnoreCase));
+                }
             }
             else
             if (request.ContentType == VideoContentType.Episode && !String.IsNullOrEmpty(episode_format))
@@ -55,9 +66,16 @@ namespace subbuzz.Helpers
                 MediaStream media = ep.GetDefaultVideoStream();
                 if (media != null) res.VideoFps = media.AverageFrameRate;
 
+                string title = !String.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name;
+                if (inconsistentTvs != null)
+                {
+                    title = inconsistentTvs.Aggregate(title, (current, value) =>
+                        Regex.Replace(current, Regex.Escape(value.Key), value.Value, RegexOptions.IgnoreCase));
+                }
+
                 // episode format {0} - series name, {1} - season, {2} - episode
                 res.SearchText = String.Format(episode_format,
-                    !String.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name,
+                    title,
                     request.ParentIndexNumber ?? 0, 
                     request.IndexNumber ?? 0);
             }
