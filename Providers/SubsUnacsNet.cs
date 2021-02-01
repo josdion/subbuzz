@@ -129,7 +129,7 @@ namespace subbuzz.Providers
 
                 var post_params = new Dictionary<string, string>
                 {
-                    { "m", HttpUtility.UrlEncode(si.SearchText) },
+                    { "m", si.SearchText },
                     { "l", si.Lang != "en" ? "0" :"1" },
                     { "c", "" }, // country
                     { "y", request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "" },
@@ -143,6 +143,7 @@ namespace subbuzz.Providers
                 };
 
 #if EMBY
+                post_params["m"] = HttpUtility.UrlEncode(si.SearchText);
                 opts.SetPostData(post_params);
 #else
                 ByteArrayContent formUrlEncodedContent = new FormUrlEncodedContent(post_params);
