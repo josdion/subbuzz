@@ -20,6 +20,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
+using System.Web;
 
 #if EMBY
 using subbuzz.Logging;
@@ -128,7 +129,7 @@ namespace subbuzz.Providers
 
                 var post_params = new Dictionary<string, string>
                 {
-                    { "m", si.SearchText },
+                    { "m", HttpUtility.UrlEncode(si.SearchText) },
                     { "l", si.Lang != "en" ? "0" :"1" },
                     { "c", "" }, // country
                     { "y", request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "" },
