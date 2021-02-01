@@ -3,28 +3,39 @@ using MediaBrowser.Controller.Subtitles;
 using SharpCompress.Archives;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace subbuzz.Helpers
 {
     class Download
     {
-        protected const string _UrlSeparator = "*:*";
+        protected const string UrlSeparator = "*:*";
         public const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0";
 
-        public static string GetId(string link, string file, string lang)
+        public static string GetId(string link, string file, string lang, string fps)
         {
-            return Utils.Base64UrlEncode(link + _UrlSeparator + file + _UrlSeparator + lang);
+            return Utils.Base64UrlEncode(link + UrlSeparator + file + UrlSeparator + lang + UrlSeparator + fps);
         }
 
-        public static async Task<SubtitleResponse> GetArchiveSubFile(IHttpClient httpClient, string id, string referer)
+        public static async Task<SubtitleResponse> GetArchiveSubFile(
+            IHttpClient httpClient, 
+            string id, 
+            string referer, 
+            Encoding encoding)
         {
-            string[] ids = Utils.Base64UrlDecode(id).Split(new[] { _UrlSeparator }, StringSplitOptions.None);
+            string[] ids = Utils.Base64UrlDecode(id).Split(new[] { UrlSeparator }, StringSplitOptions.None);
             string link = ids[0];
             string file = ids[1];
             string lang = ids[2];
+
+            bool convertToUtf8 = Plugin.Instance.Configuration.EncodeSubtitlesToUTF8;
+
+            float fps = 25;
+            try { fps = float.Parse(ids[3], CultureInfo.InvariantCulture); } catch { }
 
             Stream stream = await GetStream(httpClient, link, referer).ConfigureAwait(false);
 
@@ -36,7 +47,11 @@ namespace subbuzz.Helpers
                     Stream fileStream = entry.OpenEntryStream();
 
                     string fileExt = entry.Key.Split('.').LastOrDefault().ToLower();
-                    // TODO: if fileExt is sub, convert it to srt, as emby doesn't support sub files
+                    if (fileExt != "srt" || (convertToUtf8 && encoding != Encoding.UTF8))
+                    {
+                        fileStream = SubtitleConvert.ToSrt(fileStream, encoding, convertToUtf8, fps);
+                        fileExt = "srt";
+                    }
 
                     return new SubtitleResponse
                     {

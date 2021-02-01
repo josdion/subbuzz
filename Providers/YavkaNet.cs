@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.IO.Compression;
+using System.Text;
 
 #if EMBY
 using subbuzz.Logging;
@@ -61,7 +62,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await Download.GetArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
+                return await Download.GetArchiveSubFile(_httpClient, id, HttpReferer, Encoding.GetEncoding(1251)).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -76,55 +77,23 @@ namespace subbuzz.Providers
         {
             var res = new List<RemoteSubtitleInfo>();
 
-#if EMBY
-            var languageInfo = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
-#else
-            var languageInfo = _localizationManager.FindLanguageInfo(request.Language);
-#endif
-            var lang = languageInfo.TwoLetterISOLanguageName.ToLower();
-
-            if (!Languages.Contains(lang))
-            {
-                return res;
-            }
-
             try
             {
-                BaseItem libItem = _libraryManager.FindByPath(request.MediaPath, false);
-                if (libItem == null)
-                {
-                    _logger.LogInformation($"{Name} No library info for {request.MediaPath}");
-                    return res;
-                }
+                SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} s{1:D2}e{2:D2}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
-                string searchText = "";
-
-                if (request.ContentType == VideoContentType.Movie)
-                {
-                    searchText = !String.IsNullOrEmpty(libItem.OriginalTitle) ? libItem.OriginalTitle : libItem.Name;
-                }
-                else
-                if (request.ContentType == VideoContentType.Episode)
-                {
-                    Episode ep = libItem as Episode;
-                    searchText = String.Format("{0} s{1:D2}e{2:D2}",
-                        !String.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name,
-                        request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
-                }
-                else
+                if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
                     return res;
                 }
-
-                _logger.LogInformation($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
 
                 var opts = new HttpRequestOptions
                 {
                     Url = String.Format(
                         "http://yavka.net/subtitles.php?s={0}&y={1}&c=&u=&l={2}&g=&i=",
-                        HttpUtility.UrlEncode(searchText),
+                        HttpUtility.UrlEncode(si.SearchText),
                         request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "",
-                        lang.ToUpper()
+                        si.Lang.ToUpper()
                         ),
 
                     UserAgent = Download.UserAgent,
@@ -187,8 +156,8 @@ namespace subbuzz.Providers
 
                                 var item = new RemoteSubtitleInfo
                                 {
-                                    ThreeLetterISOLanguageName = languageInfo.ThreeLetterISOLanguageName,
-                                    Id = Download.GetId(subLink, file, languageInfo.TwoLetterISOLanguageName),
+                                    ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                                    Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, ""),
                                     ProviderName = Name,
                                     Name = file,
                                     Format = fileExt,

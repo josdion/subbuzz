@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 #if EMBY
 using subbuzz.Logging;
@@ -60,7 +61,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await Download.GetArchiveSubFile(_httpClient, id, HttpReferer).ConfigureAwait(false);
+                return await Download.GetArchiveSubFile(_httpClient, id, HttpReferer, Encoding.GetEncoding(1251)).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -75,47 +76,15 @@ namespace subbuzz.Providers
         {
             var res = new List<RemoteSubtitleInfo>();
 
-#if EMBY
-            var languageInfo = _localizationManager.FindLanguageInfo(request.Language.AsSpan());
-#else
-            var languageInfo = _localizationManager.FindLanguageInfo(request.Language);
-#endif
-            var lang = languageInfo.TwoLetterISOLanguageName.ToLower();
-
-            if (!Languages.Contains(lang))
-            {
-                return res;
-            }
-
             try
             {
-                BaseItem libItem = _libraryManager.FindByPath(request.MediaPath, false);
-                if (libItem == null)
-                {
-                    _logger.LogInformation($"{Name} No library info for {request.MediaPath}");
-                    return res;
-                }
+                SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} {1:D2}x{2:D2}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
-                string searchText = "";
-
-                if (request.ContentType == VideoContentType.Movie)
-                {
-                    searchText = !String.IsNullOrEmpty(libItem.OriginalTitle) ? libItem.OriginalTitle : libItem.Name;
-                }
-                else
-                if (request.ContentType == VideoContentType.Episode)
-                {
-                    Episode ep = libItem as Episode;
-                    searchText = String.Format("{0} {1:D2}x{2:D2}",
-                        !String.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name, 
-                        request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0);
-                }
-                else
+                if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
                     return res;
                 }
-
-                _logger.LogInformation($"{Name} Request subtitle for '{searchText}', language={lang}, year={request.ProductionYear}");
 
                 var opts = new HttpRequestOptions
                 {
@@ -132,8 +101,8 @@ namespace subbuzz.Providers
                 var post_params = new Dictionary<string, string>
                 {
                     { "act", "search"},
-                    { "movie", searchText},
-                    { "select-language", lang == "en" ? "1" : "2" },
+                    { "movie", si.SearchText},
+                    { "select-language", si.Lang == "en" ? "1" : "2" },
                     { "upldr", "" },
                     { "yr", request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "" },
                     { "release", "" }
@@ -149,7 +118,7 @@ namespace subbuzz.Providers
 
                 using (var response = await _httpClient.Post(opts).ConfigureAwait(false))
                 {
-                    using (var reader = new StreamReader(response.Content, System.Text.Encoding.GetEncoding(1251)))
+                    using (var reader = new StreamReader(response.Content, Encoding.GetEncoding(1251)))
                     {
                         var html = await reader.ReadToEndAsync().ConfigureAwait(false);
 
@@ -206,8 +175,8 @@ namespace subbuzz.Providers
 
                                 var item = new RemoteSubtitleInfo
                                 {
-                                    ThreeLetterISOLanguageName = languageInfo.ThreeLetterISOLanguageName,
-                                    Id = Download.GetId(subLink, file, languageInfo.TwoLetterISOLanguageName),
+                                    ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                                    Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
                                     ProviderName = Name,
                                     Name = file,
                                     Format = file.Split('.').LastOrDefault().ToUpper(),

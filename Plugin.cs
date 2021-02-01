@@ -1,38 +1,36 @@
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
+using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using System;
+using System.Collections.Generic;
 
 #if EMBY
 using System.IO;
 using MediaBrowser.Model.Drawing;
-using subbuzz.Logging;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
-#else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Plugin>;
 #endif
 
 namespace subbuzz
 {
 #if EMBY
-    public class Plugin : BasePlugin<PluginConfiguration>, IHasThumbImage
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasThumbImage
 #else
-    public class Plugin : BasePlugin<PluginConfiguration>
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 #endif
     {
         public const string NAME = "subbuzz";
 
-        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ILogger logger)
+        public Plugin(
+			IApplicationPaths applicationPaths, 
+			IXmlSerializer xmlSerializer)
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            logger.LogInformation("subbuzz is starting.");
         }
 
-        public override Guid Id => new Guid("{5AEAB01B-2EF8-45C6-BB6B-16CE9CB268D4}");
         public override string Name => NAME;
         public override string Description => "Download subtitles from various sites";
+        public override Guid Id => Guid.Parse("5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4");
         public static Plugin Instance { get; private set; }
 
 #if EMBY
@@ -50,6 +48,18 @@ namespace subbuzz
             }
         }
 #endif
+
+        public IEnumerable<PluginPageInfo> GetPages()
+        {
+            return new[]
+            {
+                new PluginPageInfo
+                {
+                    Name = "SubbuzzConfigPage",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html"
+                }
+            };
+        }
 
     }
 }

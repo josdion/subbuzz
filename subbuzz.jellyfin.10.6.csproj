@@ -1,7 +1,7 @@
 ﻿<Project>
   <PropertyGroup>
-    <BaseIntermediateOutputPath>obj/jellyfin</BaseIntermediateOutputPath>
-    <BaseOutputPath>bin/jellyfin</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/jellyfin-10.6</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/jellyfin-10.6</BaseOutputPath>
   </PropertyGroup>
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
@@ -22,8 +22,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.6" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.6.0" />
     <PackageReference Include="SharpCompress" Version="0.25.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
