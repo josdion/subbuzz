@@ -28,6 +28,10 @@ namespace subbuzz.Helpers
         public Download(IHttpClientFactory http)
         {
             _httpClient = http.CreateClient();
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
+            _httpClient.DefaultRequestHeaders.Add("Pragma","no-cache");
+            _httpClient.DefaultRequestHeaders.Add("Accept-Encoding","gzip");
+            _httpClient.Timeout = TimeSpan.FromSeconds(10);
         }
 #else
         private readonly IHttpClient _httpClient;
@@ -115,7 +119,36 @@ namespace subbuzz.Helpers
             CancellationToken cancellationToken
             )
         {
+            HttpRequestMessage request;
+            HttpResponseMessage response;
+
+            if (post_params != null)
+            {
+                request = new HttpRequestMessage(HttpMethod.Post, link);
+                request.Content = new FormUrlEncodedContent(post_params);
+            }
+            else
+            {
+                request = new HttpRequestMessage(HttpMethod.Get, link);
+            }
+
+            request.Headers.Add("Referer", referer);
+            response = await _httpClient.SendAsync(request, cancellationToken);
+
             Stream memStream = new MemoryStream();
+
+            if (response.Content.Headers.ContentEncoding.Contains("gzip"))
+            {
+                var gz = new GZipStream(response.Content.ReadAsStream(), CompressionMode.Decompress);
+                gz.CopyTo(memStream);
+            }
+            else
+            {
+                await response.Content.CopyToAsync(memStream, cancellationToken);
+            }
+
+            // TODO: store to cache
+            memStream.Seek(0, SeekOrigin.Begin);
             return memStream;
         }
 #else
