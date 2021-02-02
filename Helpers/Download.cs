@@ -7,25 +7,39 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
+
+#if !EMBY
+using System.IO.Compression;
+using System.Net.Http;
+#endif
 
 namespace subbuzz.Helpers
 {
     class Download
     {
-        protected const string UrlSeparator = "*:*";
-        public const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0";
+        private const string UrlSeparator = "*:*";
+        private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0";
+        private readonly IHttpClient _httpClient;
+
+        public Download(IHttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
 
         public static string GetId(string link, string file, string lang, string fps)
         {
             return Utils.Base64UrlEncode(link + UrlSeparator + file + UrlSeparator + lang + UrlSeparator + fps);
         }
 
-        public static async Task<SubtitleResponse> GetArchiveSubFile(
-            IHttpClient httpClient, 
-            string id, 
-            string referer, 
-            Encoding encoding)
+        public async Task<SubtitleResponse> GetArchiveSubFile(
+            string id,
+            string referer,
+            Encoding encoding,
+            CancellationToken cancellationToken
+            )
         {
             string[] ids = Utils.Base64UrlDecode(id).Split(new[] { UrlSeparator }, StringSplitOptions.None);
             string link = ids[0];
@@ -37,7 +51,7 @@ namespace subbuzz.Helpers
             float fps = 25;
             try { fps = float.Parse(ids[3], CultureInfo.InvariantCulture); } catch { }
 
-            Stream stream = await GetStream(httpClient, link, referer).ConfigureAwait(false);
+            Stream stream = await GetStream(link, referer, null, cancellationToken).ConfigureAwait(false);
 
             IArchive arcreader = ArchiveFactory.Open(stream);
             foreach (IArchiveEntry entry in arcreader.Entries)
@@ -66,11 +80,12 @@ namespace subbuzz.Helpers
             return new SubtitleResponse();
         }
 
-        public static async Task<IEnumerable<string>> GetArchiveSubFileNames(IHttpClient httpClient, string link, string referer)
+
+        public async Task<IEnumerable<string>> GetArchiveSubFileNames(string link, string referer, CancellationToken cancellationToken)
         {
             var res = new List<string>();
 
-            using (Stream stream = await GetStream(httpClient, link, referer).ConfigureAwait(false))
+            using (Stream stream = await GetStream(link, referer, null, cancellationToken).ConfigureAwait(false))
             {
                 IArchive arcreader = ArchiveFactory.Open(stream);
                 foreach (IArchiveEntry entry in arcreader.Entries)
@@ -84,7 +99,12 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        private static async Task<Stream> GetStream(IHttpClient httpClient, string link, string referer)
+        public async Task<Stream> GetStream(
+            string link,
+            string referer,
+            Dictionary<string, string> post_params,
+            CancellationToken cancellationToken
+            )
         {
             // TODO: check if cached
 
@@ -94,19 +114,44 @@ namespace subbuzz.Helpers
                 UserAgent = UserAgent,
                 Referer = referer,
                 EnableKeepAlive = false,
+                CancellationToken = cancellationToken,
 #if EMBY
-                TimeoutMs = 10000, //10 seconds timeout
+                TimeoutMs = 10000, // in milliseconds
+                DecompressionMethod = CompressionMethod.Gzip,
+#else
+                DecompressionMethod = CompressionMethods.Gzip,
 #endif
             };
 
-            using (var response = await httpClient.Get(opts).ConfigureAwait(false))
+            HttpResponseInfo response;
+            if (post_params != null)
             {
-                Stream memStream = new MemoryStream();
-                response.CopyTo(memStream);
-                // TODO: store to cache
-                memStream.Seek(0, SeekOrigin.Begin);
-                return memStream;
+#if EMBY
+                var keys = new List<string>(post_params.Keys);
+                foreach (string key in keys) post_params[key] = HttpUtility.UrlEncode(post_params[key]);
+                opts.SetPostData(post_params);
+#else
+                ByteArrayContent formUrlEncodedContent = new FormUrlEncodedContent(post_params);
+                opts.RequestContent = await formUrlEncodedContent.ReadAsStringAsync();
+                opts.RequestContentType = "application/x-www-form-urlencoded";
+#endif
+                response = await _httpClient.Post(opts).ConfigureAwait(false);
             }
+            else response = await _httpClient.GetResponse(opts).ConfigureAwait(false);
+
+#if !EMBY
+            if (response.ContentHeaders.ContentEncoding.Contains("gzip"))
+            {
+                response.Content = new GZipStream(response.Content, CompressionMode.Decompress);
+            }
+#endif
+
+            Stream memStream = new MemoryStream();
+            response.Content.CopyTo(memStream);
+
+            // TODO: store to cache
+            memStream.Seek(0, SeekOrigin.Begin);
+            return memStream;
         }
     }
 }

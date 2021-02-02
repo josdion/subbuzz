@@ -1,12 +1,8 @@
 ﻿using HtmlAgilityPack;
 using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.Movies;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
-using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
@@ -14,19 +10,16 @@ using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
-using System.Web;
 
 #if EMBY
 using subbuzz.Logging;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubsUnacsNet>;
 #endif
@@ -38,11 +31,11 @@ namespace subbuzz.Providers
         private const string HttpReferer = "https://subsunacs.net/search.php";
         private readonly List<string> Languages = new List<string> { "bg", "en" };
 
-        private readonly IHttpClient _httpClient;
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
+        private Download downloader;
 
         private static Dictionary<string, string> InconsistentTvs = new Dictionary<string, string>
         {
@@ -74,16 +67,16 @@ namespace subbuzz.Providers
         {
             _logger = logger;
             _fileSystem = fileSystem;
-            _httpClient = httpClient;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
+            downloader = new Download(httpClient);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await Download.GetArchiveSubFile(_httpClient, id, HttpReferer, Encoding.GetEncoding(1251)).ConfigureAwait(false);
+                return await downloader.GetArchiveSubFile(id, HttpReferer, Encoding.GetEncoding(1251), cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -115,18 +108,6 @@ namespace subbuzz.Providers
                     return res;
                 }
 
-                var opts = new HttpRequestOptions
-                {
-                    Url = "https://subsunacs.net/search.php",
-                    UserAgent = Download.UserAgent,
-                    Referer = HttpReferer,
-                    EnableKeepAlive = false,
-                    CancellationToken = cancellationToken,
-#if EMBY
-                    TimeoutMs = 10000, //10 seconds timeout
-#endif
-                };
-
                 var post_params = new Dictionary<string, string>
                 {
                     { "m", si.SearchText },
@@ -142,84 +123,70 @@ namespace subbuzz.Providers
                     { "imdbcheck", "1" }
                 };
 
-#if EMBY
-                post_params["m"] = HttpUtility.UrlEncode(si.SearchText);
-                opts.SetPostData(post_params);
-#else
-                ByteArrayContent formUrlEncodedContent = new FormUrlEncodedContent(post_params);
-                opts.RequestContent = await formUrlEncodedContent.ReadAsStringAsync();
-                opts.RequestContentType = "application/x-www-form-urlencoded";
-#endif
-
-                using (var response = await _httpClient.Post(opts).ConfigureAwait(false))
+                using (var html = await downloader.GetStream("https://subsunacs.net/search.php", HttpReferer, post_params, cancellationToken))
                 {
-                    using (var reader = new StreamReader(response.Content, Encoding.GetEncoding(1251)))
+                    var htmlDoc = new HtmlDocument();
+                    htmlDoc.Load(html, Encoding.GetEncoding(1251), true);
+
+                    var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr[@onmouseover]");
+                    if (trNodes == null) return res;
+
+                    for (int i = 0; i < trNodes.Count; i++)
                     {
-                        var html = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        var tdNodes = trNodes[i].SelectNodes(".//td");
+                        if (tdNodes == null || tdNodes.Count < 6) continue;
 
-                        var htmlDoc = new HtmlDocument();
-                        htmlDoc.LoadHtml(html);
+                        HtmlNode linkNode = tdNodes[0].SelectSingleNode("a[@href]");
+                        if (linkNode == null) continue;
 
-                        var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr[@onmouseover]");
-                        if (trNodes == null) return res;
+                        string subLink = "https://subsunacs.net" + linkNode.Attributes["href"].Value;
+                        string subTitle = linkNode.InnerText;
 
-                        for (int i = 0; i < trNodes.Count; i++)
+                        string subNotes = linkNode.Attributes["title"].DeEntitizeValue;
+
+                        var regex = new Regex(@"(?:.*<b>Инфо: </b><br>)(.*)(?:</div>)");
+                        string subInfo = regex.Replace(subNotes, "$1");
+                        subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
+
+                        string subNumCd = tdNodes[1].InnerText;
+                        string subFps = tdNodes[2].InnerText;
+
+                        string subRating = "0";
+                        var rtImgNode = tdNodes[3].SelectSingleNode(".//img");
+                        if (rtImgNode != null) subRating = rtImgNode.Attributes["title"].Value;
+
+                        string subUploader = tdNodes[5].InnerText;
+                        string subDownloads = tdNodes[6].InnerText;
+
+                        var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+                        foreach (var file in files)
                         {
-                            var tdNodes = trNodes[i].SelectNodes(".//td");
-                            if (tdNodes == null || tdNodes.Count < 6) continue;
+                            string fileExt = file.Split('.').LastOrDefault().ToLower();
+                            if (fileExt != "srt" && fileExt != "sub") continue;
 
-                            HtmlNode linkNode = tdNodes[0].SelectSingleNode("a[@href]");
-                            if (linkNode == null) continue;
-
-                            string subLink = "https://subsunacs.net" + linkNode.Attributes["href"].Value;
-                            string subTitle = linkNode.InnerText;
-
-                            string subNotes = linkNode.Attributes["title"].DeEntitizeValue;
-
-                            var regex = new Regex(@"(?:.*<b>Инфо: </b><br>)(.*)(?:</div>)");
-                            string subInfo = regex.Replace(subNotes, "$1");
-                            subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
-
-                            string subNumCd = tdNodes[1].InnerText;
-                            string subFps = tdNodes[2].InnerText;
-
-                            string subRating = "0";
-                            var rtImgNode = tdNodes[3].SelectSingleNode(".//img");
-                            if (rtImgNode != null) subRating = rtImgNode.Attributes["title"].Value;
-                            
-                            string subUploader = tdNodes[5].InnerText;
-                            string subDownloads = tdNodes[6].InnerText;
-
-                            var files = await Download.GetArchiveSubFileNames(_httpClient, subLink, HttpReferer).ConfigureAwait(false);
-                            foreach (var file in files)
+                            var item = new RemoteSubtitleInfo
                             {
-                                string fileExt = file.Split('.').LastOrDefault().ToLower();
-                                if (fileExt != "srt" && fileExt != "sub") continue;
-
-                                var item = new RemoteSubtitleInfo
-                                {
-                                    ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                                    Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
-                                    ProviderName = Name,
-                                    Name = file,
-                                    Format = fileExt,
-                                    Author = subUploader,
-                                    Comment = subInfo,
-                                    //DateCreated = DateTimeOffset.Parse(subDate),
-                                    CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
-                                    DownloadCount = int.Parse(subDownloads),
-                                    IsHashMatch = false,
+                                ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                                Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
+                                ProviderName = Name,
+                                Name = file,
+                                Format = fileExt,
+                                Author = subUploader,
+                                Comment = subInfo,
+                                //DateCreated = DateTimeOffset.Parse(subDate),
+                                CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
+                                DownloadCount = int.Parse(subDownloads),
+                                IsHashMatch = false,
 #if EMBY
-                                    IsForced = false,
+                                IsForced = false,
 #endif
-                                };
+                            };
 
-                                res.Add(item);
-                            }
+                            res.Add(item);
                         }
-
-                        return res;
                     }
+
+                    return res;
                 }
             }
             catch (Exception e)

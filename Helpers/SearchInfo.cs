@@ -58,6 +58,8 @@ namespace subbuzz.Helpers
                     res.SearchText = inconsistentMovies.Aggregate(res.SearchText, (current, value) =>
                         Regex.Replace(current, Regex.Escape(value.Key), value.Value, RegexOptions.IgnoreCase));
                 }
+
+                mv.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
             }
             else
             if (request.ContentType == VideoContentType.Episode && !String.IsNullOrEmpty(episode_format))
@@ -78,11 +80,12 @@ namespace subbuzz.Helpers
                     title,
                     request.ParentIndexNumber ?? 0, 
                     request.IndexNumber ?? 0);
+
+                ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
+                //ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
             }
 
             res.SearchText = res.SearchText.Replace(':', ' ').Replace("  ", " ");
-
-            //res.ImdbId = request.GetProviderId(MetadataProviders.Imdb);
 
             return res;
         }
