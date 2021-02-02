@@ -22,12 +22,20 @@ namespace subbuzz.Helpers
     {
         private const string UrlSeparator = "*:*";
         private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0";
-        private readonly IHttpClient _httpClient;
 
+#if JELLYFIN_10_7
+        private readonly HttpClient _httpClient;
+        public Download(IHttpClientFactory http)
+        {
+            _httpClient = http.CreateClient();
+        }
+#else
+        private readonly IHttpClient _httpClient;
         public Download(IHttpClient httpClient)
         {
             _httpClient = httpClient;
         }
+#endif
 
         public static string GetId(string link, string file, string lang, string fps)
         {
@@ -99,6 +107,18 @@ namespace subbuzz.Helpers
             return res;
         }
 
+#if JELLYFIN_10_7
+        public async Task<Stream> GetStream(
+            string link,
+            string referer,
+            Dictionary<string, string> post_params,
+            CancellationToken cancellationToken
+            )
+        {
+            Stream memStream = new MemoryStream();
+            return memStream;
+        }
+#else
         public async Task<Stream> GetStream(
             string link,
             string referer,
@@ -153,5 +173,6 @@ namespace subbuzz.Helpers
             memStream.Seek(0, SeekOrigin.Begin);
             return memStream;
         }
+#endif
     }
 }

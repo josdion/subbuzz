@@ -23,6 +23,10 @@ using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubsSabBz>;
 #endif
 
+#if JELLYFIN_10_7
+using System.Net.Http;
+#endif
+
 namespace subbuzz.Providers
 {
     public class SubsSabBz : ISubtitleProvider, IHasOrder
@@ -60,14 +64,23 @@ namespace subbuzz.Providers
 
         public int Order => 0;
 
-        public SubsSabBz(ILogger logger, IFileSystem fileSystem, IHttpClient httpClient,
-            ILocalizationManager localizationManager, ILibraryManager libraryManager)
+        public SubsSabBz(
+            ILogger logger, 
+            IFileSystem fileSystem, 
+            ILocalizationManager localizationManager, 
+            ILibraryManager libraryManager,
+#if JELLYFIN_10_7
+            IHttpClientFactory http
+#else
+            IHttpClient http
+#endif
+            )
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(httpClient);
+            downloader = new Download(http);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
