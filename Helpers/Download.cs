@@ -31,7 +31,7 @@ namespace subbuzz.Helpers
             _httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
             _httpClient.DefaultRequestHeaders.Add("Pragma","no-cache");
             _httpClient.DefaultRequestHeaders.Add("Accept-Encoding","gzip");
-            _httpClient.Timeout = TimeSpan.FromSeconds(10);
+            _httpClient.Timeout = TimeSpan.FromSeconds(15);
         }
 #else
         private readonly IHttpClient _httpClient;
@@ -169,7 +169,7 @@ namespace subbuzz.Helpers
                 EnableKeepAlive = false,
                 CancellationToken = cancellationToken,
 #if EMBY
-                TimeoutMs = 10000, // in milliseconds
+                TimeoutMs = 15000, // in milliseconds
                 DecompressionMethod = CompressionMethod.Gzip,
 #else
                 DecompressionMethod = CompressionMethods.Gzip,

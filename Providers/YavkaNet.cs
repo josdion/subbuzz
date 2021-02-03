@@ -32,6 +32,7 @@ namespace subbuzz.Providers
 {
     public class YavkaNet : ISubtitleProvider, IHasOrder
     {
+        private const string NAME = "yavka.net";
         private const string HttpReferer = "http://yavka.net/subtitles.php";
         private readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
 
@@ -40,7 +41,7 @@ namespace subbuzz.Providers
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
         private Download downloader;
-        public string Name => $"[{Plugin.NAME}] <b>yavka.net</b>";
+        public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
@@ -48,9 +49,9 @@ namespace subbuzz.Providers
         public int Order => 0;
 
         public YavkaNet(
-            ILogger logger, 
+            ILogger logger,
             IFileSystem fileSystem,
-            ILocalizationManager localizationManager, 
+            ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
 #if JELLYFIN_10_7
             IHttpClientFactory http
@@ -74,7 +75,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "GetSubtitles error: {e}");
+                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -88,7 +89,7 @@ namespace subbuzz.Providers
             try
             {
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} s{1:D2}e{2:D2}");
-                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
@@ -101,6 +102,20 @@ namespace subbuzz.Providers
                         request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "",
                         si.Lang.ToUpper()
                         );
+
+                if (!String.IsNullOrWhiteSpace(si.ImdbId))
+                {
+                    // search by IMDB Id
+                    url = String.Format(
+                        "http://yavka.net/subtitles.php?s={0}&y=&c=&u=&l={1}&g=&i={2}",
+                        request.ContentType == VideoContentType.Episode ? 
+                            String.Format("s{0:D2}e{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
+                        si.Lang.ToUpper(),
+                        si.ImdbId
+                        );
+                }
+
+                _logger.LogInformation($"{url}");
 
                 using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
                 {
@@ -165,7 +180,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Search error: {e}");
+                _logger.LogError(e, $"{NAME}: Search error: {e}");
             }
 
             return res;

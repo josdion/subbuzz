@@ -31,6 +31,7 @@ namespace subbuzz.Providers
 {
     public class SubsSabBz : ISubtitleProvider, IHasOrder
     {
+        private const string NAME = "subs.sab.bz";
         private const string HttpReferer = "http://subs.sab.bz/index.php?";
         private readonly List<string> Languages = new List<string> { "bg", "en" };
 
@@ -57,7 +58,7 @@ namespace subbuzz.Providers
             { "Back to the Future Part", "Back to the Future" },
         };
 
-        public string Name => $"[{Plugin.NAME}] <b>subs.sab.bz</b>";
+        public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
@@ -91,7 +92,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"GetSubtitles error: {e}");
+                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -112,7 +113,7 @@ namespace subbuzz.Providers
                     InconsistentTvs,
                     InconsistentMovies);
 
-                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
 
                 if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
@@ -165,7 +166,25 @@ namespace subbuzz.Providers
                         string subNumCd = tdNodes[6].InnerText;
                         string subFps = tdNodes[7].InnerText;
                         string subUploader = tdNodes[8].InnerText;
-                        // subImdb =  tdNodes[9]
+
+                        string subImdb = "";
+                        var linkImdb = tdNodes[9].SelectSingleNode("a[@href]");
+                        if (linkImdb != null)
+                        {
+                            var reg = new Regex(@"imdb.com/title/(tt\d+)/?$");
+                            var match = reg.Match(linkImdb.Attributes["href"].Value);
+                            if (match != null && match.Groups.Count > 1) subImdb = match.Groups[1].Value;
+
+                            if (!String.IsNullOrWhiteSpace(subImdb) && !String.IsNullOrWhiteSpace(si.ImdbId))
+                            {
+                                if (!subImdb.Equals(si.ImdbId, StringComparison.CurrentCultureIgnoreCase))
+                                {
+                                    _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                                    continue;
+                                }
+                            }
+                        }
+
                         string subDownloads = tdNodes[10].InnerText;
 
                         string subRating = "0";
@@ -209,7 +228,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"Search error: {e}");
+                _logger.LogError(e, $"{NAME}: Search error: {e}");
             }
 
             return res;

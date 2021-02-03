@@ -32,6 +32,7 @@ namespace subbuzz.Providers
 {
     public class SubsUnacsNet : ISubtitleProvider, IHasOrder
     {
+        private const string NAME = "subsunacs.net";
         private const string HttpReferer = "https://subsunacs.net/search.php";
         private readonly List<string> Languages = new List<string> { "bg", "en" };
 
@@ -59,7 +60,7 @@ namespace subbuzz.Providers
             { "Bill & Ted Face the Music", "Bill Ted Face the Music" },
         };
 
-        public string Name => $"[{Plugin.NAME}] <b>subsunacs.net</b>";
+        public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
@@ -93,7 +94,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"GetSubtitles error: {e}");
+                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -114,7 +115,7 @@ namespace subbuzz.Providers
                     InconsistentTvs,
                     InconsistentMovies);
 
-                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
@@ -204,7 +205,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"Search error: {e}");
+                _logger.LogError(e, $"{NAME}: Search error: {e}");
             }
 
             return res;
