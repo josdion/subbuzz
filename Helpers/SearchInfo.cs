@@ -22,6 +22,7 @@ namespace subbuzz.Helpers
         public string ImdbIdEpisode = "";
         public string Lang = ""; // two letter lower case language code
         public CultureDto LanguageInfo;
+        public VideoContentType VideoType;
 
         public static SearchInfo GetSearchInfo(
             SubtitleSearchRequest request,
@@ -33,6 +34,7 @@ namespace subbuzz.Helpers
             )
         {
             var res = new SearchInfo();
+            res.VideoType = request.ContentType;
 
 #if EMBY
             res.LanguageInfo = localize.FindLanguageInfo(request.Language.AsSpan());
@@ -47,7 +49,7 @@ namespace subbuzz.Helpers
                 return res;
             }
 
-            if (request.ContentType == VideoContentType.Movie)
+            if (res.VideoType == VideoContentType.Movie)
             {
                 Movie mv = libItem as Movie;
                 MediaStream media = mv.GetDefaultVideoStream();
@@ -63,7 +65,7 @@ namespace subbuzz.Helpers
                 mv.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
             }
             else
-            if (request.ContentType == VideoContentType.Episode && !String.IsNullOrEmpty(episode_format))
+            if (res.VideoType == VideoContentType.Episode && !String.IsNullOrEmpty(episode_format))
             {
                 Episode ep = libItem as Episode;
                 MediaStream media = ep.GetDefaultVideoStream();
@@ -79,7 +81,7 @@ namespace subbuzz.Helpers
                 // episode format {0} - series name, {1} - season, {2} - episode
                 res.SearchText = String.Format(episode_format,
                     title,
-                    request.ParentIndexNumber ?? 0, 
+                    request.ParentIndexNumber ?? 0,
                     request.IndexNumber ?? 0);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
@@ -89,6 +91,30 @@ namespace subbuzz.Helpers
             res.SearchText = res.SearchText.Replace(':', ' ').Replace("  ", " ");
 
             return res;
+        }
+
+        public bool CheckImdbId(string imdb)
+        {
+            if (!String.IsNullOrWhiteSpace(imdb) && !String.IsNullOrWhiteSpace(ImdbId))
+            {
+                if (!imdb.Equals(ImdbId, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    if (VideoType == VideoContentType.Episode)
+                    {
+                        if (!String.IsNullOrWhiteSpace(ImdbIdEpisode) &&
+                            !imdb.Equals(ImdbIdEpisode, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true; // if IMDB ID match or no info
         }
     }
 }

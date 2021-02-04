@@ -32,7 +32,4 @@
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%25AppData%25\Emby-Server\programdata\Plugins\&quot; /y" />
-  </Target>
 </Project>

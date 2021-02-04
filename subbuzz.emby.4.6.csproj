@@ -1,0 +1,38 @@
+﻿<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>obj/emby</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/emby</BaseOutputPath>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion> 
+    <FileVersion>1.0.0.0</FileVersion>
+    <RootNamespace>subbuzz</RootNamespace>
+    <AssemblyName>subbuzz</AssemblyName>	
+    <DefineConstants>EMBY</DefineConstants>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup> 
+    <PackageReference Include="mediabrowser.server.core" Version="4.6.*-*" /> 
+    <PackageReference Include="SharpCompress" Version="0.26.0" /> 
+    <PackageReference Include="System.Memory" Version="4.5.4" /> 
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <None Remove="thumb.png" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+    <EmbeddedResource Include="thumb.png" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%25AppData%25\Emby-Server\programdata\Plugins\&quot; /y" />
+  </Target>
+</Project>

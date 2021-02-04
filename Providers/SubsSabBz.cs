@@ -181,24 +181,10 @@ namespace subbuzz.Providers
                             var match = reg.Match(linkImdb.Attributes["href"].Value);
                             if (match != null && match.Groups.Count > 1) subImdb = match.Groups[1].Value;
 
-                            if (!String.IsNullOrWhiteSpace(subImdb) && !String.IsNullOrWhiteSpace(si.ImdbId))
+                            if (!si.CheckImdbId(subImdb))
                             {
-                                if (!subImdb.Equals(si.ImdbId, StringComparison.CurrentCultureIgnoreCase))
-                                {
-                                    if (request.ContentType == VideoContentType.Episode)
-                                    {
-                                        if (!String.IsNullOrWhiteSpace(si.ImdbIdEpisode) && !subImdb.Equals(si.ImdbIdEpisode, StringComparison.CurrentCultureIgnoreCase))
-                                        {
-                                            _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                                            continue;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                                        continue;
-                                    }
-                                }
+                                _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                                continue;
                             }
                         }
 
