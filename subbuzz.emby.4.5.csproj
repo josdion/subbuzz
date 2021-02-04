@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
-    <BaseIntermediateOutputPath>obj/emby</BaseIntermediateOutputPath>
-    <BaseOutputPath>bin/emby</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/emby-4.5</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/emby-4.5</BaseOutputPath>
   </PropertyGroup>
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
