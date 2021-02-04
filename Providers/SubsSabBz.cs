@@ -66,9 +66,9 @@ namespace subbuzz.Providers
         public int Order => 0;
 
         public SubsSabBz(
-            ILogger logger, 
-            IFileSystem fileSystem, 
-            ILocalizationManager localizationManager, 
+            ILogger logger,
+            IFileSystem fileSystem,
+            ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
 #if JELLYFIN_10_7
             IHttpClientFactory http
@@ -105,6 +105,12 @@ namespace subbuzz.Providers
 
             try
             {
+                if (!Plugin.Instance.Configuration.EnableSubssabbz)
+                {
+                    // provider is disabled
+                    return res;
+                }
+
                 SearchInfo si = SearchInfo.GetSearchInfo(
                     request,
                     _localizationManager,
@@ -179,8 +185,19 @@ namespace subbuzz.Providers
                             {
                                 if (!subImdb.Equals(si.ImdbId, StringComparison.CurrentCultureIgnoreCase))
                                 {
-                                    _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                                    continue;
+                                    if (request.ContentType == VideoContentType.Episode)
+                                    {
+                                        if (!String.IsNullOrWhiteSpace(si.ImdbIdEpisode) && !subImdb.Equals(si.ImdbIdEpisode, StringComparison.CurrentCultureIgnoreCase))
+                                        {
+                                            _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                                            continue;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                                        continue;
+                                    }
                                 }
                             }
                         }

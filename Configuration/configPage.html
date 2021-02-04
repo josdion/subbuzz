@@ -5,22 +5,55 @@
     <title>subbuzz</title>
 </head>
 <body>
-    <div id="SubbuzzConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div id="SubbuzzConfigPage" data-role="page" class="page type-interior pluginConfigurationPage SubbuzzConfigPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
         <div data-role="content">
             <div class="content-primary">
-                <form id="SubbuzzConfigForm">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EncodeSubtitlesToUTF8" name="EncodeSubtitlesToUTF8" type="checkbox" is="emby-checkbox" />
-                            <span>Encode Subtitles To UTF8</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Re-encode downloaded Subtitles to UTF8.</div>
+
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">SubBuzz Settings</h2>
                     </div>
+                </div>
+
+                <form id="SubbuzzConfigForm" class="SubbuzzConfigForm">
+
+                    <div style="margin-top: 2em;">
+                        <h3 class="checkboxListLabel">Providers</h3>
+                        <div class="paperList checkboxList checkboxList-paperList">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz"/>
+                                <span>Subs.sab.bz</span>
+                            </label>
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" class="EnableSubsunacsNet" id="EnableSubsunacsNet"/>
+                                <span>Subsunacs.net</span>
+                            </label>
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" class="EnableYavkaNet" id="EnableYavkaNet"/>
+                                <span>Yavka.net</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <h3>Post-Processing</h3>
+                    <p>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="EncodeSubtitlesToUTF8" name="EncodeSubtitlesToUTF8" type="checkbox" is="emby-checkbox" />
+                                <span>Encode Subtitles To UTF8</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Re-encode downloaded Subtitles to UTF8.</div>
+                        </div>
+
+                    </p>
+
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
                         </button>
                     </div>
+
                 </form>
             </div>
         </div>
@@ -30,22 +63,36 @@
                 pluginUniqueId: '5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4'
             };
 
-            $('#SubbuzzConfigPage').on('pageshow', function () {
+            $('.SubbuzzConfigPage').on('pageshow', function () {
                 Dashboard.showLoadingMsg();
+                var page = this;
+
                 ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
-                    document.getElementById("EncodeSubtitlesToUTF8").checked = config.EncodeSubtitlesToUTF8;
+                    page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
+                    page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
+                    page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
+                    page.querySelector("#EncodeSubtitlesToUTF8").checked = config.EncodeSubtitlesToUTF8;
+
                     Dashboard.hideLoadingMsg();
-                });
+               });
             });
 
-            $('#SubbuzzConfigForm').on('submit', function () {
+            $('.SubbuzzConfigForm').on('submit', function () {
                 Dashboard.showLoadingMsg();
+                var form = this;
+
                 ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
+                    config.EnableSubssabbz = document.getElementById("EnableSubssabbz").checked;
+                    config.EnableSubsunacsNet = document.getElementById("EnableSubsunacsNet").checked;
+                    config.EnableYavkaNet = document.getElementById("EnableYavkaNet").checked;
                     config.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
+
                     ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);
                     });
                 });
+
+                // Disable default form submission
                 return false;
             });
         </script>

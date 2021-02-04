@@ -88,6 +88,12 @@ namespace subbuzz.Providers
 
             try
             {
+                if (!Plugin.Instance.Configuration.EnableYavkaNet)
+                {
+                    // provider is disabled
+                    return res;
+                }
+
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} s{1:D2}e{2:D2}");
                 _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 

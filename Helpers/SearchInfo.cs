@@ -19,6 +19,7 @@ namespace subbuzz.Helpers
         public string SearchText = "";
         public float? VideoFps = null;
         public string ImdbId = "";
+        public string ImdbIdEpisode = "";
         public string Lang = ""; // two letter lower case language code
         public CultureDto LanguageInfo;
 
@@ -82,7 +83,7 @@ namespace subbuzz.Helpers
                     request.IndexNumber ?? 0);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
-                //ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
+                ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
             }
 
             res.SearchText = res.SearchText.Replace(':', ' ').Replace("  ", " ");

@@ -107,6 +107,12 @@ namespace subbuzz.Providers
 
             try
             {
+                if (!Plugin.Instance.Configuration.EnableSubsunacsNet)
+                {
+                    // provider is disabled
+                    return res;
+                }
+
                 SearchInfo si = SearchInfo.GetSearchInfo(
                     request,
                     _localizationManager,

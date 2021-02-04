@@ -73,11 +73,7 @@ namespace subbuzz.Helpers
                     Stream fileStream = entry.OpenEntryStream();
 
                     string fileExt = entry.Key.Split('.').LastOrDefault().ToLower();
-                    if (fileExt != "srt" || (convertToUtf8 && encoding != Encoding.UTF8))
-                    {
-                        fileStream = SubtitleConvert.ToSrt(fileStream, encoding, convertToUtf8, fps);
-                        fileExt = "srt";
-                    }
+                    fileStream = SubtitleConvert.ToSupportedFormat(fileStream, encoding, convertToUtf8, fps, ref fileExt);
 
                     return new SubtitleResponse
                     {

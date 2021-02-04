@@ -132,9 +132,9 @@ namespace SubtitlesParser.Classes.Parsers
             if (match.Success && match.Groups.Count > 2)
             {
                 var startFrame = match.Groups[1].Value;
-                var start = (int)(1000 * double.Parse(startFrame) / frameRate);
+                var start = (int)Math.Round(1000 * double.Parse(startFrame) / frameRate);
                 var endTime = match.Groups[2].Value;
-                var end = (int)(1000 * double.Parse(endTime) / frameRate);
+                var end = (int)Math.Round(1000 * double.Parse(endTime) / frameRate);
                 var text = match.Groups[match.Groups.Count - 1].Value;
                 var lines = text.Split(_lineSeparators);
                 var nonEmptyLines = lines.Where(l => !string.IsNullOrEmpty(l)).ToList();
