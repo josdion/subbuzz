@@ -21,16 +21,20 @@
                         <h3 class="checkboxListLabel">Providers</h3>
                         <div class="paperList checkboxList checkboxList-paperList">
                             <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz"/>
+                                <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
                                 <span>Subs.sab.bz</span>
                             </label>
                             <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableSubsunacsNet" id="EnableSubsunacsNet"/>
+                                <input is="emby-checkbox" type="checkbox" class="EnableSubsunacsNet" id="EnableSubsunacsNet" />
                                 <span>Subsunacs.net</span>
                             </label>
                             <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableYavkaNet" id="EnableYavkaNet"/>
+                                <input is="emby-checkbox" type="checkbox" class="EnableYavkaNet" id="EnableYavkaNet" />
                                 <span>Yavka.net</span>
+                            </label>
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles" id="EnableYifySubtitles" />
+                                <span>YIFY Subtitles</span>
                             </label>
                         </div>
                     </div>
@@ -71,6 +75,7 @@
                     page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
                     page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
                     page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
+                    page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
                     page.querySelector("#EncodeSubtitlesToUTF8").checked = config.EncodeSubtitlesToUTF8;
 
                     Dashboard.hideLoadingMsg();
@@ -85,6 +90,7 @@
                     config.EnableSubssabbz = document.getElementById("EnableSubssabbz").checked;
                     config.EnableSubsunacsNet = document.getElementById("EnableSubsunacsNet").checked;
                     config.EnableYavkaNet = document.getElementById("EnableYavkaNet").checked;
+                    config.EnableYifySubtitles = document.getElementById("EnableYifySubtitles").checked;
                     config.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
 
                     ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {

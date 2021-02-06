@@ -32,6 +32,7 @@ namespace subbuzz.Providers
     public class SubsSabBz : ISubtitleProvider, IHasOrder
     {
         private const string NAME = "subs.sab.bz";
+        private const string ServerUrl = "http://subs.sab.bz";
         private const string HttpReferer = "http://subs.sab.bz/index.php?";
         private readonly List<string> Languages = new List<string> { "bg", "en" };
 
@@ -136,7 +137,7 @@ namespace subbuzz.Providers
                     { "release", "" }
                 };
 
-                using (var html = await downloader.GetStream("http://subs.sab.bz/index.php?", HttpReferer, post_params, cancellationToken))
+                using (var html = await downloader.GetStream($"{ServerUrl}/index.php?", HttpReferer, post_params, cancellationToken))
                 {
                     var htmlDoc = new HtmlDocument();
                     htmlDoc.Load(html, Encoding.GetEncoding(1251), true);
@@ -209,7 +210,7 @@ namespace subbuzz.Providers
                                 ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
                                 Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
                                 ProviderName = Name,
-                                Name = file,
+                                Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
                                 Format = file.Split('.').LastOrDefault().ToUpper(),
                                 Author = subUploader,
                                 Comment = subInfo,

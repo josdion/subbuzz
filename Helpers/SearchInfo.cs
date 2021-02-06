@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 namespace subbuzz.Helpers
 {
 
-    class SearchInfo
+    public class SearchInfo
     {
         public string SearchText = "";
         public float? VideoFps = null;

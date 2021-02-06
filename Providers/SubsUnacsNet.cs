@@ -33,6 +33,7 @@ namespace subbuzz.Providers
     public class SubsUnacsNet : ISubtitleProvider, IHasOrder
     {
         private const string NAME = "subsunacs.net";
+        private const string ServerUrl = "https://subsunacs.net";
         private const string HttpReferer = "https://subsunacs.net/search.php";
         private readonly List<string> Languages = new List<string> { "bg", "en" };
 
@@ -143,7 +144,7 @@ namespace subbuzz.Providers
                     { "imdbcheck", "1" }
                 };
 
-                using (var html = await downloader.GetStream("https://subsunacs.net/search.php", HttpReferer, post_params, cancellationToken))
+                using (var html = await downloader.GetStream($"{ServerUrl}/search.php", HttpReferer, post_params, cancellationToken))
                 {
                     var htmlDoc = new HtmlDocument();
                     htmlDoc.Load(html, Encoding.GetEncoding(1251), true);
@@ -159,7 +160,7 @@ namespace subbuzz.Providers
                         HtmlNode linkNode = tdNodes[0].SelectSingleNode("a[@href]");
                         if (linkNode == null) continue;
 
-                        string subLink = "https://subsunacs.net" + linkNode.Attributes["href"].Value;
+                        string subLink = ServerUrl + linkNode.Attributes["href"].Value;
                         string subTitle = linkNode.InnerText;
 
                         string subNotes = linkNode.Attributes["title"].DeEntitizeValue;
@@ -189,7 +190,7 @@ namespace subbuzz.Providers
                                 ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
                                 Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
                                 ProviderName = Name,
-                                Name = file,
+                                Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
                                 Format = fileExt,
                                 Author = subUploader,
                                 Comment = subInfo,

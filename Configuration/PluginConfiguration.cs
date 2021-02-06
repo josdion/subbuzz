@@ -7,6 +7,7 @@ namespace subbuzz
         public bool EnableSubssabbz { get; set; }
         public bool EnableSubsunacsNet { get; set; }
         public bool EnableYavkaNet { get; set; }
+        public bool EnableYifySubtitles { get; set; }
         public bool EncodeSubtitlesToUTF8 { get; set; }
 
         public PluginConfiguration()
@@ -14,6 +15,7 @@ namespace subbuzz
             EnableSubssabbz = true;
             EnableSubsunacsNet = true;
             EnableYavkaNet = true;
+            EnableYifySubtitles = true;
             EncodeSubtitlesToUTF8 = false;
         }
     }

@@ -33,7 +33,8 @@ namespace subbuzz.Providers
     public class YavkaNet : ISubtitleProvider, IHasOrder
     {
         private const string NAME = "yavka.net";
-        private const string HttpReferer = "http://yavka.net/subtitles.php";
+        private const string ServerUrl = "https://yavka.net";
+        private const string HttpReferer = "https://yavka.net/subtitles.php";
         private readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
 
         private readonly ILogger _logger;
@@ -103,7 +104,8 @@ namespace subbuzz.Providers
                 }
 
                 string url = String.Format(
-                        "http://yavka.net/subtitles.php?s={0}&y={1}&c=&u=&l={2}&g=&i=",
+                        "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
+                        ServerUrl,
                         HttpUtility.UrlEncode(si.SearchText),
                         request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "",
                         si.Lang.ToUpper()
@@ -113,8 +115,9 @@ namespace subbuzz.Providers
                 {
                     // search by IMDB Id
                     url = String.Format(
-                        "http://yavka.net/subtitles.php?s={0}&y=&c=&u=&l={1}&g=&i={2}",
-                        request.ContentType == VideoContentType.Episode ? 
+                        "{0}/subtitles.php?s={1}&y=&c=&u=&l={2}&g=&i={3}",
+                        ServerUrl,
+                        request.ContentType == VideoContentType.Episode ?
                             String.Format("s{0:D2}e{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
                         si.Lang.ToUpper(),
                         si.ImdbId
@@ -125,68 +128,79 @@ namespace subbuzz.Providers
 
                 using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
                 {
-                    var htmlDoc = new HtmlDocument();
-                    htmlDoc.Load(html, Encoding.UTF8, true);
-
-                    var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr");
-                    if (trNodes == null) return res;
-
-                    for (int i = 0; i < trNodes.Count; i++)
-                    {
-                        var tdNodes = trNodes[i].SelectNodes(".//td");
-                        if (tdNodes == null) continue;
-
-                        HtmlNode linkNode = tdNodes[0].SelectSingleNode("a[@class='balon' or @class='selector']");
-                        if (linkNode == null) continue;
-
-                        string subLink = "http://yavka.net/" + linkNode.Attributes["href"].Value;
-                        string subTitle = linkNode.InnerText;
-
-                        string subNotes = linkNode.Attributes["content"].DeEntitizeValue;
-                        var regex = new Regex(@"(?s)<p.*><img [A-z0-9=\'/\. :;#]*>(.*)</p>");
-                        string subInfo = regex.Replace(subNotes, "$1");
-
-                        //string subYear = tdNodes[0].SelectSingleNode(".//span").InnerText.Trim(new[] { ' ', '(', ')' });
-                        //string subFps =  trNodes[i].SelectSingleNode(".//span[@title='Кадри в секунда']").InnerText;
-
-                        string subDownloads = "0";
-                        var dnldNode = trNodes[i].SelectSingleNode(".//div//strong");
-                        if (dnldNode != null) subDownloads = dnldNode.InnerText;
-
-                        //var upl = trNodes[i].SelectSingleNode(".//a[@class='click']");
-
-                        var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
-                        foreach (var file in files)
-                        {
-                            string fileExt = file.Split('.').LastOrDefault().ToLower();
-                            if (fileExt != "srt" && fileExt != "sub") continue;
-
-                            var item = new RemoteSubtitleInfo
-                            {
-                                ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                                Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, ""),
-                                ProviderName = Name,
-                                Name = file,
-                                Format = fileExt,
-                                //Author = subUploader,
-                                Comment = subInfo,
-                                //DateCreated = DateTimeOffset.Parse(subDate),
-                                //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
-                                DownloadCount = int.Parse(subDownloads),
-                                IsHashMatch = false,
-#if EMBY
-                                IsForced = false,
-#endif
-                            };
-
-                            res.Add(item);
-                        }
-                    }
+                    var subs = await ParseHtml(html, si, cancellationToken);
+                    res.AddRange(subs);
                 }
             }
             catch (Exception e)
             {
                 _logger.LogError(e, $"{NAME}: Search error: {e}");
+            }
+
+            return res;
+        }
+
+        protected async Task<IEnumerable<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
+        {
+            var res = new List<RemoteSubtitleInfo>();
+
+            var htmlDoc = new HtmlDocument();
+            htmlDoc.Load(html, Encoding.UTF8, true);
+
+            var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr");
+            if (trNodes == null) return res;
+
+            for (int i = 0; i < trNodes.Count; i++)
+            {
+                var tdNodes = trNodes[i].SelectNodes(".//td");
+                if (tdNodes == null) continue;
+
+                HtmlNode linkNode = tdNodes[0].SelectSingleNode("a[@class='balon' or @class='selector']");
+                if (linkNode == null) continue;
+
+                string subLink = ServerUrl + "/" + linkNode.Attributes["href"].Value;
+                string subTitle = linkNode.InnerText;
+
+                string subNotes = linkNode.Attributes["content"].DeEntitizeValue;
+                var regex = new Regex(@"(?s)<p.*><img [A-z0-9=\'/\. :;#]*>(.*)</p>");
+                string subInfo = regex.Replace(subNotes, "$1");
+
+                //string subYear = tdNodes[0].SelectSingleNode(".//span").InnerText.Trim(new[] { ' ', '(', ')' });
+                //string subFps =  trNodes[i].SelectSingleNode(".//span[@title='Кадри в секунда']").InnerText;
+
+                string subDownloads = "0";
+                var dnldNode = trNodes[i].SelectSingleNode(".//div//strong");
+                if (dnldNode != null) subDownloads = dnldNode.InnerText;
+
+                //var upl = trNodes[i].SelectSingleNode(".//a[@class='click']");
+
+                var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+                foreach (var file in files)
+                {
+                    string fileExt = file.Split('.').LastOrDefault().ToLower();
+                    if (fileExt != "srt" && fileExt != "sub") continue;
+
+                    var item = new RemoteSubtitleInfo
+                    {
+                        ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                        Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, ""),
+                        ProviderName = Name,
+                        Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
+                        Format = fileExt,
+                        //Author = subUploader,
+                        Comment = subInfo,
+                        //DateCreated = DateTimeOffset.Parse(subDate),
+                        //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
+                        DownloadCount = int.Parse(subDownloads),
+                        IsHashMatch = false,
+#if EMBY
+                        IsForced = false,
+#endif
+                    };
+
+                    res.Add(item);
+                }
+
             }
 
             return res;

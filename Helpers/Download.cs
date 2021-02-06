@@ -43,7 +43,12 @@ namespace subbuzz.Helpers
 
         public static string GetId(string link, string file, string lang, string fps)
         {
-            return Utils.Base64UrlEncode(link + UrlSeparator + file + UrlSeparator + lang + UrlSeparator + fps);
+            return Utils.Base64UrlEncode(
+                link + UrlSeparator + 
+                (String.IsNullOrEmpty(file) ? " " : file) + UrlSeparator + 
+                lang + UrlSeparator +
+                (String.IsNullOrEmpty(fps) ? "25" : fps)
+            );
         }
 
         public async Task<SubtitleResponse> GetArchiveSubFile(
@@ -68,7 +73,7 @@ namespace subbuzz.Helpers
             IArchive arcreader = ArchiveFactory.Open(stream);
             foreach (IArchiveEntry entry in arcreader.Entries)
             {
-                if (file == entry.Key)
+                if (String.IsNullOrWhiteSpace(file) || file == entry.Key)
                 {
                     Stream fileStream = entry.OpenEntryStream();
 
@@ -87,7 +92,6 @@ namespace subbuzz.Helpers
 
             return new SubtitleResponse();
         }
-
 
         public async Task<IEnumerable<string>> GetArchiveSubFileNames(string link, string referer, CancellationToken cancellationToken)
         {
