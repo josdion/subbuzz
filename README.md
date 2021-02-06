@@ -5,3 +5,5 @@ Subtitle plugin for emby and jellyfin
 * Subs.sab.bz
 * Subsunacs.net
 * Yavka.net
+* YIFY Subtitles
+
