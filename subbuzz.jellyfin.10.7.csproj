@@ -8,13 +8,11 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion> 
-    <FileVersion>1.0.0.0</FileVersion>
-    <RootNamespace>subbuzz</RootNamespace>
-    <AssemblyName>subbuzz</AssemblyName>	
+    <AssemblyName>subbuzz</AssemblyName>
     <DefineConstants>JELLYFIN,JELLYFIN_10_7</DefineConstants>	
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
