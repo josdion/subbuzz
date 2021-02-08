@@ -8,6 +8,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>subbuzz</RootNamespace>
     <AssemblyName>subbuzz</AssemblyName>
     <DefineConstants>EMBY</DefineConstants>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
