@@ -10,9 +10,9 @@
       {
         "version": "1.0.0.1",
         "changelog": "Initial release.\n",
-        "targetAbi": "10.7.0.0",
-        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.0.1/subbuzz_1.0.0.1_jellyfin_10.7.zip",
-        "checksum": "b0bea4ebeee92ad723c66d78266132fd",
+        "targetAbi": "10.6.0.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.0.1/subbuzz_1.0.0.1_jellyfin_10.6.zip",
+        "checksum": "b306b3ba3b619375ba1afb7ae8366dd3",
         "timestamp": "2021-02-14T11:09:02Z"
       }
     ]
