@@ -165,8 +165,11 @@ namespace subbuzz.Providers
 
                         string subNotes = linkNode.Attributes["title"].DeEntitizeValue;
 
-                        var regex = new Regex(@"(?:.*<b>Инфо: </b><br>)(.*)(?:</div>)");
-                        string subInfo = regex.Replace(subNotes, "$1");
+                        var regex = new Regex(@"(?:.*<b>Дата: </b>)(.*)(?:<br><b>Инфо: </b><br>)(.*)(?:</div>)");
+                        string subDate = regex.Replace(subNotes, "$1");
+                        string subInfo = regex.Replace(subNotes, "$2");
+
+                        subInfo = Utils.TrimString(subInfo, "<br>");
                         subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
 
                         string subNumCd = tdNodes[1].InnerText;
@@ -178,6 +181,8 @@ namespace subbuzz.Providers
 
                         string subUploader = tdNodes[5].InnerText;
                         string subDownloads = tdNodes[6].InnerText;
+
+                        subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
                         var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
                         foreach (var file in files)

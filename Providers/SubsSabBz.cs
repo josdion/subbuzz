@@ -137,6 +137,8 @@ namespace subbuzz.Providers
                     { "release", "" }
                 };
 
+                // http://subs.sab.bz/index.php?act=search&movie=&select-language=2&upldr=&yr=&&release=&imdb=&sort=dd&
+
                 using (var html = await downloader.GetStream($"{ServerUrl}/index.php?", HttpReferer, post_params, cancellationToken))
                 {
                     var htmlDoc = new HtmlDocument();
@@ -198,6 +200,8 @@ namespace subbuzz.Providers
                             subRating = rtImgNode.Attributes["title"].Value;
                             subRating = subRating.Replace("Rating: ", "").Trim();
                         }
+
+                        subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
                         var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
                         foreach (var file in files)
