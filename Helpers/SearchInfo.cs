@@ -17,6 +17,7 @@ namespace subbuzz.Helpers
     public class SearchInfo
     {
         public string SearchText = "";
+        public string SearchEpByName = "";
         public float? VideoFps = null;
         public string ImdbId = "";
         public string ImdbIdEpisode = "";
@@ -83,6 +84,9 @@ namespace subbuzz.Helpers
                     title,
                     request.ParentIndexNumber ?? 0,
                     request.IndexNumber ?? 0);
+
+                string titleEp = !String.IsNullOrEmpty(ep.OriginalTitle) ? ep.OriginalTitle : ep.Name;
+                res.SearchEpByName = String.Format("{0} {1}", title, titleEp);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
                 ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
