@@ -162,7 +162,7 @@ namespace subbuzz.Providers
                     if (link == null) continue;
                 }
 
-                string subLink = ServerUrl + "/" + link.GetAttribute("href");
+                string subLink = ServerUrl + "/" + link.GetAttribute("href").Trim('/') + "/";
                 string subTitle = link.InnerHtml;
 
                 string subNotes = link.GetAttribute("content");
