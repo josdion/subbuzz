@@ -18,6 +18,12 @@ using System.Net.Http;
 
 namespace subbuzz.Helpers
 {
+    class ArchiveFileInfo
+    {
+        public string Name { get; set; }
+        public Stream Content { get; set; }
+    };
+
     class Download
     {
         private const string UrlSeparator = "*:*";
@@ -68,25 +74,26 @@ namespace subbuzz.Helpers
             float fps = 25;
             try { fps = float.Parse(ids[3], CultureInfo.InvariantCulture); } catch { }
 
-            Stream stream = await GetStream(link, referer, null, cancellationToken).ConfigureAwait(false);
-
-            IArchive arcreader = ArchiveFactory.Open(stream);
-            foreach (IArchiveEntry entry in arcreader.Entries)
+            using (Stream stream = await GetStream(link, referer, null, cancellationToken).ConfigureAwait(false))
             {
-                if (String.IsNullOrWhiteSpace(file) || file == entry.Key)
+                IArchive arcreader = ArchiveFactory.Open(stream);
+                foreach (IArchiveEntry entry in arcreader.Entries)
                 {
-                    Stream fileStream = entry.OpenEntryStream();
-
-                    string fileExt = entry.Key.Split('.').LastOrDefault().ToLower();
-                    fileStream = SubtitleConvert.ToSupportedFormat(fileStream, encoding, convertToUtf8, fps, ref fileExt);
-
-                    return new SubtitleResponse
+                    if (String.IsNullOrWhiteSpace(file) || file == entry.Key)
                     {
-                        Language = lang,
-                        Format = fileExt,
-                        IsForced = false,
-                        Stream = fileStream
-                    };
+                        Stream fileStream = entry.OpenEntryStream();
+
+                        string fileExt = entry.Key.Split('.').LastOrDefault().ToLower();
+                        fileStream = SubtitleConvert.ToSupportedFormat(fileStream, encoding, convertToUtf8, fps, ref fileExt);
+
+                        return new SubtitleResponse
+                        {
+                            Language = lang,
+                            Format = fileExt,
+                            IsForced = false,
+                            Stream = fileStream
+                        };
+                    }
                 }
             }
 
@@ -110,6 +117,29 @@ namespace subbuzz.Helpers
             }
             return res;
         }
+
+        public async Task<IEnumerable<ArchiveFileInfo>> GetArchiveSubFiles(string link, string referer, CancellationToken cancellationToken)
+        {
+            var res = new List<ArchiveFileInfo>();
+
+            using (Stream stream = await GetStream(link, referer, null, cancellationToken).ConfigureAwait(false))
+            {
+                IArchive arcreader = ArchiveFactory.Open(stream);
+                foreach (IArchiveEntry entry in arcreader.Entries)
+                {
+                    if (!entry.IsDirectory)
+                    {
+                        Stream arcStream = entry.OpenEntryStream();
+                        Stream memStream = new MemoryStream();
+                        arcStream.CopyTo(memStream);
+
+                        res.Add(new ArchiveFileInfo { Name = entry.Key, Content = memStream });
+                    }
+                }
+            }
+            return res;
+        }
+
 
 #if JELLYFIN_10_7
         public async Task<Stream> GetStream(

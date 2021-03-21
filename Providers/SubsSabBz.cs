@@ -122,10 +122,55 @@ namespace subbuzz.Providers
 
                 _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
 
-                if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
+                if (!Languages.Contains(si.Lang))
                 {
                     return res;
                 }
+
+                // search by IMDB Id
+
+                if (!String.IsNullOrWhiteSpace(si.ImdbId))
+                {
+                    string urlImdb = String.Format(
+                        "{0}/index.php?act=search&movie={1}&select-language={2}&upldr=&yr=&&release=&imdb={3}&sort=dd&",
+                        ServerUrl,
+                        request.ContentType == VideoContentType.Episode ?
+                            String.Format("{0:D2}x{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
+                        si.Lang == "en" ? "1" : "2",
+                        si.ImdbId
+                        );
+
+                    using (var html = await downloader.GetStream(urlImdb, HttpReferer, null, cancellationToken))
+                    {
+                        var subs = await ParseHtml(html, si, cancellationToken);
+                        res.AddRange(subs);
+                    }
+
+                    if (request.ContentType == VideoContentType.Episode && 
+                        !String.IsNullOrWhiteSpace(si.ImdbIdEpisode) &&
+                        si.ImdbId != si.ImdbIdEpisode)
+                    {
+                        string urlImdbEp = String.Format(
+                            "{0}/index.php?act=search&movie=&select-language={1}&upldr=&yr=&&release=&imdb={2}&sort=dd&",
+                            ServerUrl,
+                            si.Lang == "en" ? "1" : "2",
+                            si.ImdbIdEpisode
+                            );
+
+                        using (var html = await downloader.GetStream(urlImdbEp, HttpReferer, null, cancellationToken))
+                        {
+                            var subs = await ParseHtml(html, si, cancellationToken);
+                            res.AddRange(subs);
+                        }
+                    }
+                }
+
+                if (String.IsNullOrEmpty(si.SearchText))
+                {
+                    return res;
+                }
+
+                // search by movies/series title
 
                 var post_params = new Dictionary<string, string>
                 {
@@ -137,101 +182,10 @@ namespace subbuzz.Providers
                     { "release", "" }
                 };
 
-                // http://subs.sab.bz/index.php?act=search&movie=&select-language=2&upldr=&yr=&&release=&imdb=&sort=dd&
-
                 using (var html = await downloader.GetStream($"{ServerUrl}/index.php?", HttpReferer, post_params, cancellationToken))
                 {
-                    var htmlDoc = new HtmlDocument();
-                    htmlDoc.Load(html, Encoding.GetEncoding(1251), true);
-
-                    var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr[@class='subs-row']");
-                    if (trNodes == null) return res;
-
-                    for (int i = 0; i < trNodes.Count; i++)
-                    {
-                        var tdNodes = trNodes[i].SelectNodes("td");
-                        if (tdNodes == null || tdNodes.Count < 12) continue;
-
-                        HtmlNode linkNode = tdNodes[3].SelectSingleNode("a[@href]");
-                        if (linkNode == null) continue;
-
-                        string subLink = linkNode.Attributes["href"].Value;
-                        var regexLink = new Regex(@"(?<g1>.*index.php\?)(?<g2>s=.*&amp;)?(?<g3>.*)");
-                        subLink = regexLink.Replace(subLink, "${g1}${g3}");
-
-                        string subTitle = linkNode.InnerText;
-
-                        string subNotes = linkNode.Attributes["onmouseover"].DeEntitizeValue;
-                        var regex = new Regex(@"ddrivetip\(\'<div.*/></div>(.*)\',\'#[0-9]+\'\)");
-                        subNotes = regex.Replace(subNotes, "$1");
-                        string subInfo = subNotes.Substring(subNotes.LastIndexOf("<b>Доп. инфо</b>") + 17);
-
-                        subInfo = Utils.TrimString(subInfo, "<br />");
-                        subInfo = subInfo.Replace("<br /><br />", "<br />").Replace("<br /><br />", "<br />");
-
-                        string subYear = linkNode.NextSibling.InnerText.Trim(new[] { ' ', '(', ')' });
-
-                        string subDate = tdNodes[4].InnerText;
-                        string subNumCd = tdNodes[6].InnerText;
-                        string subFps = tdNodes[7].InnerText;
-                        string subUploader = tdNodes[8].InnerText;
-
-                        string subImdb = "";
-                        var linkImdb = tdNodes[9].SelectSingleNode("a[@href]");
-                        if (linkImdb != null)
-                        {
-                            var reg = new Regex(@"imdb.com/title/(tt\d+)/?$");
-                            var match = reg.Match(linkImdb.Attributes["href"].Value);
-                            if (match != null && match.Groups.Count > 1) subImdb = match.Groups[1].Value;
-
-                            if (!si.CheckImdbId(subImdb))
-                            {
-                                _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                                continue;
-                            }
-                        }
-
-                        string subDownloads = tdNodes[10].InnerText;
-
-                        string subRating = "0";
-                        var rtImgNode = tdNodes[11].SelectSingleNode(".//img");
-                        if (rtImgNode != null)
-                        {
-                            subRating = rtImgNode.Attributes["title"].Value;
-                            subRating = subRating.Replace("Rating: ", "").Trim();
-                        }
-
-                        subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
-
-                        var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
-                        foreach (var file in files)
-                        {
-                            string fileExt = file.Split('.').LastOrDefault().ToLower();
-                            if (fileExt != "srt" && fileExt != "sub") continue;
-
-                            var item = new RemoteSubtitleInfo
-                            {
-                                ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                                Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
-                                ProviderName = Name,
-                                Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                                Format = file.Split('.').LastOrDefault().ToUpper(),
-                                Author = subUploader,
-                                Comment = subInfo,
-                                //DateCreated = DateTimeOffset.Parse(subDate),
-                                CommunityRating = Convert.ToInt32(subRating),
-                                DownloadCount = Convert.ToInt32(subDownloads),
-                                IsHashMatch = false,
-#if EMBY
-                                IsForced = false,
-#endif
-                            };
-
-                            res.Add(item);
-                        }
-                    }
-
-                    return res;
+                    List<RemoteSubtitleInfo> subs = await ParseHtml(html, si, cancellationToken);
+                    Utils.MergeSubtitleInfo(res, subs);
                 }
             }
             catch (Exception e)
@@ -242,5 +196,101 @@ namespace subbuzz.Providers
             return res;
         }
 
+        protected async Task<List<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
+        {
+            var res = new List<RemoteSubtitleInfo>();
+
+            var htmlDoc = new HtmlDocument();
+            htmlDoc.Load(html, Encoding.GetEncoding(1251), true);
+
+            var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr[@class='subs-row']");
+            if (trNodes == null) return res;
+
+            for (int i = 0; i < trNodes.Count; i++)
+            {
+                var tdNodes = trNodes[i].SelectNodes("td");
+                if (tdNodes == null || tdNodes.Count < 12) continue;
+
+                HtmlNode linkNode = tdNodes[3].SelectSingleNode("a[@href]");
+                if (linkNode == null) continue;
+
+                string subLink = linkNode.Attributes["href"].Value;
+                var regexLink = new Regex(@"(?<g1>.*index.php\?)(?<g2>s=.*&amp;)?(?<g3>.*)");
+                subLink = regexLink.Replace(subLink, "${g1}${g3}");
+
+                string subTitle = linkNode.InnerText;
+
+                string subNotes = linkNode.Attributes["onmouseover"].DeEntitizeValue;
+                var regex = new Regex(@"ddrivetip\(\'<div.*/></div>(.*)\',\'#[0-9]+\'\)");
+                subNotes = regex.Replace(subNotes, "$1");
+                string subInfo = subNotes.Substring(subNotes.LastIndexOf("<b>Доп. инфо</b>") + 17);
+
+                subInfo = Utils.TrimString(subInfo, "<br />");
+                subInfo = subInfo.Replace("<br /><br />", "<br />").Replace("<br /><br />", "<br />");
+
+                string subYear = linkNode.NextSibling.InnerText.Trim(new[] { ' ', '(', ')' });
+
+                string subDate = tdNodes[4].InnerText;
+                string subNumCd = tdNodes[6].InnerText;
+                string subFps = tdNodes[7].InnerText;
+                string subUploader = tdNodes[8].InnerText;
+
+                string subImdb = "";
+                var linkImdb = tdNodes[9].SelectSingleNode("a[@href]");
+                if (linkImdb != null)
+                {
+                    var reg = new Regex(@"imdb.com/title/(tt\d+)/?$");
+                    var match = reg.Match(linkImdb.Attributes["href"].Value);
+                    if (match != null && match.Groups.Count > 1) subImdb = match.Groups[1].Value;
+
+                    if (!si.CheckImdbId(subImdb))
+                    {
+                        _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                        continue;
+                    }
+                }
+
+                string subDownloads = tdNodes[10].InnerText;
+
+                string subRating = "0";
+                var rtImgNode = tdNodes[11].SelectSingleNode(".//img");
+                if (rtImgNode != null)
+                {
+                    subRating = rtImgNode.Attributes["title"].Value;
+                    subRating = subRating.Replace("Rating: ", "").Trim();
+                }
+
+                subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
+
+                var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+                foreach (var file in files)
+                {
+                    string fileExt = file.Split('.').LastOrDefault().ToLower();
+                    if (fileExt != "srt" && fileExt != "sub") continue;
+
+                    var item = new RemoteSubtitleInfo
+                    {
+                        ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                        Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
+                        ProviderName = Name,
+                        Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
+                        Format = file.Split('.').LastOrDefault().ToUpper(),
+                        Author = subUploader,
+                        Comment = subInfo,
+                        //DateCreated = DateTimeOffset.Parse(subDate),
+                        CommunityRating = Convert.ToInt32(subRating),
+                        DownloadCount = Convert.ToInt32(subDownloads),
+                        IsHashMatch = false,
+#if EMBY
+                                IsForced = false,
+#endif
+                    };
+
+                    res.Add(item);
+                }
+            }
+
+            return res;
+        }
     }
 }

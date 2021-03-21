@@ -191,11 +191,36 @@ namespace subbuzz.Providers
                 if (downlds != null)
                     subDownloads = downlds.TextContent.Trim();
 
-                subInfo += String.Format("<br>{0} | {1}", subUploader, subFps);
 
-                var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
-                foreach (var file in files)
+                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+
+                DateTime? dt = null;
+                DateTimeOffset? dtOffset = null;
+                foreach (var fitem in files)
                 {
+                    if (fitem.Name == "YavkA.net.txt")
+                    {
+                        fitem.Content.Seek(0, System.IO.SeekOrigin.Begin);
+                        var reader = new System.IO.StreamReader(fitem.Content, Encoding.UTF8, true);
+                        string info_text = reader.ReadToEnd();
+                        var regexDate = new Regex(@"Качени на: (\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)");
+                        var match = regexDate.Match(info_text);
+                        if (match.Success && match.Groups.Count > 0)
+                        {
+                            dt = DateTime.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
+                            dtOffset = DateTimeOffset.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
+                        }
+                        
+                        break;
+                    }
+                }
+
+                string subDate = dtOffset != null ? dtOffset?.ToString("g") : "";
+                subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
+
+                foreach (var fitem in files)
+                {
+                    string file = fitem.Name;
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
 
@@ -208,12 +233,14 @@ namespace subbuzz.Providers
                         Format = fileExt,
                         Author = subUploader,
                         Comment = subInfo,
-                        //DateCreated = DateTimeOffset.Parse(subDate),
                         //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                         DownloadCount = int.Parse(subDownloads),
                         IsHashMatch = false,
 #if EMBY
+                        DateCreated = dtOffset,
                         IsForced = false,
+#else
+                        DateCreated = dt,
 #endif
                     };
 

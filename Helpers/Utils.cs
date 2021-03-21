@@ -1,4 +1,6 @@
+using MediaBrowser.Model.Providers;
 using System;
+using System.Collections.Generic;
 
 namespace subbuzz.Helpers
 {
@@ -53,6 +55,26 @@ namespace subbuzz.Helpers
         public static string TrimString(string str, string remove, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
         {
             return TrimStringStart(TrimStringEnd(str, remove, comparisonType), remove, comparisonType);
+        }
+
+        public static void MergeSubtitleInfo(List<RemoteSubtitleInfo> res, List<RemoteSubtitleInfo> sub)
+        {
+            foreach (var s in sub)
+            {
+                bool add = true;
+
+                foreach (var r in res)
+                {
+                    if (s.Id == r.Id)
+                    {
+                        add = false;
+                        break;
+                    }
+                }
+
+                if (add)
+                    res.Add(s);
+            }
         }
 
     }
