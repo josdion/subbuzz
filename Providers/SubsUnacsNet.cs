@@ -224,7 +224,8 @@ namespace subbuzz.Providers
                 foreach (var file in files)
                 {
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
-                    if (fileExt != "srt" && fileExt != "sub") continue;
+                    if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti", RegexOptions.IgnoreCase)) continue;
+                    if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
 
                     var item = new RemoteSubtitleInfo
                     {

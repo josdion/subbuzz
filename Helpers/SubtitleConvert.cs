@@ -15,6 +15,11 @@ namespace subbuzz.Helpers
             Stream ins = new MemoryStream();
             inStream.CopyTo(ins);
 
+            ins.Seek(0, SeekOrigin.Begin);
+            UtfUnknown.DetectionResult csDetect = UtfUnknown.CharsetDetector.DetectFromStream(ins);
+            if (csDetect.Detected != null && csDetect.Detected.Confidence > 0.7)
+                encoding = csDetect.Detected.Encoding ?? encoding;
+
             Stream outs = new MemoryStream();
             var writer = new StreamWriter(outs, convertToUtf8 ? Encoding.UTF8 : encoding);
 
