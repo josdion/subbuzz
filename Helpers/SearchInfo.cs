@@ -18,18 +18,24 @@ namespace subbuzz.Helpers
     {
         public string SearchText = "";
         public string SearchEpByName = "";
+        public string SearchSeason = "";
         public float? VideoFps = null;
         public string ImdbId = "";
+        public int    ImdbIdInt = 0;
         public string ImdbIdEpisode = "";
+        public int    ImdbIdEpisodeInt = 0;
         public string Lang = ""; // two letter lower case language code
         public CultureDto LanguageInfo;
         public VideoContentType VideoType;
+        public int SeasonNumber = 0;
+        public int EpisodeNumber = 0;
 
         public static SearchInfo GetSearchInfo(
             SubtitleSearchRequest request,
             ILocalizationManager localize,
             ILibraryManager lib,
             string episode_format = "",
+            string season_format = "",
             Dictionary<string, string> inconsistentTvs = null,
             Dictionary<string, string> inconsistentMovies = null
             )
@@ -85,28 +91,44 @@ namespace subbuzz.Helpers
                     request.ParentIndexNumber ?? 0,
                     request.IndexNumber ?? 0);
 
+                res.SearchSeason = String.Format(season_format,
+                    title,
+                    request.ParentIndexNumber);
+
                 string titleEp = !String.IsNullOrEmpty(ep.OriginalTitle) ? ep.OriginalTitle : ep.Name;
                 res.SearchEpByName = String.Format("{0} {1}", title, titleEp);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
                 ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
+
+                res.SeasonNumber = request.ParentIndexNumber ?? 0;
+                res.EpisodeNumber = request.IndexNumber ?? 0;
             }
 
             res.SearchText = res.SearchText.Replace(':', ' ').Replace("  ", " ");
 
+            var regexImdbId = new Regex(@"tt(\d+)");
+
+            var match = regexImdbId.Match(res.ImdbId);
+            if (match.Success && match.Groups.Count > 0) 
+                res.ImdbIdInt = int.Parse(match.Groups[1].ToString());
+
+            match = regexImdbId.Match(res.ImdbIdEpisode);
+            if (match.Success && match.Groups.Count > 0) 
+                res.ImdbIdEpisodeInt = int.Parse(match.Groups[1].ToString());
+
             return res;
         }
 
-        public bool CheckImdbId(string imdb)
+        public bool CheckImdbId(int imdb)
         {
-            if (!String.IsNullOrWhiteSpace(imdb) && !String.IsNullOrWhiteSpace(ImdbId))
+            if (imdb > 0)
             {
-                if (!imdb.Equals(ImdbId, StringComparison.CurrentCultureIgnoreCase))
+                if (imdb != ImdbIdInt)
                 {
                     if (VideoType == VideoContentType.Episode)
                     {
-                        if (!String.IsNullOrWhiteSpace(ImdbIdEpisode) &&
-                            !imdb.Equals(ImdbIdEpisode, StringComparison.CurrentCultureIgnoreCase))
+                        if (ImdbIdEpisodeInt > 0 && imdb != ImdbIdEpisodeInt)
                         {
                             return false;
                         }

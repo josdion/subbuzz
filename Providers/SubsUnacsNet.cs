@@ -1,5 +1,4 @@
-﻿using HtmlAgilityPack;
-using MediaBrowser.Common.Net;
+﻿using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
@@ -119,6 +118,7 @@ namespace subbuzz.Providers
                     _localizationManager,
                     _libraryManager,
                     "{0} {1:D2}x{2:D2}",
+                    "{0} {1:D2} Season",
                     InconsistentTvs,
                     InconsistentMovies);
 
@@ -130,7 +130,7 @@ namespace subbuzz.Providers
                 }
 
                 var post_params = GetPostParams(
-                    si.SearchText, 
+                    si.SearchText,
                     si.Lang != "en" ? "0" : "1",
                     request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "");
 
@@ -220,85 +220,42 @@ namespace subbuzz.Providers
 
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
-                var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
-                foreach (var file in files)
+                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+
+                int imdbId = 0;
+                string subImdb = "";
+                foreach (var fitem in files)
                 {
+                    if (Regex.IsMatch(fitem.Name, @"subsunacs\.net_\d*\.txt"))
+                    {
+                        fitem.Content.Seek(0, System.IO.SeekOrigin.Begin);
+                        var reader = new System.IO.StreamReader(fitem.Content, Encoding.UTF8, true);
+                        string info_text = reader.ReadToEnd();
+
+                        var regexImdbId = new Regex(@"imdb.com/title/(tt(\d+))/?");
+                        var match = regexImdbId.Match(info_text);
+                        if (match.Success && match.Groups.Count > 2)
+                        {
+                            subImdb = match.Groups[1].ToString();
+                            imdbId = int.Parse(match.Groups[2].ToString());
+                        }
+
+                        break;
+                    }
+                }
+
+                if (!si.CheckImdbId(imdbId))
+                {
+                    _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                    continue;
+                }
+
+                foreach (var fitem in files)
+                {
+                    string file = fitem.Name;
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
                     if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti", RegexOptions.IgnoreCase)) continue;
                     if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
-
-                    var item = new RemoteSubtitleInfo
-                    {
-                        ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                        Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
-                        ProviderName = Name,
-                        Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = fileExt,
-                        Author = subUploader,
-                        Comment = subInfo,
-                        //DateCreated = DateTimeOffset.Parse(subDate),
-                        CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
-                        DownloadCount = int.Parse(subDownloads),
-                        IsHashMatch = false,
-#if EMBY
-                        IsForced = false,
-#endif
-                    };
-
-                    res.Add(item);
-                }
-            }
-
-            return res;
-        }
-
-        protected async Task<IEnumerable<RemoteSubtitleInfo>> ParseHtmlAgilityPack(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
-        {
-            var res = new List<RemoteSubtitleInfo>();
-
-            var htmlDoc = new HtmlDocument();
-            htmlDoc.Load(html, Encoding.GetEncoding(1251), true);
-
-            var trNodes = htmlDoc.DocumentNode.SelectNodes("//tr[@onmouseover]");
-            if (trNodes == null) return res;
-
-            for (int i = 0; i < trNodes.Count; i++)
-            {
-                var tdNodes = trNodes[i].SelectNodes(".//td");
-                if (tdNodes == null || tdNodes.Count < 6) continue;
-
-                HtmlNode linkNode = tdNodes[0].SelectSingleNode("a[@href]");
-                if (linkNode == null) continue;
-
-                string subLink = ServerUrl + linkNode.Attributes["href"].Value;
-                string subTitle = linkNode.InnerText;
-
-                string subNotes = linkNode.Attributes["title"].DeEntitizeValue;
-
-                var regex = new Regex(@"(?:.*<b>Дата: </b>)(.*)(?:<br><b>Инфо: </b><br>)(.*)(?:</div>)");
-                string subDate = regex.Replace(subNotes, "$1");
-                string subInfo = regex.Replace(subNotes, "$2");
-
-                subInfo = Utils.TrimString(subInfo, "<br>");
-                subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
-
-                string subNumCd = tdNodes[1].InnerText;
-                string subFps = tdNodes[2].InnerText;
-
-                string subRating = "0";
-                var rtImgNode = tdNodes[3].SelectSingleNode(".//img");
-                if (rtImgNode != null) subRating = rtImgNode.Attributes["title"].Value;
-
-                string subUploader = tdNodes[5].InnerText;
-                string subDownloads = tdNodes[6].InnerText;
-
-                subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
-
-                var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
-                foreach (var file in files)
-                {
-                    string fileExt = file.Split('.').LastOrDefault().ToLower();
-                    if (fileExt != "srt" && fileExt != "sub") continue;
 
                     var item = new RemoteSubtitleInfo
                     {

@@ -117,6 +117,7 @@ namespace subbuzz.Providers
                     _localizationManager,
                     _libraryManager,
                     "{0} {1:D2}x{2:D2}",
+                    "{0} Season {1}",
                     InconsistentTvs,
                     InconsistentMovies);
 
@@ -235,15 +236,20 @@ namespace subbuzz.Providers
                 string subFps = tdNodes[7].InnerText;
                 string subUploader = tdNodes[8].InnerText;
 
+                int imdbId = 0;
                 string subImdb = "";
                 var linkImdb = tdNodes[9].SelectSingleNode("a[@href]");
                 if (linkImdb != null)
                 {
-                    var reg = new Regex(@"imdb.com/title/(tt\d+)/?$");
+                    var reg = new Regex(@"imdb.com/title/(tt(\d+))/?$");
                     var match = reg.Match(linkImdb.Attributes["href"].Value);
-                    if (match != null && match.Groups.Count > 1) subImdb = match.Groups[1].Value;
+                    if (match != null && match.Groups.Count > 2)
+                    {
+                        subImdb = match.Groups[1].Value;
+                        imdbId = int.Parse(match.Groups[2].ToString());
+                    }
 
-                    if (!si.CheckImdbId(subImdb))
+                    if (!si.CheckImdbId(imdbId))
                     {
                         _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
                         continue;

@@ -94,13 +94,42 @@ namespace subbuzz.Providers
                     return res;
                 }
 
-                SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} s{1:D2}e{2:D2}");
+                SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} s{1:D2}e{2:D2}", "{0} s{1:D2}");
                 _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
                     return res;
                 }
+
+                /* searchin by IMDB Id is currently not working
+                if (!String.IsNullOrWhiteSpace(si.ImdbId))
+                {
+                    // search by IMDB Id
+                    string urlImdb = String.Format(
+                        "{0}/subtitles.php?s={1}&y=&c=&u=&l={2}&g=&i={3}",
+                        ServerUrl,
+                        request.ContentType == VideoContentType.Episode ?
+                            String.Format("s{0:D2}e{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
+                        si.Lang.ToUpper(),
+                        si.ImdbId
+                        );
+
+                    _logger.LogInformation($"{urlImdb}");
+
+                    using (var html = await downloader.GetStream(urlImdb, HttpReferer, null, cancellationToken))
+                    {
+                        var subs = await ParseHtml(html, si, cancellationToken);
+                        res.AddRange(subs);
+                    }
+                }*/
+
+                if (String.IsNullOrEmpty(si.SearchText))
+                {
+                    return res;
+                }
+
+                // search by movies/series title
 
                 string url = String.Format(
                         "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
@@ -110,25 +139,33 @@ namespace subbuzz.Providers
                         si.Lang.ToUpper()
                         );
 
-                if (!String.IsNullOrWhiteSpace(si.ImdbId))
-                {
-                    // search by IMDB Id
-                    url = String.Format(
-                        "{0}/subtitles.php?s={1}&y=&c=&u=&l={2}&g=&i={3}",
-                        ServerUrl,
-                        request.ContentType == VideoContentType.Episode ?
-                            String.Format("s{0:D2}e{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
-                        si.Lang.ToUpper(),
-                        si.ImdbId
-                        );
-                }
-
                 _logger.LogInformation($"{url}");
 
                 using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
                 {
-                    var subs = await ParseHtml(html, si, cancellationToken);
-                    res.AddRange(subs);
+                    List<RemoteSubtitleInfo> subs = await ParseHtml(html, si, cancellationToken);
+                    Utils.MergeSubtitleInfo(res, subs);
+                }
+
+                if (request.ContentType == VideoContentType.Episode)
+                {
+                    // search for episodes in season packs
+
+                    string urlSeason = String.Format(
+                            "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
+                            ServerUrl,
+                            HttpUtility.UrlEncode(si.SearchSeason),
+                            "",
+                            si.Lang.ToUpper()
+                            );
+
+                    _logger.LogInformation($"{urlSeason}");
+
+                    using (var html = await downloader.GetStream(urlSeason, HttpReferer, null, cancellationToken))
+                    {
+                        List<RemoteSubtitleInfo> subs = await ParseHtml(html, si, cancellationToken);
+                        Utils.MergeSubtitleInfo(res, subs);
+                    }
                 }
             }
             catch (Exception e)
@@ -139,7 +176,7 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<IEnumerable<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
+        protected async Task<List<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
         {
             var res = new List<RemoteSubtitleInfo>();
 
@@ -194,6 +231,8 @@ namespace subbuzz.Providers
 
                 var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
 
+                int imdbId = 0;
+                string subImdb = "";
                 DateTime? dt = null;
                 DateTimeOffset? dtOffset = null;
                 foreach (var fitem in files)
@@ -210,9 +249,23 @@ namespace subbuzz.Providers
                             dt = DateTime.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
                             dtOffset = DateTimeOffset.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
                         }
-                        
+
+                        var regexImdbId = new Regex(@"iMDB ID: (tt(\d+))");
+                        match = regexImdbId.Match(info_text);
+                        if (match.Success && match.Groups.Count > 2)
+                        {
+                            subImdb = match.Groups[1].ToString();
+                            imdbId = int.Parse(match.Groups[2].ToString());
+                        }
+
                         break;
                     }
+                }
+
+                if (!si.CheckImdbId(imdbId))
+                {
+                    _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                    continue;
                 }
 
                 string subDate = dtOffset != null ? dtOffset?.ToString("g") : "";
@@ -223,6 +276,15 @@ namespace subbuzz.Providers
                     string file = fitem.Name;
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
+
+                    if (si.VideoType == VideoContentType.Episode)
+                    {
+                        Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
+                        if (epInfo.EpisodeNumbers.Length > 0 && !epInfo.EpisodeNumbers.Contains(si.EpisodeNumber))
+                        {
+                            continue;
+                        }
+                    }
 
                     var item = new RemoteSubtitleInfo
                     {
