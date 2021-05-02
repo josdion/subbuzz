@@ -149,7 +149,7 @@ namespace subbuzz.Providers
                     tasks.Add(SearchUrl($"{ServerUrl}/search.php", post_params, si, cancellationToken));
                 }
 
-                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason))
+                if (request.ContentType == VideoContentType.Episode && si.SeasonNumber > 0 && !String.IsNullOrWhiteSpace(si.SearchSeason))
                 {
                     // search for episodes in season packs
                     var post_params = GetPostParams(si.SearchSeason, si.Lang != "en" ? "0" : "1", "");
@@ -192,7 +192,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: GET: {url} " + (post_params != null ? post_params["m"] : ""));
+                _logger.LogInformation($"{NAME}: " + (post_params != null ? $"POST: {url} -> " + post_params["m"] : $"GET: {url}"));
 
                 using (var html = await downloader.GetStream(url, HttpReferer, post_params, cancellationToken))
                 {
@@ -235,6 +235,8 @@ namespace subbuzz.Providers
 
                 subInfo = Utils.TrimString(subInfo, "<br>");
                 subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
+                subInfo = subInfo.Replace("&nbsp;", " ");
+                subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>"+ subInfo);
 
                 string subNumCd = tdNodes[1].InnerHtml;
                 string subFps = tdNodes[2].InnerHtml;
@@ -286,7 +288,7 @@ namespace subbuzz.Providers
                     if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti", RegexOptions.IgnoreCase)) continue;
                     if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
 
-                    if (si.VideoType == VideoContentType.Episode)
+                    if (si.VideoType == VideoContentType.Episode && si.SeasonNumber > 0)
                     {
                         Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
                         if (epInfo.EpisodeNumbers.Length > 0 && !epInfo.EpisodeNumbers.Contains(si.EpisodeNumber))

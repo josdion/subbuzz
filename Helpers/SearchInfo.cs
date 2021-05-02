@@ -6,6 +6,7 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
+using subbuzz.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -99,13 +100,15 @@ namespace subbuzz.Helpers
                     res.SeasonNumber);
 
                 string titleEp = !String.IsNullOrEmpty(ep.OriginalTitle) ? ep.OriginalTitle : ep.Name;
-                res.SearchEpByName = String.Format("{0} {1}", title, titleEp);
+                if (titleEp.ContainsIgnoreCase(title)) res.SearchEpByName = titleEp;
+                else res.SearchEpByName = String.Format("{0} {1}", title, titleEp);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
                 ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
             }
 
             res.SearchText = res.SearchText.Replace(':', ' ').Replace("  ", " ");
+            res.SearchEpByName = res.SearchEpByName.Replace(':', ' ').Replace("  ", " ");
 
             var regexImdbId = new Regex(@"tt(\d+)");
 

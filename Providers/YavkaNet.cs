@@ -122,8 +122,7 @@ namespace subbuzz.Providers
 
                 if (!String.IsNullOrWhiteSpace(si.SearchText))
                 {
-                    // search by movies/series title
-
+                    // search for movies/series by title
                     string url = String.Format(
                             "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
                             ServerUrl,
@@ -135,10 +134,9 @@ namespace subbuzz.Providers
                     tasks.Add(SearchUrl(url, si, cancellationToken));
                 }
 
-                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason))
+                if (request.ContentType == VideoContentType.Episode && si.SeasonNumber > 0 && !String.IsNullOrWhiteSpace(si.SearchSeason))
                 {
                     // search for episodes in season packs
-
                     string urlSeason = String.Format(
                             "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
                             ServerUrl,
@@ -283,7 +281,7 @@ namespace subbuzz.Providers
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
 
-                    if (si.VideoType == VideoContentType.Episode)
+                    if (si.VideoType == VideoContentType.Episode && si.SeasonNumber > 0)
                     {
                         Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
                         if (epInfo.EpisodeNumbers.Length > 0 && !epInfo.EpisodeNumbers.Contains(si.EpisodeNumber))

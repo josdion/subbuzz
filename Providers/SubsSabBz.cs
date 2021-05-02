@@ -130,11 +130,11 @@ namespace subbuzz.Providers
 
                 var tasks = new List<Task<List<RemoteSubtitleInfo>>>();
 
-                // search by IMDB Id
 
                 if (!String.IsNullOrWhiteSpace(si.ImdbId))
                 {
-                    string urlImdb = String.Format(
+                   // search by IMDB Id
+                   string urlImdb = String.Format(
                         "{0}/index.php?act=search&movie={1}&select-language={2}&upldr=&yr=&&release=&imdb={3}&sort=dd&",
                         ServerUrl,
                         request.ContentType == VideoContentType.Episode ?
@@ -163,7 +163,6 @@ namespace subbuzz.Providers
                 if (!String.IsNullOrEmpty(si.SearchText))
                 {
                     // search for movies/series by title
-
                     var post_params = new Dictionary<string, string>
                     {
                         { "act", "search"},
@@ -177,10 +176,9 @@ namespace subbuzz.Providers
                     tasks.Add(SearchUrl($"{ServerUrl}/index.php?", post_params, si, cancellationToken));
                 }
 
-                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason))
+                if (request.ContentType == VideoContentType.Episode && si.SeasonNumber > 0 && !String.IsNullOrWhiteSpace(si.SearchSeason))
                 {
                     // search for episodes in season packs
-
                     var post_params = new Dictionary<string, string>
                     {
                         { "act", "search"},
@@ -212,7 +210,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: GET: {url} " + (post_params != null ? post_params["movie"] : ""));
+                _logger.LogInformation($"{NAME}: " + (post_params != null ? $"POST: {url} -> " + post_params["movie"] : $"GET: {url}"));
 
                 using (var html = await downloader.GetStream(url, HttpReferer, post_params, cancellationToken))
                 {
@@ -303,7 +301,7 @@ namespace subbuzz.Providers
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
 
-                    if (si.VideoType == VideoContentType.Episode)
+                    if (si.VideoType == VideoContentType.Episode && si.SeasonNumber > 0)
                     {
                         Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
                         if (epInfo.EpisodeNumbers.Length > 0 && !epInfo.EpisodeNumbers.Contains(si.EpisodeNumber))
