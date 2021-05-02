@@ -129,26 +129,37 @@ namespace subbuzz.Providers
                     return res;
                 }
 
-                var post_params = GetPostParams(
-                    si.SearchText,
-                    si.Lang != "en" ? "0" : "1",
-                    request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "");
+                var tasks = new List<Task<List<RemoteSubtitleInfo>>>();
 
-                using (var html = await downloader.GetStream($"{ServerUrl}/search.php", HttpReferer, post_params, cancellationToken))
+                if (!String.IsNullOrEmpty(si.SearchText))
                 {
-                    var subs = await ParseHtml(html, si, cancellationToken);
-                    res.AddRange(subs);
+                    // search for movies/series by title
+                    var post_params = GetPostParams(
+                        si.SearchText,
+                        si.Lang != "en" ? "0" : "1",
+                        request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "");
+
+                    tasks.Add(SearchUrl($"{ServerUrl}/search.php", post_params, si, cancellationToken));
                 }
 
-                if (request.ContentType == VideoContentType.Episode && request.ParentIndexNumber == 0)
+                if (request.ContentType == VideoContentType.Episode && si.SeasonNumber == 0 && !String.IsNullOrEmpty(si.SearchEpByName))
                 {
                     // Search for special episodes by name
-                    var post_params2 = GetPostParams(si.SearchEpByName, si.Lang != "en" ? "0" : "1", Convert.ToString(request.ProductionYear));
-                    using (var html = await downloader.GetStream($"{ServerUrl}/search.php", HttpReferer, post_params2, cancellationToken))
-                    {
-                        var subs = await ParseHtml(html, si, cancellationToken);
-                        res.AddRange(subs);
-                    }
+                    var post_params = GetPostParams(si.SearchEpByName, si.Lang != "en" ? "0" : "1", Convert.ToString(request.ProductionYear));
+                    tasks.Add(SearchUrl($"{ServerUrl}/search.php", post_params, si, cancellationToken));
+                }
+
+                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason))
+                {
+                    // search for episodes in season packs
+                    var post_params = GetPostParams(si.SearchSeason, si.Lang != "en" ? "0" : "1", "");
+                    tasks.Add(SearchUrl($"{ServerUrl}/search.php", post_params, si, cancellationToken));
+                }
+
+                foreach (var task in tasks)
+                {
+                    List<RemoteSubtitleInfo> subs = await task;
+                    Utils.MergeSubtitleInfo(res, subs);
                 }
             }
             catch (Exception e)
@@ -177,7 +188,25 @@ namespace subbuzz.Providers
                 };
         }
 
-        protected async Task<IEnumerable<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
+        protected async Task<List<RemoteSubtitleInfo>> SearchUrl(string url, Dictionary<string, string> post_params, SearchInfo si, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _logger.LogInformation($"{NAME}: GET: {url} " + (post_params != null ? post_params["m"] : ""));
+
+                using (var html = await downloader.GetStream(url, HttpReferer, post_params, cancellationToken))
+                {
+                    return await ParseHtml(html, si, cancellationToken);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                return new List<RemoteSubtitleInfo>();
+            }
+        }
+
+        protected async Task<List<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
         {
             var res = new List<RemoteSubtitleInfo>();
 
@@ -256,6 +285,15 @@ namespace subbuzz.Providers
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
                     if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti", RegexOptions.IgnoreCase)) continue;
                     if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
+
+                    if (si.VideoType == VideoContentType.Episode)
+                    {
+                        Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
+                        if (epInfo.EpisodeNumbers.Length > 0 && !epInfo.EpisodeNumbers.Contains(si.EpisodeNumber))
+                        {
+                            continue;
+                        }
+                    }
 
                     var item = new RemoteSubtitleInfo
                     {

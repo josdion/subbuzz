@@ -102,7 +102,9 @@ namespace subbuzz.Providers
                     return res;
                 }
 
-                /* searchin by IMDB Id is currently not working
+                var tasks = new List<Task<List<RemoteSubtitleInfo>>>();
+
+                /* searchin by IMDB Id is not working at the moment
                 if (!String.IsNullOrWhiteSpace(si.ImdbId))
                 {
                     // search by IMDB Id
@@ -115,39 +117,25 @@ namespace subbuzz.Providers
                         si.ImdbId
                         );
 
-                    _logger.LogInformation($"{urlImdb}");
-
-                    using (var html = await downloader.GetStream(urlImdb, HttpReferer, null, cancellationToken))
-                    {
-                        var subs = await ParseHtml(html, si, cancellationToken);
-                        res.AddRange(subs);
-                    }
+                    tasks.Add(SearchUrl(urlImdb, si, cancellationToken));
                 }*/
 
-                if (String.IsNullOrEmpty(si.SearchText))
+                if (!String.IsNullOrWhiteSpace(si.SearchText))
                 {
-                    return res;
+                    // search by movies/series title
+
+                    string url = String.Format(
+                            "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
+                            ServerUrl,
+                            HttpUtility.UrlEncode(si.SearchText),
+                            request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "",
+                            si.Lang.ToUpper()
+                            );
+
+                    tasks.Add(SearchUrl(url, si, cancellationToken));
                 }
 
-                // search by movies/series title
-
-                string url = String.Format(
-                        "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
-                        ServerUrl,
-                        HttpUtility.UrlEncode(si.SearchText),
-                        request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "",
-                        si.Lang.ToUpper()
-                        );
-
-                _logger.LogInformation($"{url}");
-
-                using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
-                {
-                    List<RemoteSubtitleInfo> subs = await ParseHtml(html, si, cancellationToken);
-                    Utils.MergeSubtitleInfo(res, subs);
-                }
-
-                if (request.ContentType == VideoContentType.Episode)
+                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason))
                 {
                     // search for episodes in season packs
 
@@ -159,13 +147,13 @@ namespace subbuzz.Providers
                             si.Lang.ToUpper()
                             );
 
-                    _logger.LogInformation($"{urlSeason}");
+                    tasks.Add(SearchUrl(urlSeason, si, cancellationToken));
+                }
 
-                    using (var html = await downloader.GetStream(urlSeason, HttpReferer, null, cancellationToken))
-                    {
-                        List<RemoteSubtitleInfo> subs = await ParseHtml(html, si, cancellationToken);
-                        Utils.MergeSubtitleInfo(res, subs);
-                    }
+                foreach (var task in tasks)
+                {
+                    List<RemoteSubtitleInfo> subs = await task;
+                    Utils.MergeSubtitleInfo(res, subs);
                 }
             }
             catch (Exception e)
@@ -174,6 +162,24 @@ namespace subbuzz.Providers
             }
 
             return res;
+        }
+
+        protected async Task<List<RemoteSubtitleInfo>> SearchUrl(string url, SearchInfo si, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _logger.LogInformation($"{NAME}: GET: {url}");
+
+                using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
+                {
+                    return await ParseHtml(html, si, cancellationToken);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                return new List<RemoteSubtitleInfo>();
+            }
         }
 
         protected async Task<List<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)

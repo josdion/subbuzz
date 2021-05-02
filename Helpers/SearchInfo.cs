@@ -74,6 +74,9 @@ namespace subbuzz.Helpers
             else
             if (res.VideoType == VideoContentType.Episode && !String.IsNullOrEmpty(episode_format))
             {
+                res.SeasonNumber = request.ParentIndexNumber ?? 0;
+                res.EpisodeNumber = request.IndexNumber ?? 0;
+
                 Episode ep = libItem as Episode;
                 MediaStream media = ep.GetDefaultVideoStream();
                 if (media != null) res.VideoFps = media.AverageFrameRate;
@@ -88,34 +91,37 @@ namespace subbuzz.Helpers
                 // episode format {0} - series name, {1} - season, {2} - episode
                 res.SearchText = String.Format(episode_format,
                     title,
-                    request.ParentIndexNumber ?? 0,
-                    request.IndexNumber ?? 0);
+                    res.SeasonNumber,
+                    res.EpisodeNumber);
 
                 res.SearchSeason = String.Format(season_format,
                     title,
-                    request.ParentIndexNumber);
+                    res.SeasonNumber);
 
                 string titleEp = !String.IsNullOrEmpty(ep.OriginalTitle) ? ep.OriginalTitle : ep.Name;
                 res.SearchEpByName = String.Format("{0} {1}", title, titleEp);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
                 ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
-
-                res.SeasonNumber = request.ParentIndexNumber ?? 0;
-                res.EpisodeNumber = request.IndexNumber ?? 0;
             }
 
             res.SearchText = res.SearchText.Replace(':', ' ').Replace("  ", " ");
 
             var regexImdbId = new Regex(@"tt(\d+)");
 
-            var match = regexImdbId.Match(res.ImdbId);
-            if (match.Success && match.Groups.Count > 0) 
-                res.ImdbIdInt = int.Parse(match.Groups[1].ToString());
+            if (!String.IsNullOrWhiteSpace(res.ImdbId))
+            {
+                var match = regexImdbId.Match(res.ImdbId);
+                if (match.Success && match.Groups.Count > 1)
+                    res.ImdbIdInt = int.Parse(match.Groups[1].ToString());
+            }
 
-            match = regexImdbId.Match(res.ImdbIdEpisode);
-            if (match.Success && match.Groups.Count > 0) 
-                res.ImdbIdEpisodeInt = int.Parse(match.Groups[1].ToString());
+            if (!String.IsNullOrWhiteSpace(res.ImdbIdEpisode))
+            {
+                var match = regexImdbId.Match(res.ImdbIdEpisode);
+                if (match.Success && match.Groups.Count > 1)
+                    res.ImdbIdEpisodeInt = int.Parse(match.Groups[1].ToString());
+            }
 
             return res;
         }

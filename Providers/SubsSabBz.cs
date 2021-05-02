@@ -128,6 +128,8 @@ namespace subbuzz.Providers
                     return res;
                 }
 
+                var tasks = new List<Task<List<RemoteSubtitleInfo>>>();
+
                 // search by IMDB Id
 
                 if (!String.IsNullOrWhiteSpace(si.ImdbId))
@@ -136,16 +138,12 @@ namespace subbuzz.Providers
                         "{0}/index.php?act=search&movie={1}&select-language={2}&upldr=&yr=&&release=&imdb={3}&sort=dd&",
                         ServerUrl,
                         request.ContentType == VideoContentType.Episode ?
-                            String.Format("{0:D2}x{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
+                            String.Format("{0:D2}x{1:D2}", si.SeasonNumber, si.EpisodeNumber) : "",
                         si.Lang == "en" ? "1" : "2",
                         si.ImdbId
                         );
 
-                    using (var html = await downloader.GetStream(urlImdb, HttpReferer, null, cancellationToken))
-                    {
-                        var subs = await ParseHtml(html, si, cancellationToken);
-                        res.AddRange(subs);
-                    }
+                    tasks.Add(SearchUrl(urlImdb, null, si, cancellationToken));
 
                     if (request.ContentType == VideoContentType.Episode && 
                         !String.IsNullOrWhiteSpace(si.ImdbIdEpisode) &&
@@ -158,34 +156,47 @@ namespace subbuzz.Providers
                             si.ImdbIdEpisode
                             );
 
-                        using (var html = await downloader.GetStream(urlImdbEp, HttpReferer, null, cancellationToken))
-                        {
-                            var subs = await ParseHtml(html, si, cancellationToken);
-                            res.AddRange(subs);
-                        }
+                        tasks.Add(SearchUrl(urlImdbEp, null, si, cancellationToken));
                     }
                 }
 
-                if (String.IsNullOrEmpty(si.SearchText))
+                if (!String.IsNullOrEmpty(si.SearchText))
                 {
-                    return res;
+                    // search for movies/series by title
+
+                    var post_params = new Dictionary<string, string>
+                    {
+                        { "act", "search"},
+                        { "movie", si.SearchText },
+                        { "select-language", si.Lang == "en" ? "1" : "2" },
+                        { "upldr", "" },
+                        { "yr", request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "" },
+                        { "release", "" }
+                    };
+
+                    tasks.Add(SearchUrl($"{ServerUrl}/index.php?", post_params, si, cancellationToken));
                 }
 
-                // search by movies/series title
-
-                var post_params = new Dictionary<string, string>
+                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason))
                 {
-                    { "act", "search"},
-                    { "movie", si.SearchText },
-                    { "select-language", si.Lang == "en" ? "1" : "2" },
-                    { "upldr", "" },
-                    { "yr", request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "" },
-                    { "release", "" }
-                };
+                    // search for episodes in season packs
 
-                using (var html = await downloader.GetStream($"{ServerUrl}/index.php?", HttpReferer, post_params, cancellationToken))
+                    var post_params = new Dictionary<string, string>
+                    {
+                        { "act", "search"},
+                        { "movie", si.SearchSeason },
+                        { "select-language", si.Lang == "en" ? "1" : "2" },
+                        { "upldr", "" },
+                        { "yr", "" },
+                        { "release", "" }
+                    };
+
+                    tasks.Add(SearchUrl($"{ServerUrl}/index.php?", post_params, si, cancellationToken));
+                }
+
+                foreach (var task in tasks)
                 {
-                    List<RemoteSubtitleInfo> subs = await ParseHtml(html, si, cancellationToken);
+                    List<RemoteSubtitleInfo> subs = await task;
                     Utils.MergeSubtitleInfo(res, subs);
                 }
             }
@@ -195,6 +206,24 @@ namespace subbuzz.Providers
             }
 
             return res;
+        }
+
+        protected async Task<List<RemoteSubtitleInfo>> SearchUrl(string url, Dictionary<string, string> post_params, SearchInfo si, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _logger.LogInformation($"{NAME}: GET: {url} " + (post_params != null ? post_params["movie"] : ""));
+
+                using (var html = await downloader.GetStream(url, HttpReferer, post_params, cancellationToken))
+                {
+                    return await ParseHtml(html, si, cancellationToken);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                return new List<RemoteSubtitleInfo>();
+            }
         }
 
         protected async Task<List<RemoteSubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, CancellationToken cancellationToken)
@@ -273,6 +302,15 @@ namespace subbuzz.Providers
                 {
                     string fileExt = file.Split('.').LastOrDefault().ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
+
+                    if (si.VideoType == VideoContentType.Episode)
+                    {
+                        Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
+                        if (epInfo.EpisodeNumbers.Length > 0 && !epInfo.EpisodeNumbers.Contains(si.EpisodeNumber))
+                        {
+                            continue;
+                        }
+                    }
 
                     var item = new RemoteSubtitleInfo
                     {
