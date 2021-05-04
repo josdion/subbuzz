@@ -10,7 +10,7 @@ using subbuzz.Extensions;
 
 namespace subbuzz.Parser
 {
-    class Episode
+    public static class Episode
     {
         private static readonly RegexReplace[] PreSubstitutionRegex = new[]
             {
@@ -316,13 +316,102 @@ namespace subbuzz.Parser
                           RegexOptions.IgnoreCase | RegexOptions.Compiled)
             };
 
+
+        private static readonly Regex[] SpecialEpisodeTitleRegex = new Regex[]
+            {
+                new Regex(@"\.S\d+E00\.(?<episodetitle>.+?)(?:\.(?:720p|1080p|HDTV|WEB|WEBRip|WEB-DL)\.|$)",
+                          RegexOptions.IgnoreCase | RegexOptions.Compiled),
+
+                new Regex(@"\.S\d+\.Special\.(?<episodetitle>.+?)(?:\.(?:720p|1080p|HDTV|WEB|WEBRip|WEB-DL)\.|$)",
+                          RegexOptions.IgnoreCase | RegexOptions.Compiled)
+            };
+
+        private static readonly Regex[] RejectHashedReleasesRegexes = new Regex[]
+            {
+                // Generic match for md5 and mixed-case hashes.
+                new Regex(@"^[0-9a-zA-Z]{32}", RegexOptions.Compiled),
+
+                // Generic match for shorter lower-case hashes.
+                new Regex(@"^[a-z0-9]{24}$", RegexOptions.Compiled),
+
+                // Format seen on some NZBGeek releases
+                // Be very strict with these coz they are very close to the valid 101 ep numbering.
+                new Regex(@"^[A-Z]{11}\d{3}$", RegexOptions.Compiled),
+                new Regex(@"^[a-z]{12}\d{3}$", RegexOptions.Compiled),
+
+                //Backup filename (Unknown origins)
+                new Regex(@"^Backup_\d{5,}S\d{2}-\d{2}$", RegexOptions.Compiled),
+
+                //123 - Started appearing December 2014
+                new Regex(@"^123$", RegexOptions.Compiled),
+
+                //abc - Started appearing January 2015
+                new Regex(@"^abc$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+
+                //abc - Started appearing 2020
+                new Regex(@"^abc[-_. ]xyz", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+
+                //b00bs - Started appearing January 2015
+                new Regex(@"^b00bs$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+
+                // 170424_26 - Started appearing August 2018
+                new Regex(@"^\d{6}_\d{2}$"),
+
+                // additional Generic match for mixed-case hashes. - Started appearing Dec 2020
+                new Regex(@"^[0-9a-zA-Z]{30}", RegexOptions.Compiled),
+
+                // additional Generic match for mixed-case hashes. - Started appearing Jan 2021
+                new Regex(@"^[0-9a-zA-Z]{26}", RegexOptions.Compiled),
+
+                // additional Generic match for mixed-case hashes. - Started appearing Jan 2021
+                new Regex(@"^[0-9a-zA-Z]{39}", RegexOptions.Compiled),
+                
+                // additional Generic match for mixed-case hashes. - Started appearing Jan 2021
+                new Regex(@"^[0-9a-zA-Z]{24}", RegexOptions.Compiled),
+            };
+
+        private static readonly Regex[] SeasonFolderRegexes = new Regex[]
+            {
+                new Regex(@"^(Season[ ._-]*\d+|Specials)$", RegexOptions.Compiled)
+            };
+
+        //Regex to detect whether the title was reversed.
+        private static readonly Regex ReversedTitleRegex = new Regex(@"(?:^|[-._ ])(p027|p0801|\d{2,3}E\d{2}S)[-._ ]", RegexOptions.Compiled);
+
+        private static readonly RegexReplace NormalizeRegex = new RegexReplace(@"((?:\b|_)(?<!^)(a(?!$)|an|the|and|or|of)(?!$)(?:\b|_))|\W|_",
+                                                                string.Empty,
+                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PercentRegex = new Regex(@"(?<=\b\d+)%", RegexOptions.Compiled);
+
+        private static readonly Regex FileExtensionRegex = new Regex(@"\.[a-z0-9]{2,4}$",
+                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly RegexReplace SimpleTitleRegex = new RegexReplace(@"(?:(480|720|1080|2160)[ip]|[xh][\W_]?26[45]|DD\W?5\W1|[<>?*|]|848x480|1280x720|1920x1080|3840x2160|4096x2160|(8|10)b(it)?|10-bit)\s*?",
+                                                                string.Empty,
+                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly RegexReplace WebsitePrefixRegex = new RegexReplace(@"^\[\s*[-a-z]+(\.[a-z]+)+\s*\][- ]*|^www\.[a-z]+\.(?:com|net|org)[ -]*",
                                                                 string.Empty,
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly RegexReplace WebsitePostfixRegex = new RegexReplace(@"\[\s*[-a-z]+(\.[a-z0-9]+)+\s*\]$",
+                                                                string.Empty,
+                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex SixDigitAirDateRegex = new Regex(@"(?<=[_.-])(?<airdate>(?<!\d)(?<airyear>[1-9]\d{1})(?<airmonth>[0-1][0-9])(?<airday>[0-3][0-9]))(?=[_.-])",
+                                                                        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly RegexReplace CleanReleaseGroupRegex = new RegexReplace(@"^(.*?[-._ ](S\d+E\d+)[-._ ])|(-(RP|1|NZBGeek|Obfuscated|Scrambled|sample|Pre|postbot|xpost|Rakuv[a-z0-9]*|WhiteRev|BUYMORE|AsRequested|AlternativeToRequested|GEROV|Z0iDS3N|Chamele0n|4P|4Planet|AlteZachen))+$",
                                                                 string.Empty,
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly RegexReplace CleanTorrentSuffixRegex = new RegexReplace(@"\[(?:ettv|rartv|rarbg|cttv)\]$",
+                                                                string.Empty,
+                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex CleanQualityBracketsRegex = new Regex(@"\[[a-z0-9 ._-]+\]$",
+                                                                   RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex ReleaseGroupRegex = new Regex(@"-(?<releasegroup>[a-z0-9]+(?!.+?(?:480p|720p|1080p|2160p)))(?<!.*?WEB-DL|Blu-Ray|480p|720p|1080p|2160p|DTS-HD|DTS-X|DTS-MA|DTS-ES)(?:\b|[-._ ]|$)|[-._ ]\[(?<releasegroup>[a-z0-9]+)\]$",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -332,22 +421,62 @@ namespace subbuzz.Parser
         private static readonly Regex AnimeReleaseGroupRegex = new Regex(@"^(?:\[(?<subgroup>(?!\s).+?(?<!\s))\](?:_|-|\s|\.)?)",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex LanguageRegex = new Regex(@"(?:\W|_)(?<italian>\b(?:ita|italian)\b)|(?<german>german\b|videomann)|(?<flemish>flemish)|(?<greek>greek)|(?<french>(?:\W|_)(?:FR|VOSTFR)(?:\W|_))|(?<russian>\brus\b)|(?<dutch>nl\W?subs?)|(?<hungarian>\b(?:HUNDUB|HUN)\b)|(?<spanish>\b(?:español|castellano)\b)",
+                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly Regex YearInTitleRegex = new Regex(@"^(?<title>.+?)(?:\W|_)?(?<year>\d{4})",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex TitleComponentsRegex = new Regex(@"^(?<title>.+?) \((?<title>.+?)\)$",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex WordDelimiterRegex = new Regex(@"(\s|\.|,|_|-|=|\|)+", RegexOptions.Compiled);
+        private static readonly Regex PunctuationRegex = new Regex(@"[^\w\s]", RegexOptions.Compiled);
+        private static readonly Regex CommonWordRegex = new Regex(@"\b(a|an|the|and|or|of)\b\s?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex SpecialEpisodeWordRegex = new Regex(@"\b(part|special|edition|christmas)\b\s?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex DuplicateSpacesRegex = new Regex(@"\s{2,}", RegexOptions.Compiled);
+
         private static readonly Regex RequestInfoRegex = new Regex(@"^(?:\[.+?\])+", RegexOptions.Compiled);
 
         private static readonly string[] Numbers = new[] { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
+
+        public static EpisodeInfo ParsePath(string path)
+        {
+            var fileInfo = new FileInfo(path);
+
+            var result = ParseTitle(fileInfo.Name);
+
+            if (result == null)
+            {
+                // Logger.Debug("Attempting to parse episode info using directory and file names. {0}", fileInfo.Directory.Name);
+                result = ParseTitle(fileInfo.Directory.Name + " " + fileInfo.Name);
+            }
+
+            if (result == null)
+            {
+                // Logger.Debug("Attempting to parse episode info using directory name. {0}", fileInfo.Directory.Name);
+                result = ParseTitle(fileInfo.Directory.Name + fileInfo.Extension);
+            }
+
+            return result;
+        }
 
         public static EpisodeInfo ParseTitle(string title)
         {
             try
             {
+                if (!ValidateBeforeParsing(title)) return null;
 
-                var releaseTitle = title; // RemoveFileExtension(title);
+                if (ReversedTitleRegex.IsMatch(title))
+                {
+                    var titleWithoutExtension = RemoveFileExtension(title).ToCharArray();
+                    Array.Reverse(titleWithoutExtension);
+
+                    title = new string(titleWithoutExtension) + title.Substring(titleWithoutExtension.Length);
+                }
+
+                var releaseTitle = RemoveFileExtension(title);
+
                 releaseTitle = releaseTitle.Replace("【", "[").Replace("】", "]");
 
                 foreach (var replace in PreSubstitutionRegex)
@@ -357,9 +486,42 @@ namespace subbuzz.Parser
                     }
                 }
 
+                var simpleTitle = SimpleTitleRegex.Replace(releaseTitle);
+
+                // TODO: Quick fix stripping [url] - prefixes and postfixes.
+                simpleTitle = WebsitePrefixRegex.Replace(simpleTitle);
+                simpleTitle = WebsitePostfixRegex.Replace(simpleTitle);
+
+                simpleTitle = CleanTorrentSuffixRegex.Replace(simpleTitle);
+
+                simpleTitle = CleanQualityBracketsRegex.Replace(simpleTitle, m =>
+                {
+                    if (QualityParser.ParseQualityName(m.Value).Quality != Qualities.Quality.Unknown)
+                    {
+                        return string.Empty;
+                    }
+
+                    return m.Value;
+                });
+
+                var sixDigitAirDateMatch = SixDigitAirDateRegex.Match(simpleTitle);
+                if (sixDigitAirDateMatch.Success)
+                {
+                    var airYear = sixDigitAirDateMatch.Groups["airyear"].Value;
+                    var airMonth = sixDigitAirDateMatch.Groups["airmonth"].Value;
+                    var airDay = sixDigitAirDateMatch.Groups["airday"].Value;
+
+                    if (airMonth != "00" || airDay != "00")
+                    {
+                        var fixedDate = string.Format("20{0}.{1}.{2}", airYear, airMonth, airDay);
+
+                        simpleTitle = simpleTitle.Replace(sixDigitAirDateMatch.Groups["airdate"].Value, fixedDate);
+                    }
+                }
+
                 foreach (var regex in ReportTitleRegex)
                 {
-                    var match = regex.Matches(releaseTitle);
+                    var match = regex.Matches(simpleTitle);
 
                     if (match.Count != 0)
                     {
@@ -375,12 +537,14 @@ namespace subbuzz.Parser
                                     result.Special = true;
                                 }
 
+                                //result.Language = LanguageParser.ParseLanguage(releaseTitle);
+
                                 result.Quality = QualityParser.ParseQuality(title);
 
                                 result.ReleaseGroup = ParseReleaseGroup(releaseTitle);
 
                                 var subGroup = GetSubGroup(match);
-                                if (!String.IsNullOrWhiteSpace(subGroup))
+                                if (!subGroup.IsNullOrWhiteSpace())
                                 {
                                     result.ReleaseGroup = subGroup;
                                 }
@@ -406,6 +570,148 @@ namespace subbuzz.Parser
             return null;
         }
 
+        public static string ParseSeriesName(string title)
+        {
+            var parseResult = ParseTitle(title);
+
+            if (parseResult == null)
+            {
+                return CleanSeriesTitle(title);
+            }
+
+            return parseResult.SeriesTitle;
+        }
+
+        public static string CleanSeriesTitle(this string title)
+        {
+            long number = 0;
+
+            //If Title only contains numbers return it as is.
+            if (long.TryParse(title, out number))
+                return title;
+
+            // Replace `%` with `percent` to deal with the 3% case
+            title = PercentRegex.Replace(title, "percent");
+
+            return NormalizeRegex.Replace(title).ToLower().RemoveAccent();
+        }
+
+        public static string NormalizeEpisodeTitle(string title)
+        {
+            var match = SpecialEpisodeTitleRegex
+                        .Select(v => v.Match(title))
+                        .FirstOrDefault(v => v.Success);
+
+            if (match != null)
+            {
+                title = match.Groups["episodetitle"].Value;
+            }
+
+            // Disabled, Until we run into specific testcases for the removal of these words.
+            //title = SpecialEpisodeWordRegex.Replace(title, string.Empty);
+
+            title = PunctuationRegex.Replace(title, " ");
+            title = DuplicateSpacesRegex.Replace(title, " ");
+
+            return title.Trim()
+                        .ToLower();
+        }
+
+        public static string NormalizeTitle(string title)
+        {
+            title = WordDelimiterRegex.Replace(title, " ");
+            title = PunctuationRegex.Replace(title, string.Empty);
+            title = CommonWordRegex.Replace(title, string.Empty);
+            title = DuplicateSpacesRegex.Replace(title, " ");
+
+            return title.Trim().ToLower();
+        }
+
+        public static string ParseReleaseGroup(string title)
+        {
+            title = title.Trim();
+            title = RemoveFileExtension(title);
+            foreach (var replace in PreSubstitutionRegex)
+            {
+                if (replace.TryReplace(ref title))
+                    break;
+            }
+            title = WebsitePrefixRegex.Replace(title);
+
+            var animeMatch = AnimeReleaseGroupRegex.Match(title);
+
+            if (animeMatch.Success)
+            {
+                return animeMatch.Groups["subgroup"].Value;
+            }
+
+            title = CleanReleaseGroupRegex.Replace(title);
+
+            var matches = ReleaseGroupRegex.Matches(title);
+
+            if (matches.Count != 0)
+            {
+                var group = matches.OfType<Match>().Last().Groups["releasegroup"].Value;
+                int groupIsNumeric;
+
+                if (int.TryParse(group, out groupIsNumeric))
+                {
+                    return null;
+                }
+
+                if (InvalidReleaseGroupRegex.IsMatch(group))
+                {
+                    return null;
+                }
+
+                return group;
+            }
+
+            return null;
+        }
+
+        public static string RemoveFileExtension(string title)
+        {/*
+            title = FileExtensionRegex.Replace(title, m =>
+            {
+                var extension = m.Value.ToLower();
+                if (MediaFiles.MediaFileExtensions.Extensions.Contains(extension) || new[] { ".par2", ".nzb" }.Contains(extension))
+                {
+                    return string.Empty;
+                }
+                return m.Value;
+            });*/
+
+            return title;
+        }
+
+        private static SeriesTitleInfo GetSeriesTitleInfo(string title)
+        {
+            var seriesTitleInfo = new SeriesTitleInfo();
+            seriesTitleInfo.Title = title;
+
+            var match = YearInTitleRegex.Match(title);
+
+            if (!match.Success)
+            {
+                seriesTitleInfo.TitleWithoutYear = title;
+            }
+            else
+            {
+                seriesTitleInfo.TitleWithoutYear = match.Groups["title"].Value;
+                seriesTitleInfo.Year = Convert.ToInt32(match.Groups["year"].Value);
+            }
+
+            var matchComponents = TitleComponentsRegex.Match(seriesTitleInfo.TitleWithoutYear);
+
+            if (matchComponents.Success)
+            {
+                seriesTitleInfo.AllTitles = matchComponents.Groups["title"].Captures.OfType<Capture>().Select(v => v.Value).ToArray();
+            }
+
+            return seriesTitleInfo;
+        }
+
         private static EpisodeInfo ParseMatchCollection(MatchCollection matchCollection, string releaseTitle)
         {
             var seriesName = matchCollection[0].Groups["title"].Value.Replace('.', ' ').Replace('_', ' ');
@@ -414,8 +720,7 @@ namespace subbuzz.Parser
             int airYear;
             int.TryParse(matchCollection[0].Groups["airyear"].Value, out airYear);
 
-            var groupTitle = matchCollection[0].Groups["title"];
-            int lastSeasonEpisodeStringIndex = groupTitle.Index + groupTitle.Length;
+            int lastSeasonEpisodeStringIndex = matchCollection[0].Groups["title"].EndIndex();
 
             EpisodeInfo result;
 
@@ -447,8 +752,7 @@ namespace subbuzz.Parser
                         var count = last - first + 1;
                         result.EpisodeNumbers = Enumerable.Range(first, count).ToArray();
 
-                        var episodeLast = episodeCaptures.Last();
-                        lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, episodeLast.Index + episodeLast.Length);
+                        lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, episodeCaptures.Last().EndIndex());
                     }
 
                     if (absoluteEpisodeCaptures.Any())
@@ -469,8 +773,7 @@ namespace subbuzz.Parser
                             result.SpecialAbsoluteEpisodeNumbers = new decimal[] { first };
                             result.Special = true;
 
-                            var absEpCaptFirst = absoluteEpisodeCaptures.First();
-                            lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, absEpCaptFirst.Index + absEpCaptFirst.Length);
+                            lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, absoluteEpisodeCaptures.First().EndIndex());
                         }
                         else
                         {
@@ -482,8 +785,7 @@ namespace subbuzz.Parser
                                 result.Special = true;
                             }
 
-                            var absEpCaptLast = absoluteEpisodeCaptures.Last();
-                            lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, absEpCaptLast.Index + absEpCaptLast.Length);
+                            lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, absoluteEpisodeCaptures.Last().EndIndex());
                         }
                     }
 
@@ -491,7 +793,7 @@ namespace subbuzz.Parser
                     {
                         //Check to see if this is an "Extras" or "SUBPACK" release, if it is, set
                         // IsSeasonExtra so they can be filtered out
-                        if (!String.IsNullOrWhiteSpace(matchCollection[0].Groups["extras"].Value))
+                        if (!matchCollection[0].Groups["extras"].Value.IsNullOrWhiteSpace())
                         {
                             result.IsSeasonExtra = true;
                         }
@@ -500,7 +802,7 @@ namespace subbuzz.Parser
                         // from a full season/single episode release
                         var seasonPart = matchCollection[0].Groups["seasonpart"].Value;
 
-                        if (!String.IsNullOrWhiteSpace(seasonPart))
+                        if (seasonPart.IsNotNullOrWhiteSpace())
                         {
                             result.SeasonPart = Convert.ToInt32(seasonPart);
                             result.IsPartialSeason = true;
@@ -521,7 +823,7 @@ namespace subbuzz.Parser
                     {
                         seasons.Add(parsedSeason);
 
-                        lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, seasonCapture.Index + seasonCapture.Length);
+                        lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, seasonCapture.EndIndex());
                     }
                 }
 
@@ -573,14 +875,9 @@ namespace subbuzz.Parser
                     throw new InvalidDateException("Invalid date found: {0}", airDate);
                 }
 
-                var groupAirYear = matchCollection[0].Groups["airyear"];
-                lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, groupAirYear.Index + groupAirYear.Length);
-
-                var groupAirMonth = matchCollection[0].Groups["airmonth"];
-                lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, groupAirMonth.Index + groupAirMonth.Length);
-
-                var groupAirDay = matchCollection[0].Groups["airday"];
-                lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, groupAirDay.Index + groupAirDay.Length);
+                lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, matchCollection[0].Groups["airyear"].EndIndex());
+                lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, matchCollection[0].Groups["airmonth"].EndIndex());
+                lastSeasonEpisodeStringIndex = Math.Max(lastSeasonEpisodeStringIndex, matchCollection[0].Groups["airday"].EndIndex());
 
                 result = new EpisodeInfo
                 {
@@ -611,74 +908,31 @@ namespace subbuzz.Parser
             return result;
         }
 
-        private static SeriesTitleInfo GetSeriesTitleInfo(string title)
+        private static bool ValidateBeforeParsing(string title)
         {
-            var seriesTitleInfo = new SeriesTitleInfo();
-            seriesTitleInfo.Title = title;
-
-            var match = YearInTitleRegex.Match(title);
-
-            if (!match.Success)
+            if (title.ToLower().Contains("password") && title.ToLower().Contains("yenc"))
             {
-                seriesTitleInfo.TitleWithoutYear = title;
-            }
-            else
-            {
-                seriesTitleInfo.TitleWithoutYear = match.Groups["title"].Value;
-                seriesTitleInfo.Year = Convert.ToInt32(match.Groups["year"].Value);
+                return false;
             }
 
-            var matchComponents = TitleComponentsRegex.Match(seriesTitleInfo.TitleWithoutYear);
-
-            if (matchComponents.Success)
+            if (!title.Any(char.IsLetterOrDigit))
             {
-                seriesTitleInfo.AllTitles = matchComponents.Groups["title"].Captures.OfType<Capture>().Select(v => v.Value).ToArray();
+                return false;
             }
 
-            return seriesTitleInfo;
-        }
+            var titleWithoutExtension = RemoveFileExtension(title);
 
-        public static string ParseReleaseGroup(string title)
-        {
-            title = title.Trim();
-            //title = RemoveFileExtension(title);
-            foreach (var replace in PreSubstitutionRegex)
+            if (RejectHashedReleasesRegexes.Any(v => v.IsMatch(titleWithoutExtension)))
             {
-                if (replace.TryReplace(ref title))
-                    break;
-            }
-            title = WebsitePrefixRegex.Replace(title);
-
-            var animeMatch = AnimeReleaseGroupRegex.Match(title);
-
-            if (animeMatch.Success)
-            {
-                return animeMatch.Groups["subgroup"].Value;
+                return false;
             }
 
-            title = CleanReleaseGroupRegex.Replace(title);
-
-            var matches = ReleaseGroupRegex.Matches(title);
-
-            if (matches.Count != 0)
+            if (SeasonFolderRegexes.Any(v => v.IsMatch(titleWithoutExtension)))
             {
-                var group = matches.OfType<Match>().Last().Groups["releasegroup"].Value;
-                int groupIsNumeric;
-
-                if (int.TryParse(group, out groupIsNumeric))
-                {
-                    return null;
-                }
-
-                if (InvalidReleaseGroupRegex.IsMatch(group))
-                {
-                    return null;
-                }
-
-                return group;
+                return false;
             }
 
-            return null;
+            return true;
         }
 
         private static string GetSubGroup(MatchCollection matchCollection)
@@ -744,8 +998,8 @@ namespace subbuzz.Parser
                 return number;
             }
 
+
             throw new FormatException(string.Format("{0} isn't a number", value));
         }
-
     }
 }

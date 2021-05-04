@@ -22,7 +22,7 @@ using subbuzz.Logging;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.YavkaNet>;
+using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 #endif
 
 #if JELLYFIN_10_7
@@ -31,9 +31,9 @@ using System.Net.Http;
 
 namespace subbuzz.Providers
 {
-    public class YifySubtitles : ISubtitleProvider, IHasOrder
+    class YifySubtitles : ISubBuzzProvider, IHasOrder
     {
-        private const string NAME = "YIFY Subtitles";
+        internal const string NAME = "YIFY Subtitles";
         private const string ServerUrl = "https://yifysubtitles.org";
         private const string HttpReferer = "https://yifysubtitles.org/";
 
@@ -85,7 +85,7 @@ namespace subbuzz.Providers
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,
             CancellationToken cancellationToken)
         {
-            var res = new List<RemoteSubtitleInfo>();
+            var res = new List<SubtitleInfo>();
 
             try
             {
@@ -129,9 +129,9 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected IEnumerable<RemoteSubtitleInfo> ParseHtml(System.IO.Stream html, SearchInfo si)
+        protected IEnumerable<SubtitleInfo> ParseHtml(System.IO.Stream html, SearchInfo si)
         {
-            var res = new List<RemoteSubtitleInfo>();
+            var res = new List<SubtitleInfo>();
 
             var config = Configuration.Default;
             var context = BrowsingContext.New(config);
@@ -167,7 +167,7 @@ namespace subbuzz.Providers
                 var regexInfo = new Regex(@"<span.*/span>");
                 subInfo = regexInfo.Replace(subInfo, "").Trim();
 
-                var item = new RemoteSubtitleInfo
+                var item = new SubtitleInfo
                 {
                     ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
                     Id = Download.GetId(subLink, "", si.LanguageInfo.TwoLetterISOLanguageName, si.VideoFps.ToString()),
@@ -180,9 +180,7 @@ namespace subbuzz.Providers
                     CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                     //DownloadCount = int.Parse(subDownloads),
                     IsHashMatch = false,
-#if EMBY
                     IsForced = false,
-#endif
                 };
 
                 res.Add(item);

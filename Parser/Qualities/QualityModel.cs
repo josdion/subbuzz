@@ -10,6 +10,9 @@ namespace subbuzz.Parser.Qualities
 
         public string HardcodedSubs { get; set; }
 
+        public string AudioCodec { get; set; }
+        public string VideoCodec { get; set; }
+
         public QualityDetectionSource SourceDetectionSource { get; set; }
 
         public QualityDetectionSource ResolutionDetectionSource { get; set; }

@@ -1,9 +1,8 @@
+using subbuzz.Extensions;
 using subbuzz.Parser.Qualities;
 using System;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using subbuzz.Extensions;
 
 namespace subbuzz.Parser
 {
@@ -58,7 +57,7 @@ namespace subbuzz.Parser
         private static readonly Regex ImpliedResolutionRegex = new Regex(@"\b(?<R2160p>UHD)\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>X-?vid)|(?<divx>divx))\b",
+        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<xvidhd>XvidHD)|(?<xvid>X-?vid)|(?<divx>divx|DVDivX)|(?<vc1>VC-?1)|(?<vp7>VP7)|(?<vp8>VP8|VP80)|(?<vp9>VP9)|(?<x262>[hx]-?262|Mpe?g-?2)|(?<x263>[hx]-?263)|(?<x264>[hx]-?264|(MPEG-?4)?AVC(?:HD)?)|(?<x265>[hx]-?265|HEVC))\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex OtherSourceRegex = new Regex(@"(?<hdtv>HD[-_. ]TV)|(?<sdtv>SD[-_. ]TV)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -108,6 +107,9 @@ namespace subbuzz.Parser
             var codecRegex = CodecRegex.Match(normalizedName);
             var remuxMatch = RemuxRegex.IsMatch(normalizedName);
             var brDiskMatch = BRDISKRegex.IsMatch(normalizedName);
+
+            if (codecRegex.Success && codecRegex.Groups.Count > 0)
+                result.VideoCodec = codecRegex.Groups[0].ToString();
 
             if (RawHDRegex.IsMatch(normalizedName) && !brDiskMatch)
             {

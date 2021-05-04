@@ -1,4 +1,4 @@
-using MediaBrowser.Model.Providers;
+using subbuzz.Providers;
 using System;
 using System.Collections.Generic;
 
@@ -57,7 +57,7 @@ namespace subbuzz.Helpers
             return TrimStringStart(TrimStringEnd(str, remove, comparisonType), remove, comparisonType);
         }
 
-        public static void MergeSubtitleInfo(List<RemoteSubtitleInfo> res, List<RemoteSubtitleInfo> sub)
+        public static void MergeSubtitleInfo(List<SubtitleInfo> res, List<SubtitleInfo> sub)
         {
             foreach (var s in sub)
             {
