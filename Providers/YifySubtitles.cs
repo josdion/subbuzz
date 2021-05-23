@@ -181,26 +181,24 @@ namespace subbuzz.Providers
                 var regexLink = new Regex(@"^/subtitles/");
                 string subLink = regexLink.Replace(subLinkPage, ServerUrl + "/subtitle/") + ".zip";
 
-                string subInfo = link.InnerHtml;
+                string subInfoBase = link.InnerHtml;
                 var regexInfo = new Regex(@"<span.*/span>");
-                subInfo = regexInfo.Replace(subInfo, "").Trim();
-                subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>" + subInfo);
+                subInfoBase = regexInfo.Replace(subInfoBase, "").Trim();
+                string subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfoBase) ? "" : "<br>" + subInfoBase);
                 subInfo += String.Format("<br>{0}", subUploader);
 
-                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+                List<ArchiveFileInfo> files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
 
                 foreach (var fitem in files)
                 {
                     string file = fitem.Name;
-                    string fileExt = file.Split('.').LastOrDefault().ToLower();
+                    string fileExt = fitem.Ext.ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
 
                     SubtitleScore subScore = new SubtitleScore();
                     if (byImdb) subScore.AddMatch("imdb");
 
-                    Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(file, true);
-                    si.CheckMovie(mvInfo, ref subScore, true);
-                    float score = subScore.CalcScoreMovie();
+                    float score = si.CaclScore(file, subScore, files.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
 
                     var item = new SubtitleInfo
                     {
@@ -208,13 +206,13 @@ namespace subbuzz.Providers
                         Id = Download.GetId(subLink, "", si.LanguageInfo.TwoLetterISOLanguageName, si.VideoFps.ToString()),
                         ProviderName = Name,
                         Name = $"<a href='{ServerUrl}{subLinkPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = "SRT",
+                        Format = fileExt,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         //DateCreated = DateTimeOffset.Parse(subDate),
                         CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                         //DownloadCount = int.Parse(subDownloads),
-                        IsHashMatch = false,
+                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                         IsForced = false,
                         Score = score,
                     };

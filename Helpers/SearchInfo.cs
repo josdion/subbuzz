@@ -10,6 +10,7 @@ using subbuzz.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -34,6 +35,7 @@ namespace subbuzz.Helpers
         public int? Year = null;
         public string TitleMovie = "";
         public string TitleSeries = "";
+        public string FileName = "";
         public Parser.EpisodeInfo EpInfo = null;
         public Parser.MovieInfo MvInfo = null;
 
@@ -62,6 +64,8 @@ namespace subbuzz.Helpers
             {
                 return res;
             }
+
+            res.FileName = Path.GetFileNameWithoutExtension(libItem.Path);
 
             if (res.VideoType == VideoContentType.Movie)
             {
@@ -149,6 +153,45 @@ namespace subbuzz.Helpers
             res.Year = request.ProductionYear;
 
             return res;
+        }
+
+        public float CaclScore(string subFileName, SubtitleScore baseScore, bool videoFileNameInInfo)
+        {
+            SubtitleScore subScore = baseScore == null ? new SubtitleScore() : (SubtitleScore)baseScore.Clone();
+
+            if (VideoType == VideoContentType.Episode)
+            {
+                Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(subFileName);
+                bool checkSuccess = CheckEpisode(epInfo, ref subScore);
+
+                if (videoFileNameInInfo)
+                {
+                    epInfo = Parser.Episode.ParseTitle(FileName);
+                    if (!CheckEpisode(epInfo, ref subScore) && !checkSuccess)
+                        return 0;
+                }
+                else 
+                if (!checkSuccess) 
+                    return 0;
+
+                return subScore.CalcScoreEpisode();
+            }
+            else
+            if (VideoType == VideoContentType.Movie)
+            {
+                Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(subFileName, true);
+                CheckMovie(mvInfo, ref subScore, true);
+
+                if (videoFileNameInInfo)
+                {
+                    mvInfo = Parser.Movie.ParseTitle(FileName, true);
+                    CheckMovie(mvInfo, ref subScore, true);
+                }
+
+                return subScore.CalcScoreMovie();
+            }
+
+            return 0;
         }
 
         public bool CheckImdbId(int imdb, ref SubtitleScore score)
@@ -254,7 +297,7 @@ namespace subbuzz.Helpers
 
             if (EpInfo != null)
             {
-                if (epInfo.ReleaseGroup.IsNotNullOrWhiteSpace() && 
+                if (epInfo.ReleaseGroup.IsNotNullOrWhiteSpace() &&
                     EpInfo.ReleaseGroup.IsNotNullOrWhiteSpace() &&
                     epInfo.ReleaseGroup.EqualsIgnoreCase(EpInfo.ReleaseGroup))
                     score.AddMatch("release_group");
@@ -292,7 +335,7 @@ namespace subbuzz.Helpers
                     score.AddMatch("release_group");
                 }
 
-                if (mvInfo.Edition.IsNullOrWhiteSpace() && 
+                if (mvInfo.Edition.IsNullOrWhiteSpace() &&
                     MvInfo.Edition.IsNullOrWhiteSpace())
                 {
                     if (addEmptyMatches)
@@ -312,7 +355,7 @@ namespace subbuzz.Helpers
             return true;
         }
 
-        protected void MatchQuality(Parser.Qualities.QualityModel qm1, Parser.Qualities.QualityModel qm2, 
+        protected void MatchQuality(Parser.Qualities.QualityModel qm1, Parser.Qualities.QualityModel qm2,
                                     ref SubtitleScore score, bool addEmptyMatches = false)
         {
             if (qm1 != null && qm2 != null)

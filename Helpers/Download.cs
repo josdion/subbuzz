@@ -1,6 +1,7 @@
 ﻿using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Subtitles;
 using SharpCompress.Archives;
+using subbuzz.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -21,6 +22,7 @@ namespace subbuzz.Helpers
     class ArchiveFileInfo
     {
         public string Name { get; set; }
+        public string Ext { get; set;  }
         public Stream Content { get; set; }
     };
 
@@ -118,7 +120,7 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        public async Task<IEnumerable<ArchiveFileInfo>> GetArchiveSubFiles(string link, string referer, CancellationToken cancellationToken)
+        public async Task<List<ArchiveFileInfo>> GetArchiveSubFiles(string link, string referer, CancellationToken cancellationToken)
         {
             var res = new List<ArchiveFileInfo>();
 
@@ -133,7 +135,7 @@ namespace subbuzz.Helpers
                         Stream memStream = new MemoryStream();
                         arcStream.CopyTo(memStream);
 
-                        res.Add(new ArchiveFileInfo { Name = entry.Key, Content = memStream });
+                        res.Add(new ArchiveFileInfo { Name = entry.Key, Ext = entry.Key.GetPathExtension(), Content = memStream });
                     }
                 }
             }

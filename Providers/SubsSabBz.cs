@@ -262,9 +262,9 @@ namespace subbuzz.Providers
                 var regex = new Regex(@"ddrivetip\(\'<div.*/></div>(.*)\',\'#[0-9]+\'\)");
                 subNotes = regex.Replace(subNotes, "$1");
                 int subInfoIdx = subNotes.LastIndexOf("<b>Доп. инфо</b>");
-                string subInfo = subInfoIdx >= 0 ? subNotes.Substring(subInfoIdx + 17) : "";
+                string subInfoBase = subInfoIdx >= 0 ? subNotes.Substring(subInfoIdx + 17) : "";
 
-                subInfo = Utils.TrimString(subInfo, "<br />");
+                string subInfo = Utils.TrimString(subInfoBase, "<br />");
                 subInfo = subInfo.Replace("<br /><br />", "<br />").Replace("<br /><br />", "<br />");
                 subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>" + subInfo);
 
@@ -289,8 +289,8 @@ namespace subbuzz.Providers
 
                 if (!si.CheckImdbId(imdbId, ref subScoreBase))
                 {
-                    _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                    continue;
+                    //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                    //continue;
                 }
 
                 si.CheckFps(subFps, ref subScoreBase);
@@ -307,32 +307,24 @@ namespace subbuzz.Providers
 
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
-                var files = await downloader.GetArchiveSubFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
-                foreach (var file in files)
+                var subFiles = new List<ArchiveFileInfo>();
+                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+
+                foreach (var fitem in files)
                 {
-                    string fileExt = file.Split('.').LastOrDefault().ToLower();
+                    string fileExt = fitem.Ext.ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
 
-                    float score = 0;
-                    SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
+                    subFiles.Add(fitem);
+                }
 
-                    if (si.VideoType == VideoContentType.Episode)
-                    {
-                        Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
-                        if (!si.CheckEpisode(epInfo, ref subScore))
-                        {
-                            continue;
-                        }
+                foreach (var fitem in subFiles)
+                {
+                    string file = fitem.Name;
+                    float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
 
-                        score = subScore.CalcScoreEpisode();
-                    }
-                    else
-                    if (si.VideoType == VideoContentType.Movie)
-                    {
-                        Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(file, true);
-                        si.CheckMovie(mvInfo, ref subScore, true);
-                        score = subScore.CalcScoreMovie();
-                    }
+                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                        continue;
 
                     var item = new SubtitleInfo
                     {
@@ -340,13 +332,13 @@ namespace subbuzz.Providers
                         Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
                         ProviderName = Name,
                         Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = file.Split('.').LastOrDefault().ToUpper(),
+                        Format = fitem.Ext,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         //DateCreated = DateTimeOffset.Parse(subDate),
                         CommunityRating = Convert.ToInt32(subRating),
                         DownloadCount = Convert.ToInt32(subDownloads),
-                        IsHashMatch = false,
+                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                         IsForced = false,
                         Score = score,
                     };

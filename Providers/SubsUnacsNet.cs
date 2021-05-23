@@ -243,9 +243,9 @@ namespace subbuzz.Providers
                 string subNotes = link.GetAttribute("title");
                 var regex = new Regex(@"(?:.*<b>Дата: </b>)(.*)(?:<br><b>Инфо: </b><br>)(.*)(?:</div>)");
                 string subDate = regex.Replace(subNotes, "$1");
-                string subInfo = regex.Replace(subNotes, "$2");
+                string subInfoBase = regex.Replace(subNotes, "$2");
 
-                subInfo = Utils.TrimString(subInfo, "<br>");
+                string subInfo = Utils.TrimString(subInfoBase, "<br>");
                 subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
                 subInfo = subInfo.Replace("&nbsp;", " ");
                 subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>"+ subInfo);
@@ -263,6 +263,7 @@ namespace subbuzz.Providers
 
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
+                var subFiles = new List<ArchiveFileInfo>();
                 var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
 
                 int imdbId = 0;
@@ -282,46 +283,33 @@ namespace subbuzz.Providers
                             subImdb = match.Groups[1].ToString();
                             imdbId = int.Parse(match.Groups[2].ToString());
                         }
+                    }
+                    else
+                    {
+                        string file = fitem.Name;
+                        string fileExt = fitem.Ext.ToLower();
+                        if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti", RegexOptions.IgnoreCase)) continue;
+                        if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
 
-                        break;
+                        subFiles.Add(fitem);
                     }
                 }
 
                 if (!si.CheckImdbId(imdbId, ref subScoreBase))
                 {
-                    _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                    continue;
+                    //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                    //continue;
                 }
 
                 si.CheckFps(subFps, ref subScoreBase);
 
-                foreach (var fitem in files)
+                foreach (var fitem in subFiles)
                 {
                     string file = fitem.Name;
-                    string fileExt = file.Split('.').LastOrDefault().ToLower();
-                    if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti", RegexOptions.IgnoreCase)) continue;
-                    if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
+                    float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
 
-                    float score = 0;
-                    SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
-
-                    if (si.VideoType == VideoContentType.Episode)
-                    {
-                        Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
-                        if (!si.CheckEpisode(epInfo, ref subScore))
-                        {
-                            continue;
-                        }
-
-                        score = subScore.CalcScoreEpisode();
-                    }
-                    else
-                    if (si.VideoType == VideoContentType.Movie)
-                    {
-                        Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(file, true);
-                        si.CheckMovie(mvInfo, ref subScore, true);
-                        score = subScore.CalcScoreMovie();
-                    }
+                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                        continue;
 
                     var item = new SubtitleInfo
                     {
@@ -329,13 +317,13 @@ namespace subbuzz.Providers
                         Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
                         ProviderName = Name,
                         Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = fileExt,
+                        Format = fitem.Ext,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         //DateCreated = DateTimeOffset.Parse(subDate),
                         CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                         DownloadCount = int.Parse(subDownloads),
-                        IsHashMatch = false,
+                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                         IsForced = false,
                         Score = score,
                     };

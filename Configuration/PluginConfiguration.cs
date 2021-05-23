@@ -9,6 +9,8 @@ namespace subbuzz
         public bool EnableYavkaNet { get; set; }
         public bool EnableYifySubtitles { get; set; }
         public bool EncodeSubtitlesToUTF8 { get; set; }
+        public float HashMatchByScore { get; set; }
+        public float MinScore { get; set; }
 
         public PluginConfiguration()
         {
@@ -17,6 +19,8 @@ namespace subbuzz
             EnableYavkaNet = true;
             EnableYifySubtitles = true;
             EncodeSubtitlesToUTF8 = false;
+            HashMatchByScore = 100;
+            MinScore = 50;
         }
     }
 }

@@ -223,9 +223,9 @@ namespace subbuzz.Providers
 
                 string subNotes = link.GetAttribute("content");
                 var regex = new Regex(@"(?s)<p.*><img [A-z0-9=\'/\. :;#-]*>(.*)</p>");
-                string subInfo = regex.Replace(subNotes, "$1");
+                string subInfoBase = regex.Replace(subNotes, "$1");
 
-                subInfo = Utils.TrimString(subInfo, "<br />");
+                string subInfo = Utils.TrimString(subInfoBase, "<br />");
                 subInfo = subInfo.Replace("<br /><br />", "<br />").Replace("<br /><br />", "<br />");
                 subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>" + subInfo);
 
@@ -244,12 +244,14 @@ namespace subbuzz.Providers
                 if (downlds != null)
                     subDownloads = downlds.TextContent.Trim();
 
+                var subFiles = new List<ArchiveFileInfo>();
                 var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
 
                 int imdbId = 0;
                 string subImdb = "";
                 DateTime? dt = null;
                 DateTimeOffset? dtOffset = null;
+
                 foreach (var fitem in files)
                 {
                     if (fitem.Name == "YavkA.net.txt")
@@ -272,15 +274,20 @@ namespace subbuzz.Providers
                             subImdb = match.Groups[1].ToString();
                             imdbId = int.Parse(match.Groups[2].ToString());
                         }
+                    }
+                    else
+                    {
+                        string fileExt = fitem.Ext.ToLower();
+                        if (fileExt != "srt" && fileExt != "sub") continue;
 
-                        break;
+                        subFiles.Add(fitem);
                     }
                 }
 
                 if (!si.CheckImdbId(imdbId, ref subScoreBase))
                 {
-                    _logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                    continue;
+                    //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                    //continue;
                 }
 
                 si.CheckFps(subFps, ref subScoreBase);
@@ -288,32 +295,13 @@ namespace subbuzz.Providers
                 string subDate = dtOffset != null ? dtOffset?.ToString("g") : "";
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
-                foreach (var fitem in files)
+                foreach (var fitem in subFiles)
                 {
                     string file = fitem.Name;
-                    string fileExt = file.Split('.').LastOrDefault().ToLower();
-                    if (fileExt != "srt" && fileExt != "sub") continue;
+                    float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
 
-                    float score = 0;
-                    SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
-
-                    if (si.VideoType == VideoContentType.Episode)
-                    {
-                        Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(file);
-                        if (!si.CheckEpisode(epInfo, ref subScore))
-                        {
-                            continue;
-                        }
-
-                        score = subScore.CalcScoreEpisode();
-                    }
-                    else
-                    if (si.VideoType == VideoContentType.Movie)
-                    {
-                        Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(file, true);
-                        si.CheckMovie(mvInfo, ref subScore, true);
-                        score = subScore.CalcScoreMovie();
-                    }
+                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                        continue;
 
                     var item = new SubtitleInfo
                     {
@@ -321,12 +309,12 @@ namespace subbuzz.Providers
                         Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, ""),
                         ProviderName = Name,
                         Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = fileExt,
+                        Format = fitem.Ext,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                         DownloadCount = int.Parse(subDownloads),
-                        IsHashMatch = false,
+                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                         IsForced = false,
                         Score = score,
 #if EMBY
