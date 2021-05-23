@@ -1,3 +1,4 @@
+using subbuzz.Extensions;
 using subbuzz.Parser.Qualities;
 using System;
 using System.Linq;
@@ -63,9 +64,9 @@ namespace subbuzz.Parser
             get
             {
                 // if we don't have any episode numbers we are likely a special episode and need to do a search by episode title
-                return (String.IsNullOrWhiteSpace(AirDate) &&
-                       String.IsNullOrWhiteSpace(SeriesTitle) &&
-                       (EpisodeNumbers.Length == 0 || SeasonNumber == 0) || !String.IsNullOrWhiteSpace(SeriesTitle) && Special) ||
+                return (AirDate.IsNullOrWhiteSpace() &&
+                       SeriesTitle.IsNullOrWhiteSpace() &&
+                       (EpisodeNumbers.Length == 0 || SeasonNumber == 0) || !SeriesTitle.IsNullOrWhiteSpace() && Special) ||
                        EpisodeNumbers.Length == 1 && EpisodeNumbers[0] == 0;
             }
 

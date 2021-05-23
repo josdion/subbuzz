@@ -330,7 +330,7 @@ namespace subbuzz.Providers
                     if (si.VideoType == VideoContentType.Movie)
                     {
                         Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(file, true);
-                        si.CheckMovie(mvInfo, ref subScore);
+                        si.CheckMovie(mvInfo, ref subScore, true);
                         score = subScore.CalcScoreMovie();
                     }
 

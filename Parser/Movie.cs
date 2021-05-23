@@ -174,12 +174,16 @@ namespace subbuzz.Parser
                     return null;
                 }
 
+                //Logger.Debug("Parsing string '{0}'", title);
+
                 if (ReversedTitleRegex.IsMatch(title))
                 {
                     var titleWithoutExtension = RemoveFileExtension(title).ToCharArray();
                     Array.Reverse(titleWithoutExtension);
 
                     title = new string(titleWithoutExtension) + title.Substring(titleWithoutExtension.Length);
+
+                    //Logger.Debug("Reversed name detected. Converted to '{0}'", title);
                 }
 
                 var releaseTitle = RemoveFileExtension(title);
@@ -220,6 +224,7 @@ namespace subbuzz.Parser
 
                     if (match.Count != 0)
                     {
+                        //Logger.Trace(regex);
                         try
                         {
                             var result = ParseMovieMatchCollection(match);
@@ -244,15 +249,26 @@ namespace subbuzz.Parser
                                     result.ReleaseGroup = subGroup;
                                 }
 
+                                //Logger.Debug("Release Group parsed: {0}", result.ReleaseGroup);
+
                                 //result.Languages = LanguageParser.ParseLanguages(result.ReleaseGroup.IsNotNullOrWhiteSpace() ? simpleReleaseTitle.Replace(result.ReleaseGroup, "RlsGrp") : simpleReleaseTitle);
+                                //Logger.Debug("Languages parsed: {0}", string.Join(", ", result.Languages));
+
                                 result.Quality = QualityParser.ParseQuality(title);
+                                //Logger.Debug("Quality parsed: {0}", result.Quality);
 
                                 if (result.Edition.IsNullOrWhiteSpace())
                                 {
                                     result.Edition = ParseEdition(simpleReleaseTitle);
+                                    //Logger.Debug("Edition parsed: {0}", result.Edition);
                                 }
 
                                 result.ReleaseHash = GetReleaseHash(match);
+                                //if (!result.ReleaseHash.IsNullOrWhiteSpace())
+                                //{
+                                //    Logger.Debug("Release Hash parsed: {0}", result.ReleaseHash);
+                                //}
+
                                 result.OriginalTitle = originalTitle;
                                 result.ReleaseTitle = releaseTitle;
                                 result.SimpleReleaseTitle = simpleReleaseTitle;
@@ -265,6 +281,7 @@ namespace subbuzz.Parser
                         }
                         catch (InvalidDateException)
                         {
+                            //Logger.Debug(ex, ex.Message);
                             break;
                         }
                     }
@@ -272,6 +289,10 @@ namespace subbuzz.Parser
             }
             catch (Exception)
             {
+                //if (!title.ToLower().Contains("password") && !title.ToLower().Contains("yenc"))
+                //{
+                //    Logger.Error(e, "An error has occurred while trying to parse {0}", title);
+                //}
             }
 
             return null;
@@ -542,6 +563,8 @@ namespace subbuzz.Parser
 
             result.MovieTitle = movieName;
 
+            //Logger.Debug("Movie Parsed. {0}", result);
+
             return result;
         }
 
@@ -549,6 +572,7 @@ namespace subbuzz.Parser
         {
             if (title.ToLower().Contains("password") && title.ToLower().Contains("yenc"))
             {
+                //Logger.Debug("");
                 return false;
             }
 
@@ -561,6 +585,7 @@ namespace subbuzz.Parser
 
             if (RejectHashedReleasesRegex.Any(v => v.IsMatch(titleWithoutExtension)))
             {
+                //Logger.Debug("Rejected Hashed Release Title: " + title);
                 return false;
             }
 
@@ -597,6 +622,5 @@ namespace subbuzz.Parser
 
             return string.Empty;
         }
-
     }
 }

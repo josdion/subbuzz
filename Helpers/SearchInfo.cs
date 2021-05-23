@@ -265,7 +265,7 @@ namespace subbuzz.Helpers
             return season && episode;
         }
 
-        public bool CheckMovie(Parser.MovieInfo mvInfo, ref SubtitleScore score)
+        public bool CheckMovie(Parser.MovieInfo mvInfo, ref SubtitleScore score, bool addEmptyMatches = false)
         {
             if (mvInfo == null)
             {
@@ -295,7 +295,8 @@ namespace subbuzz.Helpers
                 if (mvInfo.Edition.IsNullOrWhiteSpace() && 
                     MvInfo.Edition.IsNullOrWhiteSpace())
                 {
-                    score.AddMatch("edition");
+                    if (addEmptyMatches)
+                        score.AddMatch("edition");
                 }
                 else
                 if (mvInfo.Edition.IsNotNullOrWhiteSpace() &&
@@ -305,13 +306,14 @@ namespace subbuzz.Helpers
                     score.AddMatch("edition");
                 }
 
-                MatchQuality(MvInfo.Quality, mvInfo.Quality, ref score);
+                MatchQuality(MvInfo.Quality, mvInfo.Quality, ref score, addEmptyMatches);
             }
 
             return true;
         }
 
-        protected void MatchQuality(Parser.Qualities.QualityModel qm1, Parser.Qualities.QualityModel qm2, ref SubtitleScore score)
+        protected void MatchQuality(Parser.Qualities.QualityModel qm1, Parser.Qualities.QualityModel qm2, 
+                                    ref SubtitleScore score, bool addEmptyMatches = false)
         {
             if (qm1 != null && qm2 != null)
             {
@@ -325,6 +327,9 @@ namespace subbuzz.Helpers
                     if (q1.Resolution > 0 && q1.Resolution == q2.Resolution)
                         score.AddMatch("resolution");
 
+                    if (q1.Modifier == Parser.Qualities.Modifier.NONE && q1.Modifier == q2.Modifier && addEmptyMatches)
+                        score.AddMatch("source_modifier");
+                    else
                     if (q1.Modifier != Parser.Qualities.Modifier.NONE && q1.Modifier == q2.Modifier)
                         score.AddMatch("source_modifier");
                 }

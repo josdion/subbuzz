@@ -105,7 +105,6 @@ namespace subbuzz.Providers
 
                 var tasks = new List<Task<List<SubtitleInfo>>>();
 
-                /* searchin by IMDB Id is not working at the moment
                 if (!String.IsNullOrWhiteSpace(si.ImdbId))
                 {
                     // search by IMDB Id
@@ -119,7 +118,7 @@ namespace subbuzz.Providers
                         );
 
                     tasks.Add(SearchUrl(urlImdb, si, cancellationToken));
-                }*/
+                }
 
                 if (!String.IsNullOrWhiteSpace(si.SearchText))
                 {
@@ -312,7 +311,7 @@ namespace subbuzz.Providers
                     if (si.VideoType == VideoContentType.Movie)
                     {
                         Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(file, true);
-                        si.CheckMovie(mvInfo, ref subScore);
+                        si.CheckMovie(mvInfo, ref subScore, true);
                         score = subScore.CalcScoreMovie();
                     }
 

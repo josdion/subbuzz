@@ -448,13 +448,13 @@ namespace subbuzz.Parser
 
             if (result == null)
             {
-                // Logger.Debug("Attempting to parse episode info using directory and file names. {0}", fileInfo.Directory.Name);
+                //Logger.Debug("Attempting to parse episode info using directory and file names. {0}", fileInfo.Directory.Name);
                 result = ParseTitle(fileInfo.Directory.Name + " " + fileInfo.Name);
             }
 
             if (result == null)
             {
-                // Logger.Debug("Attempting to parse episode info using directory name. {0}", fileInfo.Directory.Name);
+                //Logger.Debug("Attempting to parse episode info using directory name. {0}", fileInfo.Directory.Name);
                 result = ParseTitle(fileInfo.Directory.Name + fileInfo.Extension);
             }
 
@@ -467,12 +467,16 @@ namespace subbuzz.Parser
             {
                 if (!ValidateBeforeParsing(title)) return null;
 
+                //Logger.Debug("Parsing string '{0}'", title);
+
                 if (ReversedTitleRegex.IsMatch(title))
                 {
                     var titleWithoutExtension = RemoveFileExtension(title).ToCharArray();
                     Array.Reverse(titleWithoutExtension);
 
                     title = new string(titleWithoutExtension) + title.Substring(titleWithoutExtension.Length);
+
+                    //Logger.Debug("Reversed name detected. Converted to '{0}'", title);
                 }
 
                 var releaseTitle = RemoveFileExtension(title);
@@ -483,6 +487,7 @@ namespace subbuzz.Parser
                 {
                     if (replace.TryReplace(ref releaseTitle))
                     {
+                        //Logger.Debug("Substituted with " + releaseTitle);
                     }
                 }
 
@@ -525,6 +530,7 @@ namespace subbuzz.Parser
 
                     if (match.Count != 0)
                     {
+                        //Logger.Trace(regex);
                         try
                         {
                             var result = ParseMatchCollection(match, releaseTitle);
@@ -538,8 +544,10 @@ namespace subbuzz.Parser
                                 }
 
                                 //result.Language = LanguageParser.ParseLanguage(releaseTitle);
+                                //Logger.Debug("Language parsed: {0}", result.Language);
 
                                 result.Quality = QualityParser.ParseQuality(title);
+                                //Logger.Debug("Quality parsed: {0}", result.Quality);
 
                                 result.ReleaseGroup = ParseReleaseGroup(releaseTitle);
 
@@ -549,13 +557,20 @@ namespace subbuzz.Parser
                                     result.ReleaseGroup = subGroup;
                                 }
 
+                                // Logger.Debug("Release Group parsed: {0}", result.ReleaseGroup);
+
                                 result.ReleaseHash = GetReleaseHash(match);
+                                //if (!result.ReleaseHash.IsNullOrWhiteSpace())
+                                //{
+                                //    Logger.Debug("Release Hash parsed: {0}", result.ReleaseHash);
+                                //}
 
                                 return result;
                             }
                         }
                         catch (InvalidDateException)
                         {
+                            //Logger.Debug(ex, ex.Message);
                             break;
                         }
                     }
@@ -564,14 +579,18 @@ namespace subbuzz.Parser
             }
             catch (Exception)
             {
-
+                //if (!title.ToLower().Contains("password") && !title.ToLower().Contains("yenc"))
+                //    Logger.Error(e, "An error has occurred while trying to parse {0}", title);
             }
 
+            //Logger.Debug("Unable to parse {0}", title);
             return null;
         }
 
         public static string ParseSeriesName(string title)
         {
+            //Logger.Debug("Parsing string '{0}'", title);
+
             var parseResult = ParseTitle(title);
 
             if (parseResult == null)
@@ -844,6 +863,7 @@ namespace subbuzz.Parser
                     result.SeasonNumber = 1;
                 }
             }
+
             else
             {
                 //Try to Parse as a daily show
@@ -905,6 +925,8 @@ namespace subbuzz.Parser
             result.SeriesTitle = seriesName;
             result.SeriesTitleInfo = GetSeriesTitleInfo(result.SeriesTitle);
 
+            //Logger.Debug("Episode Parsed. {0}", result);
+
             return result;
         }
 
@@ -912,6 +934,7 @@ namespace subbuzz.Parser
         {
             if (title.ToLower().Contains("password") && title.ToLower().Contains("yenc"))
             {
+                //Logger.Debug("");
                 return false;
             }
 
@@ -924,11 +947,13 @@ namespace subbuzz.Parser
 
             if (RejectHashedReleasesRegexes.Any(v => v.IsMatch(titleWithoutExtension)))
             {
+                //Logger.Debug("Rejected Hashed Release Title: " + title);
                 return false;
             }
 
             if (SeasonFolderRegexes.Any(v => v.IsMatch(titleWithoutExtension)))
             {
+                //Logger.Debug("Rejected Season Folder Release Title: " + title);
                 return false;
             }
 

@@ -57,7 +57,10 @@ namespace subbuzz.Parser
         private static readonly Regex ImpliedResolutionRegex = new Regex(@"\b(?<R2160p>UHD)\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<xvidhd>XvidHD)|(?<xvid>X-?vid)|(?<divx>divx|DVDivX)|(?<vc1>VC-?1)|(?<vp7>VP7)|(?<vp8>VP8|VP80)|(?<vp9>VP9)|(?<x262>[hx]-?262|Mpe?g-?2)|(?<x263>[hx]-?263)|(?<x264>[hx]-?264|(MPEG-?4)?AVC(?:HD)?)|(?<x265>[hx]-?265|HEVC))\b",
+        private static readonly Regex VideoCodecRegex = new Regex(@"\b(?:(?<xvidhd>XvidHD)|(?<xvid>X-?vid)|(?<divx>divx|DVDivX)|(?<vc1>VC-?1)|(?<vp7>VP7)|(?<vp8>VP8|VP80)|(?<vp9>VP9)|(?<x262>[hx][-\.]?262|Mpe?g-?2)|(?<x263>[hx][-\.]?263)|(?<x264>[hx][-\.]?264|(MPEG-?4)?AVC(?:HD)?)|(?<x265>[hx][-\.]?265|HEVC))\b",
+                                                                RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex AudioCodecRegex = new Regex(@"\b(?:(?<DTSHD>DTS-?HD|DTS-?MA)|(?<DTS>DTS)(?<AAC>AAC)(?<MP3>MP3|LAME(?:\d)+-?(?:\d)+)|(?<MP2>MP2)|(?<DolbyDigitalPlus>EAC3|DDP(\d+\.\d+)?|DD\+)|(?<DolbyDigital>Dolby|Dolby-?Digital|DD(\d+\.\d+)?|AC3D?)|(?<DolbyAtmos>Atmos|Dolby-?Atmos)|(?<FLAC>FLAC)|(?<DolbyTrueHD>True-?HD)|(?<Opus>Opus)|(?<Vorbis>Vorbis)|(?<PCM>PCM)|(?<LPCM>LPCM))\b", 
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex OtherSourceRegex = new Regex(@"(?<hdtv>HD[-_. ]TV)|(?<sdtv>SD[-_. ]TV)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -104,12 +107,16 @@ namespace subbuzz.Parser
             var sourceMatches = SourceRegex.Matches(normalizedName);
             var sourceMatch = sourceMatches.OfType<Match>().LastOrDefault();
             var resolution = ParseResolution(normalizedName);
-            var codecRegex = CodecRegex.Match(normalizedName);
+            var codecRegex = VideoCodecRegex.Match(normalizedName);
+            var audioCodecRegex = AudioCodecRegex.Match(normalizedName);
             var remuxMatch = RemuxRegex.IsMatch(normalizedName);
             var brDiskMatch = BRDISKRegex.IsMatch(normalizedName);
 
             if (codecRegex.Success && codecRegex.Groups.Count > 0)
                 result.VideoCodec = codecRegex.Groups[0].ToString();
+
+            if (audioCodecRegex.Success && audioCodecRegex.Groups.Count > 0)
+                result.AudioCodec = audioCodecRegex.Groups[0].ToString();
 
             if (RawHDRegex.IsMatch(normalizedName) && !brDiskMatch)
             {
