@@ -5,6 +5,7 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System.Collections.Generic;
 using System.Threading;
@@ -12,7 +13,6 @@ using System.Threading.Tasks;
 using System.Linq;
 
 #if EMBY
-using subbuzz.Logging;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;

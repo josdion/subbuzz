@@ -5,6 +5,7 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,6 @@ using System.Text;
 using System.Globalization;
 
 #if EMBY
-using subbuzz.Logging;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
@@ -154,7 +154,7 @@ namespace subbuzz.Providers
                     Utils.MergeSubtitleInfo(res, subs);
                 }
 
-                res.Sort((x, y) => y.Score.CompareTo(x.Score));
+                //res.Sort((x, y) => y.Score.CompareTo(x.Score));
             }
             catch (Exception e)
             {

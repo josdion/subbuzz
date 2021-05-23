@@ -1,7 +1,7 @@
 using System;
 using MediaBrowser.Model.Logging;
 
-namespace subbuzz.Logging
+namespace subbuzz.Extensions
 {
     public static class ILoggerExtensions
     {

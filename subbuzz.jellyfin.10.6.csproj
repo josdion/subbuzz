@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Logging/ILoggerExtensions.cs" />
+    <Compile Remove="Extensions/ILoggerExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

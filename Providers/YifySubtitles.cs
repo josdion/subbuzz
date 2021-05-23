@@ -15,10 +15,10 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Extensions;
 using subbuzz.Helpers;
 
 #if EMBY
-using subbuzz.Logging;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
@@ -98,12 +98,13 @@ namespace subbuzz.Providers
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager);
                 _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
-                string url = "";
+                var tasks = new List<Task<List<SubtitleInfo>>>();
 
                 if (!String.IsNullOrWhiteSpace(si.ImdbId))
                 {
                     // search by IMDB Id
-                    url = String.Format($"{ServerUrl}/movie-imdb/{si.ImdbId}");
+                    string urlImdb = String.Format($"{ServerUrl}/movie-imdb/{si.ImdbId}");
+                    tasks.Add(SearchUrl(urlImdb, si, true, cancellationToken));
                 }
                 else
                 {
@@ -112,14 +113,13 @@ namespace subbuzz.Providers
                     return res;
                 }
 
-                _logger.LogInformation($"{NAME}: GET {url}");
-
-                using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
+                foreach (var task in tasks)
                 {
-                    var subs = ParseHtml(html, si);
-                    res.AddRange(subs);
+                    List<SubtitleInfo> subs = await task;
+                    Utils.MergeSubtitleInfo(res, subs);
                 }
 
+                //res.Sort((x, y) => y.Score.CompareTo(x.Score));
             }
             catch (Exception e)
             {
@@ -129,7 +129,25 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected IEnumerable<SubtitleInfo> ParseHtml(System.IO.Stream html, SearchInfo si)
+        protected async Task<List<SubtitleInfo>> SearchUrl(string url, SearchInfo si, bool byImdb, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _logger.LogInformation($"{NAME}: GET: {url}");
+
+                using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
+                {
+                    return await ParseHtml(html, si, byImdb, cancellationToken);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                return new List<SubtitleInfo>();
+            }
+        }
+
+        protected async Task<List<SubtitleInfo>> ParseHtml(System.IO.Stream html, SearchInfo si, bool byImdb, CancellationToken cancellationToken)
         {
             var res = new List<SubtitleInfo>();
 
@@ -166,24 +184,43 @@ namespace subbuzz.Providers
                 string subInfo = link.InnerHtml;
                 var regexInfo = new Regex(@"<span.*/span>");
                 subInfo = regexInfo.Replace(subInfo, "").Trim();
+                subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>" + subInfo);
+                subInfo += String.Format("<br>{0}", subUploader);
 
-                var item = new SubtitleInfo
+                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+
+                foreach (var fitem in files)
                 {
-                    ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                    Id = Download.GetId(subLink, "", si.LanguageInfo.TwoLetterISOLanguageName, si.VideoFps.ToString()),
-                    ProviderName = Name,
-                    Name = $"<a href='{ServerUrl}{subLinkPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{subTitle}</a>",
-                    Format = "SRT",
-                    Author = subUploader,
-                    Comment = subInfo,
-                    //DateCreated = DateTimeOffset.Parse(subDate),
-                    CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
-                    //DownloadCount = int.Parse(subDownloads),
-                    IsHashMatch = false,
-                    IsForced = false,
-                };
+                    string file = fitem.Name;
+                    string fileExt = file.Split('.').LastOrDefault().ToLower();
+                    if (fileExt != "srt" && fileExt != "sub") continue;
 
-                res.Add(item);
+                    SubtitleScore subScore = new SubtitleScore();
+                    if (byImdb) subScore.AddMatch("imdb");
+
+                    Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(file, true);
+                    si.CheckMovie(mvInfo, ref subScore, true);
+                    float score = subScore.CalcScoreMovie();
+
+                    var item = new SubtitleInfo
+                    {
+                        ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                        Id = Download.GetId(subLink, "", si.LanguageInfo.TwoLetterISOLanguageName, si.VideoFps.ToString()),
+                        ProviderName = Name,
+                        Name = $"<a href='{ServerUrl}{subLinkPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
+                        Format = "SRT",
+                        Author = subUploader,
+                        Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                        //DateCreated = DateTimeOffset.Parse(subDate),
+                        CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
+                        //DownloadCount = int.Parse(subDownloads),
+                        IsHashMatch = false,
+                        IsForced = false,
+                        Score = score,
+                    };
+
+                    res.Add(item);
+                }
             }
 
             return res;
