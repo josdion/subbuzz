@@ -187,7 +187,7 @@ namespace subbuzz.Providers
                 string subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfoBase) ? "" : "<br>" + subInfoBase);
                 subInfo += String.Format("<br>{0}", subUploader);
 
-                List<ArchiveFileInfo> files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+                List<ArchiveFileInfo> files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, null, cancellationToken).ConfigureAwait(false);
 
                 foreach (var fitem in files)
                 {

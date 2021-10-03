@@ -58,6 +58,7 @@ namespace subbuzz.Providers
             { "Back to the Future Part III", "Back to the Future 3" },
             { "Back to the Future Part II", "Back to the Future 2" },
             { "Bill & Ted Face the Music", "Bill Ted Face the Music" },
+            { "The Protégé", "The Protege"},
         };
 
         public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
@@ -264,7 +265,7 @@ namespace subbuzz.Providers
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
                 var subFiles = new List<ArchiveFileInfo>();
-                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, null, cancellationToken).ConfigureAwait(false);
 
                 int imdbId = 0;
                 string subImdb = "";

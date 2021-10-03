@@ -22,7 +22,7 @@ namespace subbuzz.Helpers
     class ArchiveFileInfo
     {
         public string Name { get; set; }
-        public string Ext { get; set;  }
+        public string Ext { get; set; }
         public Stream Content { get; set; }
     };
 
@@ -49,13 +49,14 @@ namespace subbuzz.Helpers
         }
 #endif
 
-        public static string GetId(string link, string file, string lang, string fps)
+        public static string GetId(string link, string file, string lang, string fps, Dictionary<string, string> post_params = null)
         {
             return Utils.Base64UrlEncode(
-                link + UrlSeparator + 
-                (String.IsNullOrEmpty(file) ? " " : file) + UrlSeparator + 
-                lang + UrlSeparator +
-                (String.IsNullOrEmpty(fps) ? "25" : fps)
+                link + UrlSeparator + // 0
+                (String.IsNullOrEmpty(file) ? " " : file) + UrlSeparator + // 1
+                lang + UrlSeparator + // 2
+                SerializePostParams(post_params) + UrlSeparator + // 3
+                (String.IsNullOrEmpty(fps) ? "25" : fps) // 4
             );
         }
 
@@ -70,13 +71,14 @@ namespace subbuzz.Helpers
             string link = ids[0];
             string file = ids[1];
             string lang = ids[2];
+            Dictionary<string, string> post_params = DeSerializePostParams(ids[3]);
 
             bool convertToUtf8 = Plugin.Instance.Configuration.EncodeSubtitlesToUTF8;
 
             float fps = 25;
-            try { fps = float.Parse(ids[3], CultureInfo.InvariantCulture); } catch { }
+            try { fps = float.Parse(ids[4], CultureInfo.InvariantCulture); } catch { }
 
-            using (Stream stream = await GetStream(link, referer, null, cancellationToken).ConfigureAwait(false))
+            using (Stream stream = await GetStream(link, referer, post_params, cancellationToken).ConfigureAwait(false))
             {
                 IArchive arcreader = ArchiveFactory.Open(stream);
                 foreach (IArchiveEntry entry in arcreader.Entries)
@@ -120,11 +122,15 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        public async Task<List<ArchiveFileInfo>> GetArchiveSubFiles(string link, string referer, CancellationToken cancellationToken)
+        public async Task<List<ArchiveFileInfo>> GetArchiveSubFiles(
+            string link,
+            string referer,
+            Dictionary<string, string> post_params,
+            CancellationToken cancellationToken)
         {
             var res = new List<ArchiveFileInfo>();
 
-            using (Stream stream = await GetStream(link, referer, null, cancellationToken).ConfigureAwait(false))
+            using (Stream stream = await GetStream(link, referer, post_params, cancellationToken).ConfigureAwait(false))
             {
                 IArchive arcreader = ArchiveFactory.Open(stream);
                 foreach (IArchiveEntry entry in arcreader.Entries)
@@ -154,7 +160,7 @@ namespace subbuzz.Helpers
             HttpRequestMessage request;
             HttpResponseMessage response;
 
-            if (post_params != null)
+            if (post_params != null && post_params.Count() > 0)
             {
                 request = new HttpRequestMessage(HttpMethod.Post, link);
                 request.Content = new FormUrlEncodedContent(post_params);
@@ -209,12 +215,17 @@ namespace subbuzz.Helpers
             };
 
             HttpResponseInfo response;
-            if (post_params != null)
+            if (post_params != null && post_params.Count() > 0)
             {
 #if EMBY
+                var postParamsEncode = new Dictionary<string, string>();
                 var keys = new List<string>(post_params.Keys);
-                foreach (string key in keys) post_params[key] = HttpUtility.UrlEncode(post_params[key]);
-                opts.SetPostData(post_params);
+                foreach (string key in keys)
+                {
+                    if (key.IsNotNullOrWhiteSpace())
+                        postParamsEncode[key] = HttpUtility.UrlEncode(post_params[key]);
+                }
+                opts.SetPostData(postParamsEncode);
 #else
                 ByteArrayContent formUrlEncodedContent = new FormUrlEncodedContent(post_params);
                 opts.RequestContent = await formUrlEncodedContent.ReadAsStringAsync();
@@ -239,5 +250,34 @@ namespace subbuzz.Helpers
             return memStream;
         }
 #endif
+
+        private static string SerializePostParams(Dictionary<string, string> post_params)
+        {
+            string postData = " ";
+            if (post_params != null && post_params.Count() > 0)
+            {
+                postData = string.Join(Environment.NewLine, post_params.Select(x => x.Key + UrlSeparator + x.Value).ToArray());
+            }
+
+            return Utils.Base64UrlEncode(postData);
+        }
+
+        private static Dictionary<string, string> DeSerializePostParams(string data)
+        {
+            string postData = Utils.Base64UrlDecode(data);
+            if (postData.IsNotNullOrWhiteSpace())
+            {
+                var post_params = new Dictionary<string, string>();
+                string[] items = postData.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                foreach (string item in items)
+                {
+                    string[] element = item.Split(new[] { UrlSeparator }, StringSplitOptions.None);
+                    if (element.Count() == 2) post_params.Add(element[0], element[1]);
+                }
+                return post_params;
+            }
+
+            return null;
+        }
     }
 }

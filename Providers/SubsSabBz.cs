@@ -308,7 +308,7 @@ namespace subbuzz.Providers
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
                 var subFiles = new List<ArchiveFileInfo>();
-                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
+                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, null, cancellationToken).ConfigureAwait(false);
 
                 foreach (var fitem in files)
                 {
