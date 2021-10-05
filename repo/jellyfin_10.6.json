@@ -11,8 +11,8 @@
         "version": "1.0.0.3",
         "changelog": "Added subtitle scoring based on subtitle file name and video file information. Search results are sorted in the score order.\n",
         "targetAbi": "10.6.0.0",
-        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.0.3/subbuzz_1.0.0.3_jellyfin_10.6.rar",
-        "checksum": "61eda8d8e465f8f74964ef8fd9364914",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.0.3/subbuzz_1.0.0.3_jellyfin_10.6.zip",
+        "checksum": "8d21566d0a01880521f31beb78b52193",
         "timestamp": "2021-10-05T09:59:16Z"
       },
       {
