@@ -1,5 +1,5 @@
 [
- {
+  {
     "guid": "5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4",
     "name": "subbuzz",
     "description": "Download subtitles from various sites.",
@@ -8,13 +8,21 @@
     "category": "Metadata",
     "versions": [
       {
+        "version": "1.0.0.3",
+        "changelog": "Added subtitle scoring based on subtitle file name and video file information. Search results are sorted in the score order.\n",
+        "targetAbi": "10.6.0.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.0.3/subbuzz_1.0.0.3_jellyfin_10.6.rar",
+        "checksum": "61eda8d8e465f8f74964ef8fd9364914",
+        "timestamp": "2021-10-05T09:59:16Z"
+      },
+      {
         "version": "1.0.0.2",
         "changelog": "Bug fix release.\n",
         "targetAbi": "10.6.0.0",
         "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.0.2/subbuzz_1.0.0.2_jellyfin_10.6.zip",
         "checksum": "71877a14e61b26bf2f6cf7ec983e2fb2",
         "timestamp": "2021-03-20T19:08:24Z"
-      },      
+      },
       {
         "version": "1.0.0.1",
         "changelog": "Initial release.\n",
