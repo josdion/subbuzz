@@ -17,9 +17,15 @@
 
                 <form id="SubbuzzConfigForm" class="SubbuzzConfigForm">
 
+                    <hr>
+
                     <div style="margin-top: 2em;">
                         <h3 class="checkboxListLabel">Providers</h3>
                         <div class="paperList checkboxList checkboxList-paperList">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" class="EnableOpenSubtitles" id="EnableOpenSubtitles" />
+                                <span>OpenSubtitles.com</span>
+                            </label>
                             <label>
                                 <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
                                 <span>Subs.sab.bz</span>
@@ -52,6 +58,32 @@
 
                     </p>
 
+                    <hr>
+
+                    <h3>OpenSubtitles.com Account</h3>
+                    <p>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="text" id="OpenSubUserName" label="${LabelUsername}" />
+                            <div class="fieldDescription">
+                                <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com">Register</a>
+                            </div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="password" id="OpenSubPassword" label="${LabelPassword}" />
+                            <div class="fieldDescription"></div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="password" id="OpenSubApiKey" label="${HeaderApiKey}:" />
+                            <div class="fieldDescription">
+                                <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers/new">Create API Key</a>
+                            </div>
+                        </div>
+
+                        <div class="fieldDescription" id="ossresponse"></div>
+                    </p>
+
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -63,6 +95,7 @@
         </div>
 
         <script type="text/javascript">
+            //# sourceURL=subbuzz_config_page.js
             var SubbuzzConfig = {
                 pluginUniqueId: '5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4'
             };
@@ -72,11 +105,15 @@
                 var page = this;
 
                 ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
+                    page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
                     page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
                     page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
                     page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
                     page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
                     page.querySelector("#EncodeSubtitlesToUTF8").checked = config.EncodeSubtitlesToUTF8;
+                    page.querySelector('#OpenSubUserName').value = config.OpenSubUserName || '';
+                    page.querySelector('#OpenSubPassword').value = config.OpenSubPassword || '';
+                    page.querySelector('#OpenSubApiKey').value = config.OpenSubApiKey || '';
 
                     Dashboard.hideLoadingMsg();
                });
@@ -87,15 +124,67 @@
                 var form = this;
 
                 ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
-                    config.EnableSubssabbz = document.getElementById("EnableSubssabbz").checked;
-                    config.EnableSubsunacsNet = document.getElementById("EnableSubsunacsNet").checked;
-                    config.EnableYavkaNet = document.getElementById("EnableYavkaNet").checked;
-                    config.EnableYifySubtitles = document.getElementById("EnableYifySubtitles").checked;
-                    config.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
 
-                    ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {
-                        Dashboard.processPluginConfigurationUpdateResult(result);
-                    });
+                    const username = document.querySelector('#OpenSubUserName').value;
+                    const password = document.querySelector('#OpenSubPassword').value;
+                    const apiKey = document.querySelector('#OpenSubApiKey').value;
+                    var token = config.OpenSubToken || '';
+
+                    if ((username && !password) || (!username && password) || (username && password && !apiKey)) {
+                        Dashboard.processErrorResponse({ statusText: "OpenSubtitles.com account info is incomplete!" });
+                        return;
+                    }
+
+                    if (config.OpenSubUserName != username || config.OpenSubPassword != password || config.OpenSubApiKey != apiKey) {
+                        token = '';
+                    }
+
+                    var saveConfig = function () {
+                        config.EnableOpenSubtitles = document.getElementById("EnableOpenSubtitles").checked;
+                        config.EnableSubssabbz = document.getElementById("EnableSubssabbz").checked;
+                        config.EnableSubsunacsNet = document.getElementById("EnableSubsunacsNet").checked;
+                        config.EnableYavkaNet = document.getElementById("EnableYavkaNet").checked;
+                        config.EnableYifySubtitles = document.getElementById("EnableYifySubtitles").checked;
+                        config.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
+                        config.OpenSubUserName = username;
+                        config.OpenSubPassword = password;
+                        config.OpenSubApiKey = apiKey;
+                        config.OpenSubToken = token;
+
+                        ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    }
+
+                    if (username && !token) {
+                        const el = form.querySelector('#ossresponse');
+                        const data = JSON.stringify({ Username: username, Password: password, ApiKey: apiKey });
+                        const url = ApiClient.getUrl('subbuzz/ValidateOpenSubtitlesLoginInfo');
+
+                        const handler = response => response.json().then(res => {
+                            if (response.ok) {
+                                token = res.Token;
+                                saveConfig()
+                                el.innerText = "OpenSubtitles.com account validated. You can download " + res.Downloads + " subtitles per day.";
+                            }
+                            else {
+                                let msg = res.Message ?? JSON.stringify(res, null, 2);
+                                if (msg == 'You cannot consume this service') {
+                                    msg = 'Invalid API key provided.';
+                                }
+
+                                el.innerText = "";
+                                Dashboard.processErrorResponse({ statusText: "Request failed - " + msg });
+                                return;
+                            }
+                        });
+
+                        ApiClient.ajax({ type: 'POST', url, data, contentType: 'application/json' }).then(handler).catch(handler);
+                    }
+                    else {
+                        saveConfig()
+                    }
+
                 });
 
                 // Disable default form submission

@@ -1,6 +1,7 @@
 using subbuzz.Providers;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace subbuzz.Helpers
 {
@@ -16,6 +17,16 @@ namespace subbuzz.Helpers
         {
             byte[] encbuff = System.Text.Encoding.UTF8.GetBytes(input ?? "");
             return Convert.ToBase64String(encbuff).Replace("=", ",").Replace("+", "-").Replace("_", "/");
+        }
+
+        public static string ByteArrayToString(byte[] ba)
+        {
+            StringBuilder hex = new StringBuilder(ba.Length * 2);
+
+            for (int i = 0; i < ba.Length; i++)
+                hex.Append(ba[i].ToString("x2"));
+
+            return hex.ToString();
         }
 
         public static string TrimStringStart(string str, string remove, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)

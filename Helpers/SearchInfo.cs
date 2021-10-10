@@ -229,15 +229,20 @@ namespace subbuzz.Helpers
 
         public bool CheckFps(string fpsText, ref SubtitleScore score)
         {
-            float fps = 0;
             try
             {
-                fps = float.Parse(fpsText, CultureInfo.InvariantCulture);
+                float fps = float.Parse(fpsText, CultureInfo.InvariantCulture);
+                return CheckFps(fps, ref score);
             }
             catch
             {
             }
 
+            return true; // no frame rate information
+        }
+
+        public bool CheckFps(float fps, ref SubtitleScore score)
+        {
             if (VideoFps != null && VideoFps > 0 && fps > 0)
             {
                 if (Math.Abs((float)(VideoFps - fps)) < 0.1)

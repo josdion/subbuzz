@@ -50,6 +50,7 @@ namespace subbuzz.Providers
         {
             Providers = new Dictionary<string, ISubBuzzProvider>
             {
+                { OpenSubtitlesCom.NAME,  new OpenSubtitlesCom(logger, fileSystem, localizationManager, libraryManager, http) },
                 { SubsSabBz.NAME,      new SubsSabBz(logger, fileSystem, localizationManager, libraryManager, http) },
                 { SubsUnacsNet.NAME,   new SubsUnacsNet(logger, fileSystem, localizationManager, libraryManager, http) },
                 { YavkaNet.NAME,       new YavkaNet(logger, fileSystem, localizationManager, libraryManager, http) },
