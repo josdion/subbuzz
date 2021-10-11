@@ -125,7 +125,8 @@ namespace subbuzz.Providers
                 foreach (ResponseData resItem in searchResponse.Data)
                 {
                     var subItem = resItem.Attributes;
-                    string itemTitle = $"{subItem.FeatureDetails.Title} ({subItem.FeatureDetails.Year})";
+                    
+                    string itemTitle = $"{subItem.FeatureDetails.Title ?? subItem.FeatureDetails.ParentTitle} ({subItem.FeatureDetails.Year})";
                     string subInfo = $"{itemTitle}<br>{subItem.Release}";
                     subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate, subItem.Uploader.Name);
                     if ((subItem.Fps ?? 0.0) > 0) subInfo += $" | {subItem.Fps}";
@@ -133,15 +134,18 @@ namespace subbuzz.Providers
                     SubtitleScore subScoreBase = new SubtitleScore();
                     if (request.ContentType == VideoContentType.Episode)
                     {
-                        //Parser.EpisodeInfo epInfoBase = Parser.Episode.ParseTitle(subItem.FeatureDetails.FeatureType);
-                        //si.CheckEpisode(epInfoBase, ref subScoreBase);
-                    }
+                        Parser.EpisodeInfo epInfoBase = Parser.Episode.ParseTitle(itemTitle);
+                        si.CheckEpisode(epInfoBase, ref subScoreBase);
+                        si.CheckImdbId(subItem.FeatureDetails.ImdbId, ref subScoreBase);
+                        si.CheckImdbId(subItem.FeatureDetails.ParentImdbId, ref subScoreBase);
+                        si.CheckFps(subItem.Fps, ref subScoreBase);
+                   }
                     else
                     {
                         Parser.MovieInfo mvInfoBase = Parser.Movie.ParseTitle(itemTitle);
                         si.CheckMovie(mvInfoBase, ref subScoreBase);
                         si.CheckImdbId(subItem.FeatureDetails.ImdbId, ref subScoreBase);
-                        si.CheckFps(subItem.Fps ?? 0, ref subScoreBase);
+                        si.CheckFps(subItem.Fps, ref subScoreBase);
                     }
 
                     foreach (var file in subItem.Files)

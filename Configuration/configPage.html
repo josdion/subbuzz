@@ -162,10 +162,12 @@
                         const url = ApiClient.getUrl('subbuzz/ValidateOpenSubtitlesLoginInfo');
 
                         const handler = response => response.json().then(res => {
-                            if (response.ok) {
+                            if (response.ok && !res.Message) {
                                 token = res.Token;
                                 saveConfig()
-                                el.innerText = "OpenSubtitles.com account validated. You can download " + res.Downloads + " subtitles per day.";
+                                if (res.Token && res.Downloads) {
+                                    el.innerText = "OpenSubtitles.com account validated. You can download " + res.Downloads + " subtitles per day.";
+                                }
                             }
                             else {
                                 let msg = res.Message ?? JSON.stringify(res, null, 2);

@@ -7,11 +7,14 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
         [JsonPropertyName("feature_type")]
         public string? FeatureType { get; set; }
 
+        [JsonPropertyName("year")]
+        public int? Year { get; set; }
+
         [JsonPropertyName("title")]
         public string? Title { get; set; }
 
-        [JsonPropertyName("year")]
-        public int? Year { get; set; }
+        [JsonPropertyName("movie_name")]
+        public string? MovieName { get; set; }
 
         [JsonPropertyName("imdb_id")]
         public int ImdbId { get; set; }
@@ -24,5 +27,14 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
 
         [JsonPropertyName("episode_number")]
         public int? EpisodeNumber { get; set; }
+
+        [JsonPropertyName("parent_imdb_id")]
+        public int ParentImdbId { get; set; }
+
+        [JsonPropertyName("parent_tmdb_id")]
+        public int? ParentTmdbId { get; set; }
+
+        [JsonPropertyName("parent_title")]
+        public string? ParentTitle { get; set; }
     }
 }

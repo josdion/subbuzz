@@ -1,4 +1,5 @@
 using MediaBrowser.Common.Net;
+using MediaBrowser.Model.Net;
 using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
@@ -12,9 +13,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-
-#if !EMBY
-#endif
 
 namespace subbuzz.Providers.OpenSubtitlesAPI
 {
@@ -159,11 +157,18 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                 }
             }
 
-            var result = await _httpClient.SendAsync(request, method.ToString()).ConfigureAwait(false);
-            StreamReader reader = new StreamReader(result.Content);
-            var resBody = await reader.ReadToEndAsync().ConfigureAwait(false);
+            try
+            {
+                var result = await _httpClient.SendAsync(request, method.ToString()).ConfigureAwait(false);
+                StreamReader reader = new StreamReader(result.Content);
+                var resBody = await reader.ReadToEndAsync().ConfigureAwait(false);
 
-            return (resBody, result.Headers, result.StatusCode);
+                return (resBody, result.Headers, result.StatusCode);
+            }
+            catch (HttpException e)
+            {
+                return (e.ToString(), null, e.StatusCode ?? HttpStatusCode.Forbidden);
+            }
         }
 #endif
     }

@@ -194,9 +194,9 @@ namespace subbuzz.Helpers
             return 0;
         }
 
-        public bool CheckImdbId(int imdb, ref SubtitleScore score)
+        public bool CheckImdbId(int? imdb, ref SubtitleScore score)
         {
-            if (imdb > 0)
+            if ((imdb ?? 0) > 0)
             {
                 if (VideoType == VideoContentType.Episode)
                 {
@@ -241,9 +241,9 @@ namespace subbuzz.Helpers
             return true; // no frame rate information
         }
 
-        public bool CheckFps(float fps, ref SubtitleScore score)
+        public bool CheckFps(float? fps, ref SubtitleScore score)
         {
-            if (VideoFps != null && VideoFps > 0 && fps > 0)
+            if ((fps ?? 0) > 0 && VideoFps != null && VideoFps > 0)
             {
                 if (Math.Abs((float)(VideoFps - fps)) < 0.1)
                 {

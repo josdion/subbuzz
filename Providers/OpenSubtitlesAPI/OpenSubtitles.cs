@@ -181,7 +181,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             var (response, responseHeaders, httpStatusCode) = await RequestHelper.Instance!.SendRequestAsync(url, method, body, headers, cancellationToken).ConfigureAwait(false);
 
-            if (!isFullUrl)
+            if (!isFullUrl || responseHeaders == null)
             {
                 return new HttpResponse
                 {
