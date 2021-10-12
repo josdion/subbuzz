@@ -570,6 +570,11 @@ namespace subbuzz.Parser
 
         private static bool ValidateBeforeParsing(string title)
         {
+            if (title.IsNullOrWhiteSpace())
+            {
+                return false;
+            }
+
             if (title.ToLower().Contains("password") && title.ToLower().Contains("yenc"))
             {
                 //Logger.Debug("");

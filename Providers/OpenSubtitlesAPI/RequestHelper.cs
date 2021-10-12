@@ -74,7 +74,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
 #if JELLYFIN_10_7
 
-        internal async Task<(string, Dictionary<string, string>, HttpStatusCode)> SendRequestAsync(
+        internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
             string url, 
             HttpMethod method, 
             object? body, 
@@ -103,6 +103,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                 }
             };
 
+            headers ??= new Dictionary<string, string>();
             foreach (var (key, value) in headers)
             {
                 if (string.Equals(key, "authorization", StringComparison.OrdinalIgnoreCase))
@@ -117,13 +118,13 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             var result = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
             var resHeaders = result.Headers.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value.First());
-            var resBody = await result.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            //var resBody = await result.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
-            return (resBody, resHeaders, result.StatusCode);
+            return (await result.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false), resHeaders, result.StatusCode);
         }
 #else
 
-        internal async Task<(string, Dictionary<string, string>, HttpStatusCode)> SendRequestAsync(
+        internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
             string url,
             HttpMethod method,
             object? body,
@@ -145,6 +146,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                 request.RequestHttpContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, MediaTypeNames.Application.Json);
             }
 
+            headers ??= new Dictionary<string, string>();
             foreach (var (key, value) in headers)
             {
                 if (string.Equals(key, "authorization", StringComparison.OrdinalIgnoreCase))
@@ -160,16 +162,32 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             try
             {
                 var result = await _httpClient.SendAsync(request, method.ToString()).ConfigureAwait(false);
-                StreamReader reader = new StreamReader(result.Content);
-                var resBody = await reader.ReadToEndAsync().ConfigureAwait(false);
+                //StreamReader reader = new StreamReader(result.Content);
+                //var resBody = await reader.ReadToEndAsync().ConfigureAwait(false);
 
-                return (resBody, result.Headers, result.StatusCode);
+                return (result.Content, result.Headers, result.StatusCode);
             }
             catch (HttpException e)
             {
-                return (e.ToString(), null, e.StatusCode ?? HttpStatusCode.Forbidden);
+                return (new MemoryStream(), null, e.StatusCode ?? HttpStatusCode.Forbidden);
             }
         }
 #endif
+        internal async Task<(string, Dictionary<string, string>, HttpStatusCode)> SendRequestAsync(
+            string url,
+            HttpMethod method,
+            object? body,
+            Dictionary<string, string> headers,
+            CancellationToken cancellationToken
+            )
+        {
+            var (resStram, resHeaders, resCode) = await SendRequestAsyncStream(url, method, body, headers, cancellationToken);
+
+            StreamReader reader = new StreamReader(resStram);
+            var resBody = await reader.ReadToEndAsync().ConfigureAwait(false);
+
+            return (resBody, resHeaders, resCode);
+        }
+    
     }
 }

@@ -54,7 +54,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models
             }
             catch (Exception e)
             {
-                throw new JsonException($"Failed to parse response, code: {Code}, context: {context}, body: \n{(string.IsNullOrWhiteSpace(Body) ? "\"\"" : Body)}", e);
+                throw new JsonException($"Failed to parse response, code: {Code}, context: {string.Join(", ", context)}, body: \n{(string.IsNullOrWhiteSpace(Body) ? "\"\"" : Body)}", e);
             }
         }
     }

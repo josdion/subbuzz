@@ -3,6 +3,7 @@ using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -58,14 +59,14 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             return new ApiResponse<UserInfoData>(response);
         }
 
-        public static async Task<ApiResponse<DownloadInfo>> GetSubtitleLinkAsync(int file, LoginInfo user, string apiKey, CancellationToken cancellationToken)
+        public static async Task<ApiResponse<DownloadInfo>> GetSubtitleLinkAsync(int file, string token, string apiKey, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrEmpty(user.Token))
+            if (string.IsNullOrEmpty(token))
             {
-                throw new ArgumentNullException(nameof(user.Token), "Token is null or empty");
+                throw new ArgumentNullException(nameof(token), "Token is null or empty");
             }
 
-            var headers = new Dictionary<string, string> { { "Authorization", user.Token } };
+            var headers = new Dictionary<string, string> { { "Authorization", token } };
 
             var body = new { file_id = file };
             var response = await SendRequestAsync("/download", HttpMethod.Post, body, headers, apiKey, cancellationToken).ConfigureAwait(false);
@@ -73,11 +74,12 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             return new ApiResponse<DownloadInfo>(response, $"file id: {file}");
         }
 
-        public static async Task<ApiResponse<string>> DownloadSubtitleAsync(string url, CancellationToken cancellationToken)
+        public static async Task<ApiResponse<Stream>> DownloadSubtitleAsync(string url, CancellationToken cancellationToken)
         {
-            var response = await SendRequestAsync(url, HttpMethod.Get, null, null, null, cancellationToken).ConfigureAwait(false);
+            //var response = await SendRequestAsync(url, HttpMethod.Get, null, null, null, cancellationToken).ConfigureAwait(false);
+            var (stream, _, httpStatusCode) = await RequestHelper.Instance!.SendRequestAsyncStream(url, HttpMethod.Get, null, null, cancellationToken).ConfigureAwait(false);
 
-            return new ApiResponse<string>(response);
+            return new ApiResponse<Stream>(stream, new HttpResponse { Code = httpStatusCode });
         }
 
         public static async Task<ApiResponse<IReadOnlyList<ResponseData>>> SearchSubtitlesAsync(Dictionary<string, string> options, string apiKey, CancellationToken cancellationToken)
@@ -138,11 +140,11 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             )
         {
             var url = endpoint.StartsWith('/') ? BaseApiUrl + endpoint : endpoint;
-            var isFullUrl = url.StartsWith(BaseApiUrl, StringComparison.OrdinalIgnoreCase);
+            var isFullApiUrl = url.StartsWith(BaseApiUrl, StringComparison.OrdinalIgnoreCase);
 
             headers ??= new Dictionary<string, string>();
 
-            if (isFullUrl)
+            if (isFullApiUrl)
             {
                 if (string.IsNullOrWhiteSpace(apiKey))
                 {
@@ -181,7 +183,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             var (response, responseHeaders, httpStatusCode) = await RequestHelper.Instance!.SendRequestAsync(url, method, body, headers, cancellationToken).ConfigureAwait(false);
 
-            if (!isFullUrl || responseHeaders == null)
+            if (!isFullApiUrl || responseHeaders == null)
             {
                 return new HttpResponse
                 {
