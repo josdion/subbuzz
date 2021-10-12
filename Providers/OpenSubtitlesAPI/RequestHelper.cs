@@ -37,7 +37,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         }
 #endif
 
-        public static RequestHelper? Instance { get; set; }
+        public static RequestHelper Instance { get; set; }
 
         public static string ComputeHash(Stream stream)
         {
@@ -77,7 +77,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
             string url, 
             HttpMethod method, 
-            object? body, 
+            object body, 
             Dictionary<string, string> headers, 
             CancellationToken cancellationToken
             )
@@ -85,7 +85,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             var client = _clientFactory.CreateClient("Default");
             client.Timeout = TimeSpan.FromSeconds(30);
 
-            HttpContent? content = null;
+            HttpContent content = null;
             if (method != HttpMethod.Get && body != null)
             {
                 content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, MediaTypeNames.Application.Json);
@@ -127,7 +127,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
             string url,
             HttpMethod method,
-            object? body,
+            object body,
             Dictionary<string, string> headers,
             CancellationToken cancellationToken
             )
@@ -176,7 +176,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         internal async Task<(string, Dictionary<string, string>, HttpStatusCode)> SendRequestAsync(
             string url,
             HttpMethod method,
-            object? body,
+            object body,
             Dictionary<string, string> headers,
             CancellationToken cancellationToken
             )

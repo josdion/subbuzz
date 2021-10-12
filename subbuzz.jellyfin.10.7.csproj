@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="API\ControllerEmby.cs" />
     <Compile Remove="Extensions/ILoggerExtensions.cs" />
   </ItemGroup>
 
@@ -24,6 +25,7 @@
     <PackageReference Include="Jellyfin.Controller" Version="10.7.*-*" />
     <PackageReference Include="SharpCompress" Version="0.26.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,4 +34,5 @@
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
 </Project>

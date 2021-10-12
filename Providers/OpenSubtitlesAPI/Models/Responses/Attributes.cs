@@ -10,7 +10,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
         public int DownloadCount { get; set; }
 
         [JsonPropertyName("format")]
-        public string? Format { get; set; }
+        public string Format { get; set; }
 
         [JsonPropertyName("fps")]
         public float? Fps { get; set; }
@@ -25,19 +25,19 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
         public DateTime UploadDate { get; set; }
 
         [JsonPropertyName("release")]
-        public string? Release { get; set; }
+        public string Release { get; set; }
 
         [JsonPropertyName("comments")]
-        public string? Comments { get; set; }
+        public string Comments { get; set; }
 
         [JsonPropertyName("uploader")]
-        public Uploader? Uploader { get; set; }
+        public Uploader Uploader { get; set; }
 
         [JsonPropertyName("feature_details")]
-        public FeatureDetails? FeatureDetails { get; set; }
+        public FeatureDetails FeatureDetails { get; set; }
 
         [JsonPropertyName("url")]
-        public string? Url { get; set; }
+        public string Url { get; set; }
 
         [JsonPropertyName("files")]
         public IReadOnlyList<File> Files { get; set; } = Array.Empty<File>();

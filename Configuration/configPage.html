@@ -130,7 +130,7 @@
                     const apiKey = document.querySelector('#OpenSubApiKey').value;
                     var token = config.OpenSubToken || '';
 
-                    if ((username && !password) || (!username && password) || (username && password && !apiKey)) {
+                    if ((username || password || apiKey) && (!username || !password || !apiKey)) {
                         Dashboard.processErrorResponse({ statusText: "OpenSubtitles.com account info is incomplete!" });
                         return;
                     }

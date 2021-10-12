@@ -8,9 +8,9 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
         public int? Id { get; set; }
 
         [JsonPropertyName("name")]
-        public string? Name { get; set; }
+        public string Name { get; set; }
 
         [JsonPropertyName("rank")]
-        public string? Rank { get; set; }
+        public string Rank { get; set; }
     }
 }

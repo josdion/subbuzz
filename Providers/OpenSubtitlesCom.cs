@@ -12,6 +12,7 @@ using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Authentication;
@@ -109,7 +110,7 @@ namespace subbuzz.Providers
                 _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
             }
 
-            return new SubtitleResponse();
+            return new SubtitleResponse { Stream = new MemoryStream() };
         }
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,
@@ -214,7 +215,7 @@ namespace subbuzz.Providers
                             DateCreated = subItem.UploadDate,
                             //CommunityRating = Convert.ToInt32(subRating),
                             DownloadCount = subItem.DownloadCount,
-                            //IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                            IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                             IsForced = false,
                             Score = score,
                         };

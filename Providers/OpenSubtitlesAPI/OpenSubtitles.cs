@@ -133,9 +133,9 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         private static async Task<HttpResponse> SendRequestAsync(
             string endpoint,
             HttpMethod method,
-            object? body,
-            Dictionary<string, string>? headers,
-            string? apiKey,
+            object body,
+            Dictionary<string, string> headers,
+            string apiKey,
             CancellationToken cancellationToken
             )
         {
