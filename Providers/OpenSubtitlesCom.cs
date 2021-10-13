@@ -110,7 +110,7 @@ namespace subbuzz.Providers
                 _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
             }
 
-            return new SubtitleResponse { Stream = new MemoryStream() };
+            return new SubtitleResponse();
         }
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,
@@ -284,14 +284,6 @@ namespace subbuzz.Providers
             var fid = int.Parse(fileId);
             var link = await OpenSubtitles.GetSubtitleLinkAsync(fid, token, apiKey, cancellationToken).ConfigureAwait(false);
 
-            if (link.Data?.Message != null && link.Data.Message.Contains("UTC", StringComparison.Ordinal))
-            {
-                // "Your quota will be renewed in 20 hours and 52 minutes (2021-08-24 12:02:10 UTC) "
-                var strReset = link.Data.Message.Split('(')[1].Trim().Replace(" UTC)", "Z", StringComparison.Ordinal);
-                //_limitReset = DateTime.Parse(str, _usCulture, DateTimeStyles.AdjustToUniversal);
-                _logger.LogDebug($"{NAME}: Updated expiration time to {strReset}");
-            }
-
             if (link.Ok)
             {
                 return link.Data.Link;
@@ -300,12 +292,13 @@ namespace subbuzz.Providers
             {
                 switch (link.Code)
                 {
-                    case HttpStatusCode.NotAcceptable when link.Data?.Remaining <= 0:
-                        _logger.LogInformation($"{NAME}: OpenSubtitles download limit reached");
-                        return string.Empty;
+                    case HttpStatusCode.NotAcceptable:
+                        _logger.LogInformation($"{NAME}: OpenSubtitles.com download limit reached.");
+                        break;
 
                     case HttpStatusCode.Unauthorized:
-                        // JWT token expired, obtain a new one and try again?
+                        _logger.LogInformation($"{NAME}: JWT token expired, obtain a new one and try again");
+
                         GetOptions().OpenSubToken = string.Empty;
                         Plugin.Instance.SaveConfiguration();
                         return await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);

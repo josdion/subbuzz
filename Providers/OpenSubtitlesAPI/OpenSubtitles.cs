@@ -1,3 +1,4 @@
+using subbuzz.Extensions;
 using subbuzz.Providers.OpenSubtitlesAPI.Models;
 using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
@@ -7,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -202,6 +204,20 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             if (responseHeaders.TryGetValue("ratelimit-reset", out value))
             {
                 _ = int.TryParse(value, out _hReset);
+            }
+
+            if (httpStatusCode == HttpStatusCode.Moved)
+            {
+                if (responseHeaders.TryGetValue("location", out value))
+                {
+                    var host = Regex.Match(url, @"(http:|https:)\/\/(.*?)\/");
+                    if (host != null && host.Groups.Count > 0)
+                    {
+                        value = value.StartsWith('/') ? host.Groups[0].ToString().TrimEnd('/') + value : value;
+                        if (!value.EqualsIgnoreCase(url))
+                            return await SendRequestAsync(value, method, body, headers, apiKey, cancellationToken).ConfigureAwait(false);
+                    }
+                }
             }
 
             if (httpStatusCode != HttpStatusCode.TooManyRequests)
