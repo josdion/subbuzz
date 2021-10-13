@@ -27,6 +27,8 @@ namespace subbuzz.Helpers
         public int ImdbIdInt = 0;
         public string ImdbIdEpisode = "";
         public int ImdbIdEpisodeInt = 0;
+        public string TmdbId = "";
+        public string TmdbIdEpisode = "";
         public string Lang = ""; // two letter lower case language code
         public CultureDto LanguageInfo;
         public VideoContentType VideoType;
@@ -81,6 +83,7 @@ namespace subbuzz.Helpers
                 }
 
                 mv.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
+                mv.ProviderIds.TryGetValue("Tmdb", out res.TmdbId);
 
                 res.TitleMovie = res.SearchText;
                 res.MvInfo = Parser.Movie.ParsePath(mv.Path);
@@ -122,7 +125,9 @@ namespace subbuzz.Helpers
                 else res.SearchEpByName = String.Format("{0} {1}", title, titleEp);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
+                ep.Series.ProviderIds.TryGetValue("Tmdb", out res.TmdbId);
                 ep.ProviderIds.TryGetValue("Imdb", out res.ImdbIdEpisode);
+                ep.ProviderIds.TryGetValue("Tmdb", out res.TmdbIdEpisode);
 
                 res.TitleSeries = title;
                 res.TitleMovie = res.SearchEpByName;
