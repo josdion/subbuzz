@@ -12,7 +12,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models
 
         public T Data { get; }
 
-        public bool Ok => (int)Code < 400;
+        public bool Ok => (int)Code < 300;
 
         public ApiResponse(T data, HttpResponse response)
         {

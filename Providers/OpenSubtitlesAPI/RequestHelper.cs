@@ -75,10 +75,10 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 #if JELLYFIN_10_7
 
         internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
-            string url, 
-            HttpMethod method, 
-            object body, 
-            Dictionary<string, string> headers, 
+            string url,
+            HttpMethod method,
+            object body,
+            Dictionary<string, string> headers,
             CancellationToken cancellationToken
             )
         {
@@ -118,7 +118,6 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             var result = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
             var resHeaders = result.Headers.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value.First());
-            //var resBody = await result.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
             return (await result.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false), resHeaders, result.StatusCode);
         }
@@ -162,8 +161,6 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             try
             {
                 var result = await _httpClient.SendAsync(request, method.ToString()).ConfigureAwait(false);
-                //StreamReader reader = new StreamReader(result.Content);
-                //var resBody = await reader.ReadToEndAsync().ConfigureAwait(false);
 
                 return (result.Content, result.Headers, result.StatusCode);
             }
@@ -188,6 +185,6 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             return (resBody, resHeaders, resCode);
         }
-    
+
     }
 }

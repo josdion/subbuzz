@@ -1,13 +1,10 @@
 ﻿using MediaBrowser.Model.Services;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using subbuzz.Providers.OpenSubtitlesAPI;
 using subbuzz.Providers.OpenSubtitlesAPI.Models;
-using MediaBrowser.Controller.Net;
+using System;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.Json;
 
 namespace subbuzz.API
 {
@@ -22,32 +19,45 @@ namespace subbuzz.API
     public class ControllerEmby : IService
 
     {
-       public async Task<object> Post(LoginInfoRequest body)
+        public async Task<object> Post(LoginInfoRequest body)
         {
-            var response = await OpenSubtitles.LogInAsync(body.Username, body.Password, body.ApiKey, CancellationToken.None).ConfigureAwait(false);
-
-            if (!response.Ok)
+            try
             {
-                var msg = $"{response.Code}{(response.Body.Length < 150 ? $" - {response.Body}" : string.Empty)}";
+                var response = await OpenSubtitles.LogInAsync(body.Username, body.Password, body.ApiKey, CancellationToken.None).ConfigureAwait(false);
 
-                if (response.Body.Contains("message\":", StringComparison.Ordinal))
+                if (!response.Ok)
                 {
-                    var err = JsonSerializer.Deserialize<ErrorResponse>(response.Body);
-                    if (err != null)
+                    var msg = $"{response.Code}{(response.Body.Length < 150 ? $" - {response.Body}" : string.Empty)}";
+
+                    if (response.Body.Contains("message\":", StringComparison.Ordinal))
                     {
-                        msg = string.Equals(err.Message, "You cannot consume this service", StringComparison.Ordinal)
-                            ? "Invalid API key provided" : err.Message;
+                        var err = JsonSerializer.Deserialize<ErrorResponse>(response.Body);
+                        if (err != null)
+                        {
+                            msg = string.Equals(err.Message, "You cannot consume this service", StringComparison.Ordinal)
+                                ? "Invalid API key provided" : err.Message;
+                        }
                     }
+
+                    return new
+                    {
+                        Message = msg
+                    };
                 }
 
-                return new { Message = msg };
+                return new
+                {
+                    Token = response.Data?.Token,
+                    Downloads = response.Data?.User?.AllowedDownloads ?? 0
+                };
             }
-
-            return new
+            catch
             {
-                Token = response.Data?.Token,
-                Downloads = response.Data?.User?.AllowedDownloads ?? 0
-            };
+                return new
+                {
+                    Message = "Unable to verify OpenSubtitles.com account"
+                };
+            }
         }
     }
 }
