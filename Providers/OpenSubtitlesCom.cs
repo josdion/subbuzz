@@ -112,8 +112,7 @@ namespace subbuzz.Providers
             return new SubtitleResponse();
         }
 
-        public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,
-            CancellationToken cancellationToken)
+        public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request, CancellationToken cancellationToken)
         {
             var res = new List<SubtitleInfo>();
 
@@ -133,7 +132,9 @@ namespace subbuzz.Providers
 
                 _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
 
-                return await Search(si, apiKey, cancellationToken).ConfigureAwait(false);
+                string hash = GetOptions().OpenSubUseHash ? CalcHash(request.MediaPath) : string.Empty;
+
+                return await Search(si, apiKey, hash, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -143,7 +144,7 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<List<SubtitleInfo>> Search(SearchInfo si, string apiKey, CancellationToken cancellationToken)
+        protected async Task<List<SubtitleInfo>> Search(SearchInfo si, string apiKey, string hash, CancellationToken cancellationToken)
         {
             var res = new List<SubtitleInfo>();
 
@@ -153,10 +154,16 @@ namespace subbuzz.Providers
                 { "type", si.VideoType == VideoContentType.Episode ? "episode" : "movie" },
             };
 
-            string hash = "";// CalcHash(request.MediaPath);
+            if (si.IsForced)
+            {
+                options.Add("foreign_parts_only", "only");
+            }
+
             if (hash.IsNotNullOrWhiteSpace())
             {
                 options.Add("moviehash", hash);
+                if (si.FileName.IsNotNullOrWhiteSpace())
+                    options.Add("query", si.FileName.ToLower());
             }
 
             if (si.VideoType == VideoContentType.Episode)
@@ -199,6 +206,7 @@ namespace subbuzz.Providers
 
                 string itemTitle = $"{subItem.FeatureDetails.Title ?? subItem.FeatureDetails.ParentTitle} ({subItem.FeatureDetails.Year})";
                 string subInfo = $"{itemTitle}<br>{subItem.Release}";
+                subInfo += (subItem.Comments.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comments}" : "";
                 subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate, subItem.Uploader.Name);
                 if ((subItem.Fps ?? 0.0) > 0) subInfo += $" | {subItem.Fps}";
 
@@ -243,7 +251,7 @@ namespace subbuzz.Providers
                         DateCreated = subItem.UploadDate,
                         //CommunityRating = Convert.ToInt32(subRating),
                         DownloadCount = subItem.DownloadCount,
-                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                        IsHashMatch = (score >= Plugin.Instance.Configuration.HashMatchByScore) || (subItem.MovieHashMatch ?? false),
                         IsForced = false,
                         Score = score,
                     };
@@ -335,12 +343,11 @@ namespace subbuzz.Providers
 
         private string CalcHash(string path)
         {
-            string hash;
             try
             {
                 using (var fileStream = System.IO.File.OpenRead(path))
                 {
-                    hash = RequestHelper.ComputeHash(fileStream);
+                    return RequestHelper.ComputeHash(fileStream);
                 }
             }
             catch (Exception e)

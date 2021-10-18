@@ -40,6 +40,7 @@ namespace subbuzz.Helpers
         public string FileName = "";
         public Parser.EpisodeInfo EpInfo = null;
         public Parser.MovieInfo MvInfo = null;
+        public bool IsForced = false;
 
         public static SearchInfo GetSearchInfo(
             SubtitleSearchRequest request,
@@ -56,6 +57,7 @@ namespace subbuzz.Helpers
 
 #if EMBY
             res.LanguageInfo = localize.FindLanguageInfo(request.Language.AsSpan());
+            res.IsForced = request.IsForced ?? false;
 #else
             res.LanguageInfo = localize.FindLanguageInfo(request.Language);
 #endif

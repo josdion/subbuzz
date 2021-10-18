@@ -99,6 +99,11 @@ namespace subbuzz.Providers
                 Utils.MergeSubtitleInfo(res, subs);
             }
 
+            if (request.IsPerfectMatch)
+            {
+                res.RemoveAll(i => (i.IsHashMatch ?? false) == false);
+            }
+
             res.Sort((x, y) => y.Score.CompareTo(x.Score));
             return res;
         }

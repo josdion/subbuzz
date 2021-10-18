@@ -17,6 +17,7 @@ namespace subbuzz
         public string OpenSubPassword { get; set; }
         public string OpenSubApiKey { get; set; }
         public string OpenSubToken { get; set; }
+        public bool OpenSubUseHash { get; set; }
 
         public PluginConfiguration()
         {
@@ -33,6 +34,7 @@ namespace subbuzz
             OpenSubPassword = string.Empty;
             OpenSubApiKey = string.Empty;
             OpenSubToken = string.Empty;
+            OpenSubUseHash = true;
         }
     }
 }
