@@ -78,7 +78,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
         public static async Task<ApiResponse<Stream>> DownloadSubtitleAsync(string url, CancellationToken cancellationToken)
         {
-            var (stream, _, httpStatusCode) = await RequestHelper.Instance!.SendRequestAsyncStream(url, HttpMethod.Get, null, null, cancellationToken).ConfigureAwait(false);
+            var (stream, _, httpStatusCode) = await RequestHelper.Instance.SendRequestAsyncStream(url, HttpMethod.Get, null, null, cancellationToken).ConfigureAwait(false);
 
             return new ApiResponse<Stream>(stream, new HttpResponse { Code = httpStatusCode });
         }
@@ -87,9 +87,9 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         {
             var opts = System.Web.HttpUtility.ParseQueryString(string.Empty);
 
-            foreach (var (key, value) in options.OrderBy(x => x.Key))
+            foreach (var op in options.OrderBy(x => x.Key))
             {
-                opts.Add(key, value);
+                opts.Add(op.Key, op.Value);
             }
 
             var max = -1;
@@ -140,10 +140,11 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             CancellationToken cancellationToken
             )
         {
-            var url = endpoint.StartsWith('/') ? BaseApiUrl + endpoint : endpoint;
+            var url = endpoint.StartsWith("/") ? BaseApiUrl + endpoint : endpoint;
             var isFullApiUrl = url.StartsWith(BaseApiUrl, StringComparison.OrdinalIgnoreCase);
 
-            headers ??= new Dictionary<string, string>();
+            if (headers == null)
+                headers = new Dictionary<string, string>();
 
             if (isFullApiUrl)
             {
@@ -182,7 +183,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                 }
             }
 
-            var (response, responseHeaders, httpStatusCode) = await RequestHelper.Instance!.SendRequestAsync(url, method, body, headers, cancellationToken).ConfigureAwait(false);
+            var (response, responseHeaders, httpStatusCode) = await RequestHelper.Instance.SendRequestAsync(url, method, body, headers, cancellationToken).ConfigureAwait(false);
 
             if (!isFullApiUrl || responseHeaders == null)
             {
@@ -212,14 +213,14 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                     var host = Regex.Match(url, @"(http:|https:)\/\/(.*?)\/");
                     if (host != null && host.Groups.Count > 0)
                     {
-                        value = value.StartsWith('/') ? host.Groups[0].ToString().TrimEnd('/') + value : value;
+                        value = value.StartsWith("/") ? host.Groups[0].ToString().TrimEnd('/') + value : value;
                         if (!value.EqualsIgnoreCase(url))
                             return await SendRequestAsync(value, method, body, headers, apiKey, cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
 
-            if (httpStatusCode != HttpStatusCode.TooManyRequests)
+            if (httpStatusCode != (HttpStatusCode)429 /*HttpStatusCode.TooManyRequests*/)
             {
                 if (!responseHeaders.TryGetValue("x-reason", out value))
                 {

@@ -194,6 +194,7 @@
                         ApiClient.ajax({ type: 'POST', url, data, contentType: 'application/json' }).then(handler).catch(handler);
                     }
                     else {
+                        form.querySelector('#ossresponse').innerText = "";
                         saveConfig()
                     }
 

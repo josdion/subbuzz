@@ -50,7 +50,8 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models
 
             try
             {
-                Data = JsonSerializer.Deserialize<T>(Body) ?? default;
+                Data = JsonSerializer.Deserialize<T>(Body);
+                if (Data == null) Data = default;
             }
             catch (Exception e)
             {

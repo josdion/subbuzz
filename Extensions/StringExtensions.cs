@@ -46,6 +46,11 @@ namespace subbuzz.Extensions
             return text.IndexOf(contains, StringComparison.InvariantCultureIgnoreCase) > -1;
         }
 
+        public static bool Contains(this string text, string contains, StringComparison comparisonType = StringComparison.Ordinal)
+        {
+            return text.IndexOf(contains, comparisonType) >= 0;
+        }
+
         public static bool ContainsIgnoreCase(this IEnumerable<string> source, string value)
         {
             return source.Contains(value, StringComparer.InvariantCultureIgnoreCase);

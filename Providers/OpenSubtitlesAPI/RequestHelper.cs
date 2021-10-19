@@ -142,19 +142,21 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             if (method != HttpMethod.Get && body != null)
             {
-                request.RequestHttpContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, MediaTypeNames.Application.Json);
+                request.RequestHttpContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
             }
 
-            headers ??= new Dictionary<string, string>();
-            foreach (var (key, value) in headers)
+            if (headers == null)
+                headers = new Dictionary<string, string>();
+
+            foreach (var h in headers)
             {
-                if (string.Equals(key, "authorization", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(h.Key, "authorization", StringComparison.OrdinalIgnoreCase))
                 {
-                    request.RequestHeaders.Add("authorization", new AuthenticationHeaderValue("Bearer", value).ToString());
+                    request.RequestHeaders.Add("authorization", new AuthenticationHeaderValue("Bearer", h.Value).ToString());
                 }
                 else
                 {
-                    request.RequestHeaders.Add(key, value);
+                    request.RequestHeaders.Add(h.Key, h.Value);
                 }
             }
 
