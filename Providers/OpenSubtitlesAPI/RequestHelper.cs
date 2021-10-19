@@ -142,7 +142,8 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             if (method != HttpMethod.Get && body != null)
             {
-                request.RequestHttpContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+                request.RequestContentType = "application/json";
+                request.RequestContent = JsonSerializer.Serialize(body).AsMemory();
             }
 
             if (headers == null)
