@@ -9,6 +9,14 @@
     "category": "Metadata",
     "versions": [
       {
+        "version": "1.0.1.0",
+        "changelog": "Add opensubtitles.com as a provider.\n",
+        "targetAbi": "10.7.0.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.1.0/subbuzz_1.0.1.0_jellyfin_10.7.zip",
+        "checksum": "6e891fc1b730b28f4bbd82da529e537d",
+        "timestamp": "2021-10-20T06:39:26Z"
+      },
+      {
         "version": "1.0.0.3",
         "changelog": "Added subtitle scoring based on subtitle file name and video file information. Search results are sorted in the score order.\n",
         "targetAbi": "10.7.0.0",
