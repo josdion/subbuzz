@@ -6,8 +6,14 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
 {
     public class Attributes
     {
+        [JsonPropertyName("language")]
+        public string Language { get; set; }
+
         [JsonPropertyName("download_count")]
         public int DownloadCount { get; set; }
+
+        [JsonPropertyName("hearing_impaired")]
+        public bool? HearingImpaired { get; set; }
 
         [JsonPropertyName("format")]
         public string Format { get; set; }

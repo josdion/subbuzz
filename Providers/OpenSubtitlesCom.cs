@@ -162,23 +162,29 @@ namespace subbuzz.Providers
             if (hash.IsNotNullOrWhiteSpace())
             {
                 options.Add("moviehash", hash);
-                if (si.FileName.IsNotNullOrWhiteSpace())
-                    options.Add("query", si.FileName.ToLower());
             }
 
             if (si.VideoType == VideoContentType.Episode)
             {
                 if (si.ImdbIdInt > 0)
+                {
                     options.Add("parent_imdb_id", si.ImdbIdInt.ToString());
 
-                if (si.ImdbIdEpisodeInt > 0)
-                    options.Add("imdb_id", si.ImdbIdEpisodeInt.ToString());
-
+                    if (si.ImdbIdEpisodeInt > 0)
+                        options.Add("imdb_id", si.ImdbIdEpisodeInt.ToString());
+                }
+                else
                 if (si.TmdbId.IsNotNullOrWhiteSpace())
+                {
                     options.Add("parent_tmdb_id", si.TmdbId);
 
-                if (si.TmdbIdEpisode.IsNotNullOrWhiteSpace())
-                    options.Add("tmdb_id", si.TmdbIdEpisode);
+                    if (si.TmdbIdEpisode.IsNotNullOrWhiteSpace())
+                        options.Add("tmdb_id", si.TmdbIdEpisode);
+                }
+                else
+                {
+                    options.Add("query", si.TitleSeries.ToLower());
+                }
 
                 options.Add("season_number", si.SeasonNumber?.ToString() ?? string.Empty);
                 options.Add("episode_number", si.EpisodeNumber?.ToString() ?? string.Empty);
@@ -187,10 +193,21 @@ namespace subbuzz.Providers
             {
                 if (si.ImdbIdInt > 0)
                     options.Add("imdb_id", si.ImdbIdInt.ToString());
-
+                else
                 if (si.TmdbId.IsNotNullOrWhiteSpace())
                     options.Add("tmdb_id", si.TmdbId);
+                else
+                {
+                    options.Add("query", si.TitleMovie.ToLower());
+                    if ((si.Year ?? 0) > 0)
+                    {
+                        options["query"] += $" ({si.Year ?? 0})";
+                        options.Add("year", $"{ si.Year ?? 0}");
+                    }
+                }
             }
+
+            _logger.LogDebug("{NAME}: Search options: {options}", NAME, options);
 
             var searchResponse = await OpenSubtitles.SearchSubtitlesAsync(options, apiKey, cancellationToken).ConfigureAwait(false);
 
