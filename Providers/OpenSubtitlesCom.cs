@@ -240,6 +240,13 @@ namespace subbuzz.Providers
                 {
                     Parser.MovieInfo mvInfoBase = Parser.Movie.ParseTitle(itemTitle);
                     si.CheckMovie(mvInfoBase, ref subScoreBase);
+
+                    if (subItem.Release.IsNotNullOrWhiteSpace())
+                    {
+                        Parser.MovieInfo mvInfoBaseRel = Parser.Movie.ParseTitle(subItem.Release);
+                        si.CheckMovie(mvInfoBaseRel, ref subScoreBase);
+                    }
+
                     si.CheckImdbId(subItem.FeatureDetails.ImdbId, ref subScoreBase);
                     si.CheckFps(subItem.Fps, ref subScoreBase);
                 }
