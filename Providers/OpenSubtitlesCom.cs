@@ -221,7 +221,9 @@ namespace subbuzz.Providers
             {
                 var subItem = resItem.Attributes;
 
-                string itemTitle = $"{subItem.FeatureDetails.Title ?? subItem.FeatureDetails.ParentTitle} ({subItem.FeatureDetails.Year})";
+                string itemTitle = $"{subItem.FeatureDetails.Title ?? subItem.FeatureDetails.ParentTitle}";
+                if (subItem.FeatureDetails.Year != null) itemTitle += $" ({subItem.FeatureDetails.Year})";
+
                 string subInfo = $"{itemTitle}<br>{subItem.Release}";
                 subInfo += (subItem.Comments.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comments}" : "";
                 subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate, subItem.Uploader.Name);
