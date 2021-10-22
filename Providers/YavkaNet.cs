@@ -283,11 +283,8 @@ namespace subbuzz.Providers
                 return res;
             }
 
-            SubtitleScore subScoreBase = new SubtitleScore();
-            Parser.EpisodeInfo epInfoBase = Parser.Episode.ParseTitle(sritem.Title);
-            Parser.MovieInfo mvInfoBase = Parser.Movie.ParseTitle(sritem.Title);
-            si.CheckEpisode(epInfoBase, ref subScoreBase);
-            si.CheckMovie(mvInfoBase, ref subScoreBase);
+            var subScoreBase = new SubtitleScore();
+            si.MatchTitle(sritem.Title, ref subScoreBase);
 
             string subLink = subPageInfo["action"];
             string subInfo = sritem.Title + (String.IsNullOrWhiteSpace(sritem.Info) ? "" : "<br>" + sritem.Info);
@@ -333,13 +330,13 @@ namespace subbuzz.Providers
                 }
             }
 
-            if (!si.CheckImdbId(imdbId, ref subScoreBase))
+            if (!si.MatchImdbId(imdbId, ref subScoreBase))
             {
                 //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
                 //continue;
             }
 
-            si.CheckFps(sritem.Fps, ref subScoreBase);
+            si.MatchFps(sritem.Fps, ref subScoreBase);
 
             string subDate = dtOffset != null ? dtOffset?.ToString("g") : "";
             subInfo += String.Format("<br>{0} | {1} | {2}", subDate, sritem.Uploader, sritem.Fps);

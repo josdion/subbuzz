@@ -169,12 +169,12 @@ namespace subbuzz.Helpers
             if (VideoType == VideoContentType.Episode)
             {
                 Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(subFileName);
-                bool checkSuccess = CheckEpisode(epInfo, ref subScore);
+                bool checkSuccess = MatchEpisode(epInfo, ref subScore);
 
                 if (videoFileNameInInfo)
                 {
                     epInfo = Parser.Episode.ParseTitle(FileName);
-                    if (!CheckEpisode(epInfo, ref subScore) && !checkSuccess)
+                    if (!MatchEpisode(epInfo, ref subScore) && !checkSuccess)
                         return 0;
                 }
                 else 
@@ -187,12 +187,12 @@ namespace subbuzz.Helpers
             if (VideoType == VideoContentType.Movie)
             {
                 Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(subFileName, true);
-                CheckMovie(mvInfo, ref subScore, true);
+                MatchMovie(mvInfo, ref subScore, true);
 
                 if (videoFileNameInInfo)
                 {
                     mvInfo = Parser.Movie.ParseTitle(FileName, true);
-                    CheckMovie(mvInfo, ref subScore, true);
+                    MatchMovie(mvInfo, ref subScore, true);
                 }
 
                 return subScore.CalcScoreMovie();
@@ -201,7 +201,22 @@ namespace subbuzz.Helpers
             return 0;
         }
 
-        public bool CheckImdbId(int? imdb, ref SubtitleScore score)
+        public void MatchTitle(string title, ref SubtitleScore score)
+        {
+            if (VideoType == VideoContentType.Episode)
+            {
+                Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(title);
+                MatchEpisode(epInfo, ref score);
+            }
+            else
+            if (VideoType == VideoContentType.Movie)
+            {
+                Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(title, false);
+                MatchMovie(mvInfo, ref score, true);
+            }
+        }
+
+        public bool MatchImdbId(int? imdb, ref SubtitleScore score)
         {
             if ((imdb ?? 0) > 0)
             {
@@ -234,12 +249,12 @@ namespace subbuzz.Helpers
             return true; // no IMDB info
         }
 
-        public bool CheckFps(string fpsText, ref SubtitleScore score)
+        public bool MatchFps(string fpsText, ref SubtitleScore score)
         {
             try
             {
                 float fps = float.Parse(fpsText, CultureInfo.InvariantCulture);
-                return CheckFps(fps, ref score);
+                return MatchFps(fps, ref score);
             }
             catch
             {
@@ -248,7 +263,7 @@ namespace subbuzz.Helpers
             return true; // no frame rate information
         }
 
-        public bool CheckFps(float? fps, ref SubtitleScore score)
+        public bool MatchFps(float? fps, ref SubtitleScore score)
         {
             if ((fps ?? 0) > 0 && VideoFps != null && VideoFps > 0)
             {
@@ -264,7 +279,7 @@ namespace subbuzz.Helpers
             return true; // no frame rate information
         }
 
-        public bool CheckEpisode(Parser.EpisodeInfo epInfo, ref SubtitleScore score)
+        public bool MatchEpisode(Parser.EpisodeInfo epInfo, ref SubtitleScore score)
         {
             if (epInfo == null)
             {
@@ -320,7 +335,7 @@ namespace subbuzz.Helpers
             return season && episode;
         }
 
-        public bool CheckMovie(Parser.MovieInfo mvInfo, ref SubtitleScore score, bool addEmptyMatches = false)
+        public bool MatchMovie(Parser.MovieInfo mvInfo, ref SubtitleScore score, bool addEmptyMatches = false)
         {
             if (mvInfo == null)
             {

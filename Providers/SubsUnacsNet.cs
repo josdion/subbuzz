@@ -235,11 +235,8 @@ namespace subbuzz.Providers
                 subYear = subYear.Trim(new[] { ' ', '(', ')' });
                 subTitle += $" ({subYear})";
 
-                SubtitleScore subScoreBase = new SubtitleScore();
-                Parser.EpisodeInfo epInfoBase = Parser.Episode.ParseTitle(subTitle);
-                Parser.MovieInfo mvInfoBase = Parser.Movie.ParseTitle(subTitle);
-                si.CheckEpisode(epInfoBase, ref subScoreBase);
-                si.CheckMovie(mvInfoBase, ref subScoreBase);
+                var subScoreBase = new SubtitleScore();
+                si.MatchTitle(subTitle, ref subScoreBase);
 
                 string subNotes = link.GetAttribute("title");
                 var regex = new Regex(@"(?:.*<b>Дата: </b>)(.*)(?:<br><b>Инфо: </b><br>)(.*)(?:</div>)");
@@ -296,13 +293,13 @@ namespace subbuzz.Providers
                     }
                 }
 
-                if (!si.CheckImdbId(imdbId, ref subScoreBase))
+                if (!si.MatchImdbId(imdbId, ref subScoreBase))
                 {
                     //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
                     //continue;
                 }
 
-                si.CheckFps(subFps, ref subScoreBase);
+                si.MatchFps(subFps, ref subScoreBase);
 
                 foreach (var fitem in subFiles)
                 {

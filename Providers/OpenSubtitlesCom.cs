@@ -227,28 +227,15 @@ namespace subbuzz.Providers
                 subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate, subItem.Uploader.Name);
                 if ((subItem.Fps ?? 0.0) > 0) subInfo += $" | {subItem.Fps}";
 
-                SubtitleScore subScoreBase = new SubtitleScore();
-                if (si.VideoType == VideoContentType.Episode)
-                {
-                    Parser.EpisodeInfo epInfoBase = Parser.Episode.ParseTitle(itemTitle);
-                    si.CheckEpisode(epInfoBase, ref subScoreBase);
-                    si.CheckImdbId(subItem.FeatureDetails.ImdbId, ref subScoreBase);
-                    si.CheckImdbId(subItem.FeatureDetails.ParentImdbId, ref subScoreBase);
-                    si.CheckFps(subItem.Fps, ref subScoreBase);
-                }
-                else
-                {
-                    Parser.MovieInfo mvInfoBase = Parser.Movie.ParseTitle(itemTitle);
-                    si.CheckMovie(mvInfoBase, ref subScoreBase);
+                var subScoreBase = new SubtitleScore();
+                si.MatchTitle(itemTitle, ref subScoreBase);
+                si.MatchImdbId(subItem.FeatureDetails.ImdbId, ref subScoreBase);
+                si.MatchImdbId(subItem.FeatureDetails.ParentImdbId, ref subScoreBase);
+                si.MatchFps(subItem.Fps, ref subScoreBase);
 
-                    if (subItem.Release.IsNotNullOrWhiteSpace())
-                    {
-                        Parser.MovieInfo mvInfoBaseRel = Parser.Movie.ParseTitle(subItem.Release);
-                        si.CheckMovie(mvInfoBaseRel, ref subScoreBase);
-                    }
-
-                    si.CheckImdbId(subItem.FeatureDetails.ImdbId, ref subScoreBase);
-                    si.CheckFps(subItem.Fps, ref subScoreBase);
+                if (subItem.Files.Count == 1)
+                {
+                    si.MatchTitle(subItem.Release, ref subScoreBase);
                 }
 
                 foreach (var file in subItem.Files)

@@ -252,11 +252,8 @@ namespace subbuzz.Providers
                 string subYear = linkNode.NextSibling.InnerText.Trim(new[] { ' ', '(', ')' });
                 subTitle += $" ({subYear})";
 
-                SubtitleScore subScoreBase = new SubtitleScore();
-                Parser.EpisodeInfo epInfoBase = Parser.Episode.ParseTitle(subTitle);
-                Parser.MovieInfo mvInfoBase = Parser.Movie.ParseTitle(subTitle);
-                si.CheckEpisode(epInfoBase, ref subScoreBase);
-                si.CheckMovie(mvInfoBase, ref subScoreBase);
+                var subScoreBase = new SubtitleScore();
+                si.MatchTitle(subTitle, ref subScoreBase);
 
                 string subNotes = linkNode.Attributes["onmouseover"].DeEntitizeValue;
                 var regex = new Regex(@"ddrivetip\(\'<div.*/></div>(.*)\',\'#[0-9]+\'\)");
@@ -287,13 +284,13 @@ namespace subbuzz.Providers
                     }
                 }
 
-                if (!si.CheckImdbId(imdbId, ref subScoreBase))
+                if (!si.MatchImdbId(imdbId, ref subScoreBase))
                 {
                     //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
                     //continue;
                 }
 
-                si.CheckFps(subFps, ref subScoreBase);
+                si.MatchFps(subFps, ref subScoreBase);
 
                 string subDownloads = tdNodes[10].InnerText;
 
