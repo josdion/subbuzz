@@ -51,6 +51,7 @@ namespace subbuzz.Providers
             { "Doctor Who (2005)", "Doctor Who" },
             { "Star Trek: Deep Space Nine", "Star Trek DS9" },
             { "Star Trek: The Next Generation", "Star Trek TNG" },
+            { "La Casa de Papel", "Money Heist" },
         };
 
         private static Dictionary<string, string> InconsistentMovies = new Dictionary<string, string>
