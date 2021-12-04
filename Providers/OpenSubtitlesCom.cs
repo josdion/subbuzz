@@ -75,7 +75,6 @@ namespace subbuzz.Providers
         {
             try
             {
-                var apiKey = GetOptions().OpenSubApiKey;
                 var token = GetOptions().OpenSubToken;
 
                 var (fileId, lang, format, fps) = ParseId(id);
@@ -119,7 +118,7 @@ namespace subbuzz.Providers
             try
             {
                 var apiKey = GetOptions().OpenSubApiKey;
-                if (!GetOptions().EnableOpenSubtitles || apiKey.IsNullOrWhiteSpace())
+                if (!GetOptions().EnableOpenSubtitles)
                 {
                     // provider is disabled
                     return res;
@@ -168,10 +167,10 @@ namespace subbuzz.Providers
             {
                 if (si.ImdbIdInt > 0)
                 {
-                    options.Add("parent_imdb_id", si.ImdbIdInt.ToString());
+                    options.Add("parent_imdb_id", si.ImdbIdInt.ToString(CultureInfo.InvariantCulture));
 
                     if (si.ImdbIdEpisodeInt > 0)
-                        options.Add("imdb_id", si.ImdbIdEpisodeInt.ToString());
+                        options.Add("imdb_id", si.ImdbIdEpisodeInt.ToString(CultureInfo.InvariantCulture));
                 }
                 else
                 if (si.TmdbId.IsNotNullOrWhiteSpace())
@@ -186,13 +185,13 @@ namespace subbuzz.Providers
                     options.Add("query", si.TitleSeries.ToLower());
                 }
 
-                options.Add("season_number", si.SeasonNumber?.ToString() ?? string.Empty);
-                options.Add("episode_number", si.EpisodeNumber?.ToString() ?? string.Empty);
+                if (si.SeasonNumber != null) options.Add("season_number", si.SeasonNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+                if (si.EpisodeNumber != null) options.Add("episode_number", si.EpisodeNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
             }
             else
             {
                 if (si.ImdbIdInt > 0)
-                    options.Add("imdb_id", si.ImdbIdInt.ToString());
+                    options.Add("imdb_id", si.ImdbIdInt.ToString(CultureInfo.InvariantCulture));
                 else
                 if (si.TmdbId.IsNotNullOrWhiteSpace())
                     options.Add("tmdb_id", si.TmdbId);
@@ -282,11 +281,6 @@ namespace subbuzz.Providers
             var userName = GetOptions().OpenSubUserName;
             var password = GetOptions().OpenSubPassword;
 
-            if (apiKey.IsNullOrWhiteSpace())
-            {
-                throw new AuthenticationException("API key is not set up");
-            }
-
             if (userName.IsNullOrWhiteSpace() || password.IsNullOrWhiteSpace())
             {
                 throw new AuthenticationException("Account username and/or password are not set up");
@@ -314,18 +308,13 @@ namespace subbuzz.Providers
             var apiKey = GetOptions().OpenSubApiKey;
             var token = GetOptions().OpenSubToken;
 
-            if (apiKey.IsNullOrWhiteSpace())
-            {
-                throw new AuthenticationException("API key is not set up");
-            }
-
             if (token.IsNullOrWhiteSpace())
             {
                 await Login(cancellationToken).ConfigureAwait(false);
                 token = GetOptions().OpenSubToken;
             }
 
-            var fid = int.Parse(fileId);
+            var fid = int.Parse(fileId, CultureInfo.InvariantCulture);
             var link = await OpenSubtitles.GetSubtitleLinkAsync(fid, token, apiKey, cancellationToken).ConfigureAwait(false);
 
             if (link.Ok)

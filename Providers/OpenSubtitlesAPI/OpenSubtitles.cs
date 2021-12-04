@@ -17,6 +17,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
     public static class OpenSubtitles
     {
         private const string BaseApiUrl = "https://api.opensubtitles.com/api/v1";
+        private const string ApiKey = "Hsn0IpAAGNFVIbAvK0gtJqCi8lAYuugT";
 
         // header rate limits (5/1s & 240/1 min)
         private static int _hRemaining = -1;
@@ -87,11 +88,6 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         {
             var opts = System.Web.HttpUtility.ParseQueryString(string.Empty);
 
-            foreach (var op in options.OrderBy(x => x.Key))
-            {
-                opts.Add(op.Key, op.Value);
-            }
-
             var max = -1;
             var current = 1;
 
@@ -101,11 +97,21 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             do
             {
-                opts.Set("page", current.ToString(CultureInfo.InvariantCulture));
+                opts.Clear();
+
+                if (current > 1)
+                {
+                    options["page"] = current.ToString(CultureInfo.InvariantCulture);
+                }
+
+                foreach (var op in options.OrderBy(x => x.Key))
+                {
+                    opts.Add(op.Key.ToLower(CultureInfo.InvariantCulture), op.Value.ToLower(CultureInfo.InvariantCulture));
+                }
 
                 response = await SendRequestAsync($"/subtitles?{opts}", HttpMethod.Get, null, null, apiKey, cancellationToken).ConfigureAwait(false);
 
-                last = new ApiResponse<SearchResult>(response, $"options: {options}", $"page: {current}");
+                last = new ApiResponse<SearchResult>(response, $"query: {opts}", $"page: {current}");
 
                 if (!last.Ok || last.Data == null)
                 {
@@ -148,14 +154,9 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             if (isFullApiUrl)
             {
-                if (string.IsNullOrWhiteSpace(apiKey))
-                {
-                    throw new ArgumentException("Provided API key is blank", nameof(apiKey));
-                }
-
                 if (!headers.ContainsKey("Api-Key"))
                 {
-                    headers.Add("Api-Key", apiKey);
+                    headers.Add("Api-Key", string.IsNullOrWhiteSpace(apiKey) ? ApiKey : apiKey);
                 }
 
                 if (_hRemaining == 0)
