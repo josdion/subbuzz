@@ -23,7 +23,7 @@ using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 #endif
 
-#if JELLYFIN_10_7
+#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -74,7 +74,7 @@ namespace subbuzz.Providers
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
-#if JELLYFIN_10_7
+#if JELLYFIN
             IHttpClientFactory http
 #else
             IHttpClient http
@@ -260,6 +260,16 @@ namespace subbuzz.Providers
                 string subUploader = linkUploader == null ? "" : linkUploader.InnerHtml;
                 string subDownloads = tdNodes[6].InnerHtml;
 
+                DateTime? dt = null;
+                try
+                {
+                    dt = DateTime.Parse(subDate, CultureInfo.CreateSpecificCulture("bg-BG"));
+                    subDate = dt?.ToString("g", CultureInfo.CurrentCulture);
+                }
+                catch (Exception)
+                {
+                }
+
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
                 var subFiles = new List<ArchiveFileInfo>();
@@ -319,7 +329,7 @@ namespace subbuzz.Providers
                         Format = fitem.Ext,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
-                        //DateCreated = DateTimeOffset.Parse(subDate),
+                        DateCreated = dt,
                         CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                         DownloadCount = int.Parse(subDownloads),
                         IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,

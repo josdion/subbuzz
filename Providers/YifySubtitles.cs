@@ -25,7 +25,7 @@ using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 #endif
 
-#if JELLYFIN_10_7
+#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -54,7 +54,7 @@ namespace subbuzz.Providers
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
-#if JELLYFIN_10_7
+#if JELLYFIN
             IHttpClientFactory http
 #else
             IHttpClient http

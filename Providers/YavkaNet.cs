@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 #endif
 
-#if JELLYFIN_10_7
+#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -66,7 +66,7 @@ namespace subbuzz.Providers
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
-#if JELLYFIN_10_7
+#if JELLYFIN
             IHttpClientFactory http
 #else
             IHttpClient http
@@ -338,7 +338,7 @@ namespace subbuzz.Providers
 
             si.MatchFps(sritem.Fps, ref subScoreBase);
 
-            string subDate = dtOffset != null ? dtOffset?.ToString("g") : "";
+            string subDate = dtOffset != null ? dtOffset?.ToString("g", CultureInfo.CurrentCulture) : "";
             subInfo += String.Format("<br>{0} | {1} | {2}", subDate, sritem.Uploader, sritem.Fps);
 
             foreach (var fitem in subFiles)
@@ -366,7 +366,7 @@ namespace subbuzz.Providers
 #if EMBY
                     DateCreated = dtOffset,
 #else
-                        DateCreated = dt,
+                    DateCreated = dt,
 #endif
                 };
 

@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 #endif
 
-#if JELLYFIN_10_7
+#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -41,7 +41,7 @@ namespace subbuzz.Providers
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
-#if JELLYFIN_10_7
+#if JELLYFIN
             IHttpClientFactory http
 #else
             IHttpClient http
@@ -50,11 +50,11 @@ namespace subbuzz.Providers
         {
             Providers = new Dictionary<string, ISubBuzzProvider>
             {
-                { OpenSubtitlesCom.NAME,  new OpenSubtitlesCom(logger, fileSystem, localizationManager, libraryManager, http) },
-                { SubsSabBz.NAME,      new SubsSabBz(logger, fileSystem, localizationManager, libraryManager, http) },
-                { SubsUnacsNet.NAME,   new SubsUnacsNet(logger, fileSystem, localizationManager, libraryManager, http) },
-                { YavkaNet.NAME,       new YavkaNet(logger, fileSystem, localizationManager, libraryManager, http) },
-                { YifySubtitles.NAME,  new YifySubtitles(logger, fileSystem, localizationManager, libraryManager, http) },
+                { SubsSabBz.NAME,           new SubsSabBz(logger, fileSystem, localizationManager, libraryManager, http) },
+                { SubsUnacsNet.NAME,        new SubsUnacsNet(logger, fileSystem, localizationManager, libraryManager, http) },
+                { YavkaNet.NAME,            new YavkaNet(logger, fileSystem, localizationManager, libraryManager, http) },
+                { OpenSubtitlesCom.NAME,    new OpenSubtitlesCom(logger, fileSystem, localizationManager, libraryManager, http) },
+                { YifySubtitles.NAME,       new YifySubtitles(logger, fileSystem, localizationManager, libraryManager, http) },
             };
         }
 

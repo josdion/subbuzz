@@ -21,7 +21,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         private const string _userAgent = "subbuzz";
         private readonly string _version;
 
-#if JELLYFIN_10_7
+#if JELLYFIN
         private readonly IHttpClientFactory _clientFactory;
         public RequestHelper(IHttpClientFactory factory, string version)
         {
@@ -72,7 +72,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             }
         }
 
-#if JELLYFIN_10_7
+#if JELLYFIN
 
         internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
             string url,
@@ -169,7 +169,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             }
             catch (HttpException e)
             {
-                return (new MemoryStream(), null, e.StatusCode ?? HttpStatusCode.Forbidden);
+                return (new MemoryStream(), new Dictionary<string, string>(), e.StatusCode ?? HttpStatusCode.Forbidden);
             }
         }
 #endif

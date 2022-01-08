@@ -1,0 +1,38 @@
+﻿<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>obj/jellyfin-10.8</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/jellyfin-10.8</BaseOutputPath>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>subbuzz</RootNamespace>
+    <AssemblyName>subbuzz</AssemblyName>
+    <DefineConstants>JELLYFIN,JELLYFIN_10_8</DefineConstants>	
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="API\ControllerEmby.cs" />
+    <Compile Remove="Extensions/ILoggerExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="10.8.*-*" />
+    <PackageReference Include="SharpCompress" Version="0.26.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+</Project>

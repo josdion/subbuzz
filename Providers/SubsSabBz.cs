@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 #endif
 
-#if JELLYFIN_10_7
+#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -72,7 +72,7 @@ namespace subbuzz.Providers
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
-#if JELLYFIN_10_7
+#if JELLYFIN
             IHttpClientFactory http
 #else
             IHttpClient http
@@ -266,6 +266,21 @@ namespace subbuzz.Providers
                 subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>" + subInfo);
 
                 string subDate = tdNodes[4].InnerText;
+                DateTime? dt = null;
+                try
+                {
+                    var regexDate = new Regex(@"<b>Добавени</b>: ([0-9a-zA-z,: ]*)<br/>");
+                    var m = regexDate.Match(subNotes);
+                    if (m.Success && m.Groups.Count > 1)
+                    {
+                        dt = DateTime.Parse(m.Groups[1].Value);
+                        subDate = dt?.ToString("g", CultureInfo.CurrentCulture);
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
                 string subNumCd = tdNodes[6].InnerText;
                 string subFps = tdNodes[7].InnerText;
                 string subUploader = tdNodes[8].InnerText;
@@ -332,7 +347,7 @@ namespace subbuzz.Providers
                         Format = fitem.Ext,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
-                        //DateCreated = DateTimeOffset.Parse(subDate),
+                        DateCreated = dt,
                         CommunityRating = Convert.ToInt32(subRating),
                         DownloadCount = Convert.ToInt32(subDownloads),
                         IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,

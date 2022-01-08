@@ -1,4 +1,3 @@
-using subbuzz.Extensions;
 using subbuzz.Providers.OpenSubtitlesAPI.Models;
 using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
@@ -8,9 +7,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text.RegularExpressions;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace subbuzz.Providers.OpenSubtitlesAPI
 {
@@ -29,7 +29,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         public static async Task<ApiResponse<LoginInfo>> LogInAsync(string username, string password, string apiKey, CancellationToken cancellationToken)
         {
             var body = new { username, password };
-            var response = await SendRequestAsync("/login", HttpMethod.Post, body, null, apiKey, cancellationToken).ConfigureAwait(false);
+            var response = await SendRequestAsync("/login", HttpMethod.Post, body, null, apiKey, 1, cancellationToken).ConfigureAwait(false);
 
             return new ApiResponse<LoginInfo>(response);
         }
@@ -43,7 +43,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             var headers = new Dictionary<string, string> { { "Authorization", token } };
 
-            var response = await SendRequestAsync("/logout", HttpMethod.Delete, null, headers, apiKey, cancellationToken).ConfigureAwait(false);
+            var response = await SendRequestAsync("/logout", HttpMethod.Delete, null, headers, apiKey, 1, cancellationToken).ConfigureAwait(false);
 
             return new ApiResponse<object>(response).Ok;
         }
@@ -57,7 +57,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             var headers = new Dictionary<string, string> { { "Authorization", token } };
 
-            var response = await SendRequestAsync("/infos/user", HttpMethod.Get, null, headers, apiKey, cancellationToken).ConfigureAwait(false);
+            var response = await SendRequestAsync("/infos/user", HttpMethod.Get, null, headers, apiKey, 1, cancellationToken).ConfigureAwait(false);
 
             return new ApiResponse<UserInfoData>(response);
         }
@@ -72,7 +72,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             var headers = new Dictionary<string, string> { { "Authorization", token } };
 
             var body = new { file_id = file };
-            var response = await SendRequestAsync("/download", HttpMethod.Post, body, headers, apiKey, cancellationToken).ConfigureAwait(false);
+            var response = await SendRequestAsync("/download", HttpMethod.Post, body, headers, apiKey, 1, cancellationToken).ConfigureAwait(false);
 
             return new ApiResponse<DownloadInfo>(response, $"file id: {file}");
         }
@@ -86,7 +86,11 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
         public static async Task<ApiResponse<IReadOnlyList<ResponseData>>> SearchSubtitlesAsync(Dictionary<string, string> options, string apiKey, CancellationToken cancellationToken)
         {
-            var opts = System.Web.HttpUtility.ParseQueryString(string.Empty);
+            var opts = new Dictionary<string, string>();
+            foreach (var op in options)
+            {
+                opts.Add(op.Key.ToLowerInvariant(), op.Value.ToLowerInvariant());
+            }
 
             var max = -1;
             var current = 1;
@@ -97,21 +101,15 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
             do
             {
-                opts.Clear();
-
                 if (current > 1)
                 {
-                    options["page"] = current.ToString(CultureInfo.InvariantCulture);
+                    opts["page"] = current.ToString(CultureInfo.InvariantCulture);
                 }
 
-                foreach (var op in options.OrderBy(x => x.Key))
-                {
-                    opts.Add(op.Key.ToLower(CultureInfo.InvariantCulture), op.Value.ToLower(CultureInfo.InvariantCulture));
-                }
+                var url = BuildQueryString("/subtitles", opts);
+                response = await SendRequestAsync(url, HttpMethod.Get, null, null, apiKey, 1, cancellationToken).ConfigureAwait(false);
 
-                response = await SendRequestAsync($"/subtitles?{opts}", HttpMethod.Get, null, null, apiKey, cancellationToken).ConfigureAwait(false);
-
-                last = new ApiResponse<SearchResult>(response, $"query: {opts}", $"page: {current}");
+                last = new ApiResponse<SearchResult>(response, $"url: {url}", $"page: {current}");
 
                 if (!last.Ok || last.Data == null)
                 {
@@ -143,57 +141,43 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             object body,
             Dictionary<string, string> headers,
             string apiKey,
+            int attempt,
             CancellationToken cancellationToken
             )
         {
-            var url = endpoint.StartsWith("/") ? BaseApiUrl + endpoint : endpoint;
-            var isFullApiUrl = url.StartsWith(BaseApiUrl, StringComparison.OrdinalIgnoreCase);
-
             if (headers == null)
                 headers = new Dictionary<string, string>();
 
-            if (isFullApiUrl)
+            if (!headers.ContainsKey("Api-Key"))
             {
-                if (!headers.ContainsKey("Api-Key"))
-                {
-                    headers.Add("Api-Key", string.IsNullOrWhiteSpace(apiKey) ? ApiKey : apiKey);
-                }
+                headers.Add("Api-Key", string.IsNullOrWhiteSpace(apiKey) ? ApiKey : apiKey);
+            }
 
-                if (_hRemaining == 0)
+            if (_hRemaining == 0)
+            {
+                await Task.Delay(1000 * _hReset, cancellationToken).ConfigureAwait(false);
+                _hRemaining = -1;
+                _hReset = -1;
+            }
+
+            if (_requestCount == 40)
+            {
+                var diff = DateTime.UtcNow.Subtract(_windowStart).TotalSeconds;
+                if (diff <= 10)
                 {
-                    await Task.Delay(1000 * _hReset, cancellationToken).ConfigureAwait(false);
+                    await Task.Delay(1000 * (int)Math.Ceiling(10 - diff), cancellationToken).ConfigureAwait(false);
                     _hRemaining = -1;
                     _hReset = -1;
                 }
-
-                if (_requestCount == 40)
-                {
-                    var diff = DateTime.UtcNow.Subtract(_windowStart).TotalSeconds;
-                    if (diff <= 10)
-                    {
-                        await Task.Delay(1000 * (int)Math.Ceiling(10 - diff), cancellationToken).ConfigureAwait(false);
-                        _hRemaining = -1;
-                        _hReset = -1;
-                    }
-                }
-
-                if (DateTime.UtcNow.Subtract(_windowStart).TotalSeconds >= 10)
-                {
-                    _windowStart = DateTime.UtcNow;
-                    _requestCount = 0;
-                }
             }
 
-            var (response, responseHeaders, httpStatusCode) = await RequestHelper.Instance.SendRequestAsync(url, method, body, headers, cancellationToken).ConfigureAwait(false);
-
-            if (!isFullApiUrl || responseHeaders == null)
+            if (DateTime.UtcNow.Subtract(_windowStart).TotalSeconds >= 10)
             {
-                return new HttpResponse
-                {
-                    Body = response,
-                    Code = httpStatusCode
-                };
+                _windowStart = DateTime.UtcNow;
+                _requestCount = 0;
             }
+
+            var (response, responseHeaders, httpStatusCode) = await RequestHelper.Instance.SendRequestAsync(BaseApiUrl + endpoint, method, body, headers, cancellationToken).ConfigureAwait(false);
 
             _requestCount++;
 
@@ -207,40 +191,54 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                 _ = int.TryParse(value, out _hReset);
             }
 
-            if (httpStatusCode == HttpStatusCode.Moved)
+            if (httpStatusCode == (HttpStatusCode)429 /*HttpStatusCode.TooManyRequests*/ && attempt <= 4)
             {
-                if (responseHeaders.TryGetValue("location", out value))
-                {
-                    var host = Regex.Match(url, @"(http:|https:)\/\/(.*?)\/");
-                    if (host != null && host.Groups.Count > 0)
-                    {
-                        value = value.StartsWith("/") ? host.Groups[0].ToString().TrimEnd('/') + value : value;
-                        if (!value.EqualsIgnoreCase(url))
-                            return await SendRequestAsync(value, method, body, headers, apiKey, cancellationToken).ConfigureAwait(false);
-                    }
-                }
+                var time = _hReset == -1 ? 5 : _hReset;
+
+                await Task.Delay(time * 1000, cancellationToken).ConfigureAwait(false);
+
+                return await SendRequestAsync(endpoint, method, body, headers, apiKey, attempt + 1, cancellationToken).ConfigureAwait(false);
             }
 
-            if (httpStatusCode != (HttpStatusCode)429 /*HttpStatusCode.TooManyRequests*/)
+            if (httpStatusCode == HttpStatusCode.BadGateway && attempt <= 3)
             {
-                if (!responseHeaders.TryGetValue("x-reason", out value))
-                {
-                    value = string.Empty;
-                }
+                await Task.Delay(500, cancellationToken).ConfigureAwait(false);
 
-                return new HttpResponse
-                {
-                    Body = response,
-                    Code = httpStatusCode,
-                    Reason = value
-                };
+                return await SendRequestAsync(endpoint, method, body, headers, apiKey, attempt + 1, cancellationToken).ConfigureAwait(false);
             }
 
-            var time = _hReset == -1 ? 5 : _hReset;
+            if (!responseHeaders.TryGetValue("x-reason", out value))
+            {
+                value = string.Empty;
+            }
 
-            await Task.Delay(time * 1000, cancellationToken).ConfigureAwait(false);
+            return new HttpResponse
+            {
+                Body = response,
+                Code = httpStatusCode,
+                Reason = value
+            };
+        }
 
-            return await SendRequestAsync(endpoint, method, body, headers, apiKey, cancellationToken).ConfigureAwait(false);
+        public static string BuildQueryString(string path, Dictionary<string, string> param)
+        {
+            if (param.Count == 0)
+            {
+                return path;
+            }
+
+            var url = new StringBuilder(path);
+            url.Append('?');
+            foreach (var op in param.OrderBy(x => x.Key))
+            {
+                url.Append(HttpUtility.UrlEncode(op.Key))
+                    .Append('=')
+                    .Append(HttpUtility.UrlEncode(op.Value))
+                    .Append('&');
+            }
+
+            url.Length -= 1; // Remove last &
+            return url.ToString();
         }
 
     }

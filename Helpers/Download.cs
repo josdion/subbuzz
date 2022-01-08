@@ -31,7 +31,7 @@ namespace subbuzz.Helpers
         private const string UrlSeparator = "*:*";
         private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0";
 
-#if JELLYFIN_10_7
+#if JELLYFIN
         private readonly HttpClient _httpClient;
         public Download(IHttpClientFactory http)
         {
@@ -149,7 +149,7 @@ namespace subbuzz.Helpers
         }
 
 
-#if JELLYFIN_10_7
+#if JELLYFIN
         public async Task<Stream> GetStream(
             string link,
             string referer,

@@ -26,7 +26,7 @@ using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 #endif
 
-#if JELLYFIN_10_7
+#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -55,7 +55,7 @@ namespace subbuzz.Providers
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
-#if JELLYFIN_10_7
+#if JELLYFIN
             IHttpClientFactory http
 #else
             IHttpClient http
@@ -225,7 +225,7 @@ namespace subbuzz.Providers
 
                 string subInfo = $"{itemTitle}<br>{subItem.Release}";
                 subInfo += (subItem.Comments.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comments}" : "";
-                subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate, subItem.Uploader.Name);
+                subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate.ToString("g", CultureInfo.CurrentCulture), subItem.Uploader.Name);
                 if ((subItem.Fps ?? 0.0) > 0) subInfo += $" | {subItem.Fps}";
 
                 var subScoreBase = new SubtitleScore();
@@ -261,7 +261,7 @@ namespace subbuzz.Providers
                         Author = subItem.Uploader.Name,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = subItem.UploadDate,
-                        //CommunityRating = Convert.ToInt32(subRating),
+                        CommunityRating = subItem.Ratings,
                         DownloadCount = subItem.DownloadCount,
                         IsHashMatch = (score >= Plugin.Instance.Configuration.HashMatchByScore) || (subItem.MovieHashMatch ?? false),
                         IsForced = false,
