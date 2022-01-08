@@ -297,7 +297,7 @@ namespace subbuzz.Providers
                     {
                         string file = fitem.Name;
                         string fileExt = fitem.Ext.ToLower();
-                        if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti", RegexOptions.IgnoreCase)) continue;
+                        if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti|Info\.txt", RegexOptions.IgnoreCase)) continue;
                         if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
 
                         subFiles.Add(fitem);

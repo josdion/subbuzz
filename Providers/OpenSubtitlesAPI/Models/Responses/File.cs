@@ -6,6 +6,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
     {
         [JsonPropertyName("file_id")]
         public int FileId { get; set; }
+
         [JsonPropertyName("cd_number")]
         public int CdNumber { get; set; }
 
