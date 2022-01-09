@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using SubtitlesParser.Classes.Utils;
 
 namespace SubtitlesParser.Classes.Parsers
 {
@@ -33,15 +35,6 @@ namespace SubtitlesParser.Classes.Parsers
     /// </summary>
     public class SsaParser : ISubtitlesParser
     {
-        // Properties ---------------------------------------------------------------
-
-        private const string EventLine = "[Events]";
-        private const char Separator = ',';
-
-        private const string StartColumn = "Start";
-        private const string EndColumn = "End";
-        private const string TextColumn = "Text";
-
 
         // Methods ------------------------------------------------------------------
 
@@ -51,8 +44,8 @@ namespace SubtitlesParser.Classes.Parsers
             if (!ssaStream.CanRead || !ssaStream.CanSeek)
             {
                 var message = string.Format("Stream must be seekable and readable in a subtitles parser. " +
-                                   "Operation interrupted; isSeekable: {0} - isReadable: {1}",
-                                   ssaStream.CanSeek, ssaStream.CanRead);
+                                            "Operation interrupted; isSeekable: {0} - isReadable: {1}",
+                                            ssaStream.CanSeek, ssaStream.CanRead);
                 throw new ArgumentException(message);
             }
 
@@ -61,11 +54,22 @@ namespace SubtitlesParser.Classes.Parsers
 
             var reader = new StreamReader(ssaStream, encoding, true);
 
+            // default wrap style to none if the header section doesn't contain a wrap style definition (very possible since it wasn't present in SSA, only ASS) 
+            SsaWrapStyle wrapStyle = SsaWrapStyle.None;
+
             var line = reader.ReadLine();
             var lineNumber = 1;
             // read the line until the [Events] section
-            while (line != null && line != EventLine)
+            while (line != null && line != SsaFormatConstants.EVENT_LINE)
             {
+                if (line.StartsWith(SsaFormatConstants.WRAP_STYLE_PREFIX))
+                {
+                    // get the wrap style
+                    // the raw string is the second array item after splitting the line at `:` (which we know will be present since it's
+                    // included in the `WRAP_STYLE_PREFIX` const), so trim the space off the beginning of that item, and parse that string into the enum 
+                    wrapStyle = line.Split(':')[1].TrimStart().FromString();
+                }
+
                 line = reader.ReadLine();
                 lineNumber++;
             }
@@ -76,11 +80,11 @@ namespace SubtitlesParser.Classes.Parsers
                 var headerLine = reader.ReadLine();
                 if (!string.IsNullOrEmpty(headerLine))
                 {
-                    var columnHeaders = headerLine.Split(Separator).Select(head => head.Trim()).ToList();
+                    var columnHeaders = headerLine.Split(SsaFormatConstants.SEPARATOR).Select(head => head.Trim()).ToList();
 
-                    var startIndexColumn = columnHeaders.IndexOf(StartColumn);
-                    var endIndexColumn = columnHeaders.IndexOf(EndColumn);
-                    var textIndexColumn = columnHeaders.IndexOf(TextColumn);
+                    var startIndexColumn = columnHeaders.IndexOf(SsaFormatConstants.START_COLUMN);
+                    var endIndexColumn = columnHeaders.IndexOf(SsaFormatConstants.END_COLUMN);
+                    var textIndexColumn = columnHeaders.IndexOf(SsaFormatConstants.TEXT_COLUMN);
 
                     if (startIndexColumn > 0 && endIndexColumn > 0 && textIndexColumn > 0)
                     {
@@ -89,9 +93,9 @@ namespace SubtitlesParser.Classes.Parsers
                         line = reader.ReadLine();
                         while (line != null)
                         {
-                            if(!string.IsNullOrEmpty(line))
+                            if (!string.IsNullOrEmpty(line))
                             {
-                                var columns = line.Split(Separator);
+                                var columns = line.Split(SsaFormatConstants.SEPARATOR);
                                 var startText = columns[startIndexColumn];
                                 var endText = columns[endIndexColumn];
 
@@ -101,15 +105,42 @@ namespace SubtitlesParser.Classes.Parsers
                                 var start = ParseSsaTimecode(startText);
                                 var end = ParseSsaTimecode(endText);
 
-                                // TODO: split text line?
                                 if (start > 0 && end > 0 && !string.IsNullOrEmpty(textLine))
                                 {
+                                    List<string> lines;
+                                    switch (wrapStyle)
+                                    {
+                                        case SsaWrapStyle.Smart:
+                                        case SsaWrapStyle.SmartWideLowerLine:
+                                        case SsaWrapStyle.EndOfLine:
+                                            // according to the spec doc: 
+                                            // `\n` is ignored by SSA if smart-wrapping (and therefore smart with wider lower line) is enabled
+                                            // end-of-line word wrapping: only `\N` breaks
+                                            lines = textLine.Split(new[] { @"\N" }, StringSplitOptions.None).ToList();
+                                            break;
+                                        case SsaWrapStyle.None:
+                                            // the default value of the variable is None, which breaks on either `\n` or `\N`
+
+                                            // according to the spec doc: 
+                                            // no word wrapping: `\n` `\N` both breaks
+                                            lines = Regex.Split(textLine, @"(?:\\n)|(?:\\N)").ToList(); // regex because there isn't an overload to take an array of strings to split on
+                                            break;
+                                        default:
+                                            throw new ArgumentOutOfRangeException();
+                                    }
+                                    
+                                    // trim any spaces from the start of a line (happens when a subtitler includes a space after a newline char ie `this is\N two lines` instead of `this is\Ntwo lines`)
+                                    // this doesn't actually matter for the SSA/ASS format, however if you were to want to convert from SSA/ASS to a format like SRT, it could lead to spaces preceding the second line, which looks funny 
+                                    lines = lines.Select(l => l.TrimStart()).ToList();
+
                                     var item = new SubtitleItem()
-                                                            {
-                                                                StartTime = start,
-                                                                EndTime = end,
-                                                                Lines = new List<string>() { textLine }
-                                                            };
+                                    {
+                                        StartTime = start,
+                                        EndTime = end,
+                                        Lines = lines,
+                                        // strip formatting by removing anything within curly braces, this will not remove duplicate content however, which can happen when working with signs for example
+                                        PlaintextLines = lines.Select(subtitleLine => Regex.Replace(subtitleLine, @"\{.*?\}", string.Empty)).ToList()
+                                    };
                                     items.Add(item);
                                 }
                             }
@@ -129,7 +160,8 @@ namespace SubtitlesParser.Classes.Parsers
                     {
                         var message = string.Format("Couldn't find all the necessary columns " +
                                                     "headers ({0}, {1}, {2}) in header line {3}",
-                                                    StartColumn, EndColumn, TextColumn, headerLine);
+                                                    SsaFormatConstants.START_COLUMN, SsaFormatConstants.END_COLUMN,
+                                                    SsaFormatConstants.TEXT_COLUMN, headerLine);
                         throw new ArgumentException(message);
                     }
                 }
@@ -143,7 +175,7 @@ namespace SubtitlesParser.Classes.Parsers
             else
             {
                 var message = string.Format("We reached line '{0}' with line number #{1} without finding to " +
-                                            "Event section ({2})", line, lineNumber, EventLine);
+                                            "Event section ({2})", line, lineNumber, SsaFormatConstants.EVENT_LINE);
                 throw new ArgumentException(message);
             }
         }

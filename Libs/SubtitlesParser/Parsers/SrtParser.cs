@@ -81,6 +81,8 @@ namespace SubtitlesParser.Classes.Parsers
                         {
                             // we found the timecode, now we get the text
                             item.Lines.Add(line);
+                            // strip formatting by removing anything within curly braces or angle brackets, which is how SRT styles text according to wikipedia (https://en.wikipedia.org/wiki/SubRip#Formatting)
+                            item.PlaintextLines.Add(Regex.Replace(line, @"\{.*?\}|<.*?>", string.Empty));
                         }
                     }
 

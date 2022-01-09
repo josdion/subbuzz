@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using SubtitlesParser.Classes;
 using SubtitlesParser.Classes.Parsers;
+using SubtitlesParser.Classes.Writers;
 
 namespace subbuzz.Helpers
 {
@@ -21,7 +22,6 @@ namespace subbuzz.Helpers
                 encoding = csDetect.Detected.Encoding ?? encoding;
 
             Stream outs = new MemoryStream();
-            var writer = new StreamWriter(outs, convertToUtf8 ? Encoding.UTF8 : encoding);
 
             Dictionary<SubtitlesFormat, ISubtitlesParser> parsers = new Dictionary<SubtitlesFormat, ISubtitlesParser>
             {
@@ -56,30 +56,19 @@ namespace subbuzz.Helpers
                         // Do not convert formats supported by emby/jellyfin, just re-encode to UTF8 if needed
                         ins.Seek(0, SeekOrigin.Begin);
                         var sr = new StreamReader(ins, encoding, true);
+                        var writer = new StreamWriter(outs, convertToUtf8 ? Encoding.UTF8 : encoding);
                         writer.Write(sr.ReadToEnd());
+                        writer.Flush();
                         format = parser.Key.Extension.Split('.').LastOrDefault().ToLower();
                     }
                     else
                     {
                         // convert to srt
-                        for (int i = 0; i < items.Count; i++)
-                        {
-                            var start = TimeSpan.FromMilliseconds(items[i].StartTime);
-                            var end = TimeSpan.FromMilliseconds(items[i].EndTime);
-
-                            string line = String.Format("{0}\n{1} --> {2}\n{3}\n\n",
-                                i + 1,
-                                start.ToString(@"hh\:mm\:ss\,fff"),
-                                end.ToString(@"hh\:mm\:ss\,fff"),
-                                string.Join("\n", items[i].Lines));
-
-                            writer.Write(line);
-                        }
-
+                        var writer = new SrtWriter();
+                        writer.WriteStream(outs, convertToUtf8 ? Encoding.UTF8 : encoding, items, false);
                         format = "srt";
                     }
 
-                    writer.Flush();
                     outs.Seek(0, SeekOrigin.Begin);
                     return outs;
                 }

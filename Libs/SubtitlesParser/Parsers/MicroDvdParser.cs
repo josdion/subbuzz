@@ -145,6 +145,11 @@ namespace SubtitlesParser.Classes.Parsers
                         EndTime = end
                     };
 
+                foreach (var subLine in nonEmptyLines)
+                {
+                    item.PlaintextLines.Add(Regex.Replace(subLine, @"\{.*?\}", string.Empty));
+                }
+
                 return item;
             }
             else
