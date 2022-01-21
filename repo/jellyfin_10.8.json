@@ -1,0 +1,21 @@
+[
+  {
+    "guid": "5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4",
+    "name": "subbuzz",
+    "description": "Download subtitles from various sites.",
+    "overview": "Download subtitles for your media",
+    "owner": "josdion",
+    "imageURL": "https://raw.githubusercontent.com/josdion/subbuzz/master/thumb.png",
+    "category": "Metadata",
+    "versions": [
+      {
+        "version": "1.0.2.0",
+        "changelog": "Bug fix release.\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.2.0/subbuzz_1.0.2.0_jellyfin_10.8.zip",
+        "checksum": "20980e20582fbd9ec382845d76528081",
+        "timestamp": "2022-01-21T06:38:26Z"
+      }
+    ]
+  }
+]
