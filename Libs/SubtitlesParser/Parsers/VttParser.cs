@@ -93,7 +93,14 @@ namespace SubtitlesParser.Classes.Parsers
                     }
                 }
 
-                return items;
+                if (items.Any())
+                {
+                    return items;
+                }
+                else
+                {
+                    throw new ArgumentException("Stream is not in a valid VTT format");
+                }
             }
             else
             {
@@ -156,7 +163,7 @@ namespace SubtitlesParser.Classes.Parsers
             {
                 startTc = ParseVttTimecode(parts[0]);
                 endTc = ParseVttTimecode(parts[1]);
-                return true;
+                return startTc != -1 && endTc != -1;
             }
         }
 

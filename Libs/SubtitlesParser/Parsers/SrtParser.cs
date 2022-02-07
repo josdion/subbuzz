@@ -162,7 +162,7 @@ namespace SubtitlesParser.Classes.Parsers
             {
                 startTc = ParseSrtTimecode(parts[0]);
                 endTc = ParseSrtTimecode(parts[1]);
-                return true;
+                return startTc != -1 && endTc != -1;
             }
         }
 
