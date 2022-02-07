@@ -86,7 +86,7 @@ namespace SubtitlesParser.Classes.Parsers
                         } else if (!string.IsNullOrEmpty(line))
                         {
                             // it's a text line
-                            textLines.Add(line);
+                            textLines.AddRange(line.Split(new[] { "[br]" }, StringSplitOptions.RemoveEmptyEntries));
                         }
                     }
 

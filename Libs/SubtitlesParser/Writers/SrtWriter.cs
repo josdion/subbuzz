@@ -42,7 +42,7 @@ namespace SubtitlesParser.Classes.Writers
             lines.Add(subtitleEntryNumber.ToString());
             lines.Add(formatTimecodeLine());
             // check if we should be including formatting or not (default to use formatting if plaintextlines isn't set) 
-            if (includeFormatting == false && subtitleItem.PlaintextLines != null)
+            if (includeFormatting == false && subtitleItem.PlaintextLines != null && subtitleItem.PlaintextLines.Count > 0)
                 lines.AddRange(subtitleItem.PlaintextLines);
             else
                 lines.AddRange(subtitleItem.Lines);
