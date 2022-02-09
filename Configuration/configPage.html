@@ -27,6 +27,10 @@
                                 <span>OpenSubtitles.com</span>
                             </label>
                             <label>
+                                <input is="emby-checkbox" type="checkbox" class="EnablePodnapisiNet" id="EnablePodnapisiNet" />
+                                <span>Podnapisi.NET</span>
+                            </label>
+                            <label>
                                 <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
                                 <span>Subs.sab.bz</span>
                             </label>
@@ -114,6 +118,7 @@
 
                 ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
                     page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
+                    page.querySelector("#EnablePodnapisiNet").checked = config.EnablePodnapisiNet;
                     page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
                     page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
                     page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
@@ -150,6 +155,7 @@
 
                     var saveConfig = function () {
                         config.EnableOpenSubtitles = document.getElementById("EnableOpenSubtitles").checked;
+                        config.EnablePodnapisiNet = document.getElementById("EnablePodnapisiNet").checked;
                         config.EnableSubssabbz = document.getElementById("EnableSubssabbz").checked;
                         config.EnableSubsunacsNet = document.getElementById("EnableSubsunacsNet").checked;
                         config.EnableYavkaNet = document.getElementById("EnableYavkaNet").checked;

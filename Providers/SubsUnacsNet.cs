@@ -92,7 +92,12 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await downloader.GetArchiveSubFile(id, HttpReferer, Encoding.GetEncoding(1251), cancellationToken).ConfigureAwait(false);
+                return await downloader.GetArchiveSubFile(
+                    id, 
+                    HttpReferer, 
+                    Encoding.GetEncoding(1251),
+                    Plugin.Instance.Configuration.EncodeSubtitlesToUTF8,
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -240,14 +245,25 @@ namespace subbuzz.Providers
                 si.MatchTitle(subTitle, ref subScoreBase);
 
                 string subNotes = link.GetAttribute("title");
-                var regex = new Regex(@"(?:.*<b>Дата: </b>)(.*)(?:<br><b>Инфо: </b><br>)(.*)(?:</div>)");
-                string subDate = regex.Replace(subNotes, "$1");
-                string subInfoBase = regex.Replace(subNotes, "$2");
+                string subDate = string.Empty;
+                string subInfoBase = string.Empty; ;
+                string subInfo = string.Empty; ;
 
-                string subInfo = Utils.TrimString(subInfoBase, "<br>");
-                subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
-                subInfo = subInfo.Replace("&nbsp;", " ");
-                subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>"+ subInfo);
+                var regex = new Regex(@"(?:.*<b>Дата: </b>)(?<date>.*)(?:<br><b>Инфо: </b><br>)(?<notes>.*)");
+                var regexImg = new Regex(@"<img[^>]+>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+                var subNotesMatch = regex.Match(subNotes);
+
+                if (subNotesMatch.Success)
+                {
+                    subDate = subNotesMatch.Groups["date"].Value;
+                    subInfoBase = subNotesMatch.Groups["notes"].Value.Replace("</div>", string.Empty);
+                    subInfoBase = regexImg.Replace(subInfoBase, string.Empty);
+
+                    subInfo = Utils.TrimString(subInfoBase, "<br>");
+                    subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
+                    subInfo = subInfo.Replace("&nbsp;", " ");
+                    subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>" + subInfo);
+                }
 
                 string subNumCd = tdNodes[1].InnerHtml;
                 string subFps = tdNodes[2].InnerHtml;
@@ -315,10 +331,15 @@ namespace subbuzz.Providers
                 foreach (var fitem in subFiles)
                 {
                     string file = fitem.Name;
-                    float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
+                    bool scoreVideoFileName = subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName);
+                    bool ignorMutliDiscSubs = subFiles.Count > 1;
 
+                    float score = si.CaclScore(file, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
                     if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                    {
+                        _logger.LogInformation($"{NAME}: Ignore file: {file}");
                         continue;
+                    }
 
                     var item = new SubtitleInfo
                     {

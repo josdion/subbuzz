@@ -241,7 +241,13 @@ namespace subbuzz.Providers
 
                 foreach (var file in subItem.Files)
                 {
-                    float score = si.CaclScore(file.FileName, subScoreBase, false);
+                    bool ignorMutliDiscSubs = subItem.Files.Count > 1;
+                    float score = si.CaclScore(file.FileName, subScoreBase, false, ignorMutliDiscSubs);
+                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                    {
+                        _logger.LogInformation($"{NAME}: Ignore file: {file.FileName ?? ""} ID: {file.FileId}");
+                        continue;
+                    }
 
                     var fileExt = string.Empty;
                     if (file.FileName != null)

@@ -5,6 +5,7 @@ namespace subbuzz
     public class PluginConfiguration : BasePluginConfiguration
     {
         public bool EnableOpenSubtitles { get; set; }
+        public bool EnablePodnapisiNet { get; set; }
         public bool EnableSubssabbz { get; set; }
         public bool EnableSubsunacsNet { get; set; }
         public bool EnableYavkaNet { get; set; }
@@ -22,6 +23,7 @@ namespace subbuzz
         public PluginConfiguration()
         {
             EnableOpenSubtitles = true;
+            EnablePodnapisiNet = true;
             EnableSubssabbz = true;
             EnableSubsunacsNet = true;
             EnableYavkaNet = true;

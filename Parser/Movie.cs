@@ -1,23 +1,23 @@
-﻿using System;
+﻿using subbuzz.Extensions;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using subbuzz.Extensions;
 
 namespace subbuzz.Parser
 {
     public static class Movie
     {
-        private static readonly Regex EditionRegex = new Regex(@"\(?\b(?<edition>(((Recut.|Extended.|Ultimate.)?(Director.?s|Collector.?s|Theatrical|Ultimate|Extended|Despecialized|(Special|Rouge|Final|Assembly)(?=(.(Cut|Edition|Version)))|\d{2,3}(th)?.Anniversary)(.(Cut|Edition|Version))?(.(Extended|Uncensored|Remastered|Unrated|Uncut|IMAX|Fan.?Edit))?|((Uncensored|Remastered|Unrated|Uncut|IMAX|Fan.?Edit|Edition|Restored|((2|3|4)in1))))))\b\)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex EditionRegex = new Regex(@"\(?\b(?<edition>(((Recut.|Extended.|Ultimate.)?(Director.?s|Collector.?s|Theatrical|Ultimate|Extended|Despecialized|(Special|Rouge|Final|Assembly|Imperial|Diamond|Signature|Hunter|Rekall)(?=(.(Cut|Edition|Version)))|\d{2,3}(th)?.Anniversary)(?:.(Cut|Edition|Version))?(.(Extended|Uncensored|Remastered|Unrated|Uncut|IMAX|Fan.?Edit))?|((Uncensored|Remastered|Unrated|Uncut|IMAX|Fan.?Edit|Restored|((2|3|4)in1))))))\b\)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex ReportEditionRegex = new Regex(@"^.+?" + EditionRegex, RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex[] ReportMovieTitleRegex = new[]
         {
-            //Some german or french tracker formats (missing year, ...) (Only applies to german and French/TrueFrench releases) - see ParserFixture for examples and tests
-            new Regex(@"^(?<title>(?![(\[]).+?)((\W|_))(" + EditionRegex + @".{1,3})?(?:(?<!(19|20)\d{2}.*?)(German|French|TrueFrench))(.+?)(?=((19|20)\d{2}|$))(?<year>(19|20)\d{2}(?!p|i|\d+|\]|\W\d+))?(\W+|_|$)(?!\\)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            //Some german or french tracker formats (missing year, ...) (Only applies to german and TrueFrench releases) - see ParserFixture for examples and tests - french removed as it broke all movies w/ french titles
+            new Regex(@"^(?<title>(?![(\[]).+?)((\W|_))(" + EditionRegex + @".{1,3})?(?:(?<!(19|20)\d{2}.*?)(German|TrueFrench))(.+?)(?=((19|20)\d{2}|$))(?<year>(19|20)\d{2}(?!p|i|\d+|\]|\W\d+))?(\W+|_|$)(?!\\)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
             //Special, Despecialized, etc. Edition Movies, e.g: Mission.Impossible.3.Special.Edition.2011
             new Regex(@"^(?<title>(?![(\[]).+?)?(?:(?:[-_\W](?<![)\[!]))*" + EditionRegex + @".{1,3}(?<year>(1(8|9)|20)\d{2}(?!p|i|\d+|\]|\W\d+)))+(\W+|_|$)(?!\\)",
@@ -44,6 +44,15 @@ namespace subbuzz.Parser
         {
             //When year comes first.
             new Regex(@"^(?:(?:[-_\W](?<![)!]))*(?<year>(19|20)\d{2}(?!p|i|\d+|\W\d+)))+(\W+|_|$)(?<title>.+?)?$")
+        };
+
+        private static readonly Regex CdIndexRegex = new Regex(@"\bcd[\s#-]?(?<cd>\d{1,2})(?:-?of-?(?<cd_count>\d{1,2}))?\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex FpsRegex = new Regex(@"\b(?<fps>(23\.976|23\.98|24|25|29\.970?|30))\s?FPS\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex[] ReportMovieTitleOlder = new[]
+        {
+            // Older multi-disk releases: Movie CD1.avi
+            new Regex(@"^(?<title>[\w\s\.]+)(.*?)" + CdIndexRegex, RegexOptions.IgnoreCase | RegexOptions.Compiled)
         };
 
         private static readonly Regex[] RejectHashedReleasesRegex = new Regex[]
@@ -78,6 +87,12 @@ namespace subbuzz.Parser
         //Regex to detect whether the title was reversed.
         private static readonly Regex ReversedTitleRegex = new Regex(@"(?:^|[-._ ])(p027|p0801)[-._ ]", RegexOptions.Compiled);
 
+        //Regex to split movie titles that contain `AKA`.
+        private static readonly Regex AlternativeTitleRegex = new Regex(@"[ ]+AKA[ ]+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // Regex to unbracket alternative titles.
+        private static readonly Regex BracketedAlternativeTitleRegex = new Regex(@"(.*) \([ ]*AKA[ ]+(.*)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly Regex NormalizeRegex = new Regex(@"((?:\b|_)(?<!^|[^a-zA-Z0-9_']\w[^a-zA-Z0-9_'])(a(?!$|[^a-zA-Z0-9_']\w[^a-zA-Z0-9_'])|an|the|and|or|of)(?:\b|_))|\W|_",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -101,11 +116,11 @@ namespace subbuzz.Parser
                                                         string.Empty,
                                                         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly RegexReplace CleanReleaseGroupRegex = new RegexReplace(@"(-(RP|1|NZBGeek|Obfuscated|Obfuscation|Scrambled|sample|Pre|postbot|xpost|Rakuv[a-z0-9]*|WhiteRev|BUYMORE|AsRequested|AlternativeToRequested|GEROV|Z0iDS3N|Chamele0n|4P|4Planet|AlteZachen))+$",
+        private static readonly RegexReplace CleanReleaseGroupRegex = new RegexReplace(@"(-(RP|1|NZBGeek|Obfuscated|Obfuscation|Scrambled|sample|Pre|postbot|xpost|Rakuv[a-z0-9]*|WhiteRev|BUYMORE|AsRequested|AlternativeToRequested|GEROV|Z0iDS3N|Chamele0n|4P|4Planet|AlteZachen|RePACKPOST))+$",
                                                                 string.Empty,
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly RegexReplace CleanTorrentSuffixRegex = new RegexReplace(@"\[(?:ettv|rartv|rarbg|cttv)\]$",
+        private static readonly RegexReplace CleanTorrentSuffixRegex = new RegexReplace(@"\[(?:ettv|rartv|rarbg|cttv|publichd)\]$",
                                                                 string.Empty,
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -123,7 +138,7 @@ namespace subbuzz.Parser
 
         //Handle Exception Release Groups that don't follow -RlsGrp; Manual List
         //First Group is groups whose releases end with RlsGroup) or RlsGroup]  second group (entries after `(?=\]|\))|`) is name only...BE VERY CAREFUL WITH THIS, HIGH CHANCE OF FALSE POSITIVES
-        private static readonly Regex ExceptionReleaseGroupRegex = new Regex(@"(?<releasegroup>(Tigole|Joy|YIFY|YTS.MX|FreetheFish|afm72|Anna|Bandi|Ghost|Kappa|MONOLITH|Qman|RZeroX|SAMPA|Silence|theincognito|t3nzin|Vyndros)(?=\]|\))|KRaLiMaRKo|E\.N\.D)",
+        private static readonly Regex ExceptionReleaseGroupRegex = new Regex(@"(?<releasegroup>(Tigole|Joy|YIFY|YTS.MX|YTS.LT|FreetheFish|afm72|Anna|Bandi|Ghost|Kappa|MONOLITH|Qman|RZeroX|SAMPA|Silence|theincognito|t3nzin|Vyndros)(?=\]|\))|KRaLiMaRKo|E\.N\.D|D\-Z0N3)",
                                                         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex WordDelimiterRegex = new Regex(@"(\s|\.|,|_|-|=|'|\|)+", RegexOptions.Compiled);
@@ -218,6 +233,8 @@ namespace subbuzz.Parser
                     allRegexes.AddRange(ReportMovieTitleFolderRegex);
                 }
 
+                allRegexes.AddRange(ReportMovieTitleOlder);
+
                 foreach (var regex in allRegexes)
                 {
                     var match = regex.Matches(simpleTitle);
@@ -275,6 +292,9 @@ namespace subbuzz.Parser
 
                                 result.ImdbId = ParseImdbId(simpleReleaseTitle);
                                 result.TmdbId = ParseTmdbId(simpleReleaseTitle);
+
+                                (result.Cd, result.CdCount) = GetCds(releaseTitle);
+                                result.Fps = GetFps(releaseTitle);
 
                                 return result;
                             }
@@ -440,6 +460,7 @@ namespace subbuzz.Parser
             title = title.Trim();
             title = RemoveFileExtension(title);
             title = WebsitePrefixRegex.Replace(title);
+            title = CleanTorrentSuffixRegex.Replace(title);
 
             var animeMatch = AnimeReleaseGroupRegex.Match(title);
 
@@ -476,17 +497,20 @@ namespace subbuzz.Parser
         }
 
         public static string RemoveFileExtension(string title)
-        {/*
+        {
             title = FileExtensionRegex.Replace(title, m =>
             {
                 var extension = m.Value.ToLower();
-                if (MediaFiles.MediaFileExtensions.Extensions.Contains(extension) || new[] { ".par2", ".nzb" }.Contains(extension))
+                if (
+                    MediaFileExtensions.Extensions.Contains(extension) ||
+                    SubtitleFileExtensions.Extensions.Contains(extension) ||
+                    new[] { ".par2", ".nzb" }.Contains(extension))
                 {
                     return string.Empty;
                 }
 
                 return m.Value;
-            });*/
+            });
 
             return title;
         }
@@ -626,6 +650,35 @@ namespace subbuzz.Parser
             }
 
             return string.Empty;
+        }
+
+        private static (int, int) GetCds(string title)
+        {
+            var cdmatch = CdIndexRegex.Match(title);
+            if (cdmatch.Success)
+            {
+                int cd = 0, cd_count = 0;
+                _ = int.TryParse(cdmatch.Groups["cd"].Value, out cd);
+                _ = int.TryParse(cdmatch.Groups["cd_count"].Value, out cd_count);
+
+                return (cd, cd_count);
+            }
+
+            return (0, 0);
+        }
+
+        private static float GetFps(string title)
+        {
+            var fpsmatch = FpsRegex.Match(title);
+            if (fpsmatch.Success)
+            {
+                float fps;
+                var frames = fpsmatch.Groups["fps"].Value.Replace(',', '.');
+                if (float.TryParse(frames, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out fps))
+                    return fps;
+            }
+
+            return 0;
         }
     }
 }

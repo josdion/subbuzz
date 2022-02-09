@@ -1,5 +1,6 @@
 ﻿using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Subtitles;
+using MediaBrowser.Model.Net;
 using SharpCompress.Archives;
 using subbuzz.Extensions;
 using System;
@@ -7,6 +8,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,8 +39,8 @@ namespace subbuzz.Helpers
         {
             _httpClient = http.CreateClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-            _httpClient.DefaultRequestHeaders.Add("Pragma","no-cache");
-            _httpClient.DefaultRequestHeaders.Add("Accept-Encoding","gzip");
+            _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
+            _httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip");
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 #else
@@ -63,7 +65,8 @@ namespace subbuzz.Helpers
         public async Task<SubtitleResponse> GetArchiveSubFile(
             string id,
             string referer,
-            Encoding encoding,
+            Encoding defaultEncoding,
+            bool convertToUtf8,
             CancellationToken cancellationToken
             )
         {
@@ -72,8 +75,6 @@ namespace subbuzz.Helpers
             string file = ids[1];
             string lang = ids[2];
             Dictionary<string, string> post_params = DeSerializePostParams(ids[3]);
-
-            bool convertToUtf8 = Plugin.Instance.Configuration.EncodeSubtitlesToUTF8;
 
             float fps = 25;
             try { fps = float.Parse(ids[4], CultureInfo.InvariantCulture); } catch { }
@@ -88,7 +89,7 @@ namespace subbuzz.Helpers
                         Stream fileStream = entry.OpenEntryStream();
 
                         string fileExt = entry.Key.Split('.').LastOrDefault().ToLower();
-                        fileStream = SubtitleConvert.ToSupportedFormat(fileStream, encoding, convertToUtf8, fps, ref fileExt);
+                        fileStream = SubtitleConvert.ToSupportedFormat(fileStream, defaultEncoding, convertToUtf8, fps, ref fileExt);
 
                         return new SubtitleResponse
                         {
@@ -104,7 +105,7 @@ namespace subbuzz.Helpers
             return new SubtitleResponse();
         }
 
-        public async Task<IEnumerable<string>> GetArchiveSubFileNames(string link, string referer, CancellationToken cancellationToken)
+        public async Task<List<string>> GetArchiveSubFileNames(string link, string referer, CancellationToken cancellationToken)
         {
             var res = new List<string>();
 
@@ -154,24 +155,41 @@ namespace subbuzz.Helpers
             string link,
             string referer,
             Dictionary<string, string> post_params,
-            CancellationToken cancellationToken
+            CancellationToken cancellationToken,
+            int maxRetry = 5
             )
         {
+            int retry = 0;
             HttpRequestMessage request;
             HttpResponseMessage response;
 
-            if (post_params != null && post_params.Count() > 0)
+            while (true)
             {
-                request = new HttpRequestMessage(HttpMethod.Post, link);
-                request.Content = new FormUrlEncodedContent(post_params);
-            }
-            else
-            {
-                request = new HttpRequestMessage(HttpMethod.Get, link);
-            }
+                if (post_params != null && post_params.Count > 0)
+                {
+                    request = new HttpRequestMessage(HttpMethod.Post, link);
+                    request.Content = new FormUrlEncodedContent(post_params);
+                }
+                else
+                {
+                    request = new HttpRequestMessage(HttpMethod.Get, link);
+                }
 
-            request.Headers.Add("Referer", referer);
-            response = await _httpClient.SendAsync(request, cancellationToken);
+                request.Headers.Add("Referer", referer);
+                response = await _httpClient.SendAsync(request, cancellationToken);
+                
+                if (retry++ < maxRetry)
+                {
+                    if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+                    {
+                        await Task.Delay(retry * 500, cancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+                }
+
+                response.EnsureSuccessStatusCode();
+                break;
+            }
 
             Stream memStream = new MemoryStream();
 
@@ -194,7 +212,8 @@ namespace subbuzz.Helpers
             string link,
             string referer,
             Dictionary<string, string> post_params,
-            CancellationToken cancellationToken
+            CancellationToken cancellationToken,
+            int maxRetry = 5
             )
         {
             // TODO: check if cached
@@ -231,9 +250,33 @@ namespace subbuzz.Helpers
                 opts.RequestContent = await formUrlEncodedContent.ReadAsStringAsync();
                 opts.RequestContentType = "application/x-www-form-urlencoded";
 #endif
-                response = await _httpClient.Post(opts).ConfigureAwait(false);
+
             }
-            else response = await _httpClient.GetResponse(opts).ConfigureAwait(false);
+
+            int retry = 0;
+            while (true)
+            {
+                try
+                {
+                    if (post_params != null && post_params.Count() > 0)
+                        response = await _httpClient.Post(opts).ConfigureAwait(false);
+                    else
+                        response = await _httpClient.GetResponse(opts).ConfigureAwait(false);
+
+                    break;
+                }
+                catch (HttpException ex)
+                {
+                    if (ex.StatusCode == HttpStatusCode.ServiceUnavailable)
+                    {
+                        if (retry++ >= maxRetry) throw;
+                        await Task.Delay(retry * 500, cancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    throw;
+                }
+            }
 
 #if !EMBY
             if (response.ContentHeaders.ContentEncoding.Contains("gzip"))

@@ -90,7 +90,12 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await downloader.GetArchiveSubFile(id, HttpReferer, Encoding.GetEncoding(1251), cancellationToken).ConfigureAwait(false);
+                return await downloader.GetArchiveSubFile(
+                    id, 
+                    HttpReferer, 
+                    Encoding.GetEncoding(1251),
+                    Plugin.Instance.Configuration.EncodeSubtitlesToUTF8,
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -333,10 +338,15 @@ namespace subbuzz.Providers
                 foreach (var fitem in subFiles)
                 {
                     string file = fitem.Name;
-                    float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
+                    bool scoreVideoFileName = subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName);
+                    bool ignorMutliDiscSubs = subFiles.Count > 1;
 
+                    float score = si.CaclScore(file, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
                     if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                    {
+                        _logger.LogInformation($"{NAME}: Ignore file: {file}");
                         continue;
+                    }
 
                     var item = new SubtitleInfo
                     {

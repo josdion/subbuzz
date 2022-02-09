@@ -84,7 +84,12 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await downloader.GetArchiveSubFile(id, HttpReferer, Encoding.GetEncoding(1251), cancellationToken).ConfigureAwait(false);
+                return await downloader.GetArchiveSubFile(
+                    id, 
+                    HttpReferer, 
+                    Encoding.GetEncoding(1251),
+                    Plugin.Instance.Configuration.EncodeSubtitlesToUTF8,
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {

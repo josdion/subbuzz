@@ -162,7 +162,7 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        public float CaclScore(string subFileName, SubtitleScore baseScore, bool videoFileNameInInfo)
+        public float CaclScore(string subFileName, SubtitleScore baseScore, bool scoreVideoFileName, bool ignorMutliDiscSubs = false)
         {
             SubtitleScore subScore = baseScore == null ? new SubtitleScore() : (SubtitleScore)baseScore.Clone();
 
@@ -171,7 +171,7 @@ namespace subbuzz.Helpers
                 Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(subFileName);
                 bool checkSuccess = MatchEpisode(epInfo, ref subScore);
 
-                if (videoFileNameInInfo)
+                if (scoreVideoFileName)
                 {
                     epInfo = Parser.Episode.ParseTitle(FileName);
                     if (!MatchEpisode(epInfo, ref subScore) && !checkSuccess)
@@ -187,9 +187,13 @@ namespace subbuzz.Helpers
             if (VideoType == VideoContentType.Movie)
             {
                 Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(subFileName, true);
+
+                if (mvInfo != null && ignorMutliDiscSubs && mvInfo.Cd > 0)
+                    return 0;
+
                 MatchMovie(mvInfo, ref subScore, true);
 
-                if (videoFileNameInInfo)
+                if (scoreVideoFileName)
                 {
                     mvInfo = Parser.Movie.ParseTitle(FileName, true);
                     MatchMovie(mvInfo, ref subScore, true);
@@ -362,20 +366,7 @@ namespace subbuzz.Helpers
                     score.AddMatch("release_group");
                 }
 
-                if (mvInfo.Edition.IsNullOrWhiteSpace() &&
-                    MvInfo.Edition.IsNullOrWhiteSpace())
-                {
-                    if (addEmptyMatches)
-                        score.AddMatch("edition");
-                }
-                else
-                if (mvInfo.Edition.IsNotNullOrWhiteSpace() &&
-                    MvInfo.Edition.IsNotNullOrWhiteSpace() &&
-                    mvInfo.Edition.Equals(MvInfo.Edition))
-                {
-                    score.AddMatch("edition");
-                }
-
+                MatchEdition(mvInfo.Edition, MvInfo.Edition, ref score, addEmptyMatches);
                 MatchQuality(MvInfo.Quality, mvInfo.Quality, ref score, addEmptyMatches);
             }
 
@@ -411,6 +402,31 @@ namespace subbuzz.Helpers
                 if (qm1.VideoCodec.IsNotNullOrWhiteSpace() && qm2.VideoCodec.IsNotNullOrWhiteSpace())
                     if (qm1.VideoCodec == qm2.VideoCodec)
                         score.AddMatch("video_codec");
+            }
+
+        }
+
+        protected void MatchEdition(string ed1, string ed2, ref SubtitleScore score, bool addEmptyMatches = false)
+        {
+            if (ed1.IsNullOrWhiteSpace() &&
+                ed2.IsNullOrWhiteSpace())
+            {
+                if (addEmptyMatches)
+                    score.AddMatch("edition");
+            }
+            else
+            if (ed1.IsNullOrWhiteSpace() ||
+                ed2.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            ed1 = ed1.Replace("'", string.Empty);
+            ed2 = ed2.Replace("'", string.Empty);
+
+            if (ed1.Equals(ed2, StringComparison.OrdinalIgnoreCase))
+            {
+                score.AddMatch("edition");
             }
 
         }

@@ -18,6 +18,9 @@ namespace subbuzz.Parser
         public string ImdbId { get; set; }
         public int TmdbId { get; set; }
         public Dictionary<string, object> ExtraInfo { get; set; } = new Dictionary<string, object>();
+        public int Cd { get; set; }
+        public int CdCount { get; set; }
+        public float Fps { get; set; }
 
         public override string ToString()
         {
