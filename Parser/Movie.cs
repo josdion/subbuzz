@@ -46,8 +46,8 @@ namespace subbuzz.Parser
             new Regex(@"^(?:(?:[-_\W](?<![)!]))*(?<year>(19|20)\d{2}(?!p|i|\d+|\W\d+)))+(\W+|_|$)(?<title>.+?)?$")
         };
 
-        private static readonly Regex CdIndexRegex = new Regex(@"\bcd[\s#-]?(?<cd>\d{1,2})(?:-?of-?(?<cd_count>\d{1,2}))?\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex FpsRegex = new Regex(@"\b(?<fps>(23\.976|23\.98|24|25|29\.970?|30))\s?FPS\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex CdIndexRegex = new Regex(@"(\b|_)(cd|disc|disk)[\s#-_]?(?<cd>\d{1,2})(?:-?of-?(?<cd_count>\d{1,2}))?(\b|_)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex FpsRegex = new Regex(@"(\b|_)(?<fps>(23\.976|23\.98|24|25|29\.970?|30))\s?FPS(\b|_)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex[] ReportMovieTitleOlder = new[]
         {
