@@ -190,27 +190,25 @@ namespace subbuzz.Providers
                 var regexInfo = new Regex(@"<span.*/span>");
                 subInfoBase = regexInfo.Replace(subInfoBase, "").Trim();
                 string subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfoBase) ? "" : "<br>" + subInfoBase);
-                subInfo += String.Format("<br>{0}", subUploader);
+                subInfo += string.Format("<br>{0}", subUploader);
 
-                List<ArchiveFileInfo> files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, null, cancellationToken).ConfigureAwait(false);
+                var files = await downloader.GetArchiveFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
 
-                foreach (var fitem in files)
+                foreach (var (fileName, fileExt) in files) 
                 {
-                    string file = fitem.Name;
-                    string fileExt = fitem.Ext.ToLower();
                     if (fileExt != "srt" && fileExt != "sub") continue;
 
                     SubtitleScore subScore = new SubtitleScore();
                     if (byImdb) subScore.AddMatch("imdb");
 
-                    float score = si.CaclScore(file, subScore, files.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
+                    float score = si.CaclScore(fileName, subScore, files.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
 
                     var item = new SubtitleInfo
                     {
                         ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
                         Id = Download.GetId(subLink, "", si.LanguageInfo.TwoLetterISOLanguageName, si.VideoFps.ToString()),
                         ProviderName = Name,
-                        Name = $"<a href='{ServerUrl}{subLinkPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
+                        Name = $"<a href='{ServerUrl}{subLinkPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{fileName}</a>",
                         Format = fileExt,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",

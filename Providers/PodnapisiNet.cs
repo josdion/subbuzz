@@ -1,5 +1,4 @@
-﻿using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Library;
+﻿using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
@@ -19,6 +18,7 @@ using System.Xml.Serialization;
 using System.Globalization;
 
 #if EMBY
+using MediaBrowser.Common.Net;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
@@ -275,17 +275,17 @@ namespace subbuzz.Providers
                 subInfo += $" | {subFps}";
             }
 
-            var files = await downloader.GetArchiveSubFileNames(subLink, ServerUrl, cancellationToken).ConfigureAwait(false);
+            var files = await downloader.GetArchiveFileNames(subLink, ServerUrl, cancellationToken).ConfigureAwait(false);
 
-            foreach (var file in files)
+            foreach (var (fileName, fileExt) in files)
             {
                 bool scoreVideoFileName = files.Count == 1 && subInfo.ContainsIgnoreCase(si.FileName);
                 bool ignorMutliDiscSubs = files.Count > 1;
 
-                float score = si.CaclScore(file, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
+                float score = si.CaclScore(fileName, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
                 if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                 {
-                    _logger.LogInformation($"{NAME}: Ignore file: {file} PID: {sub.pid}");
+                    _logger.LogInformation($"{NAME}: Ignore file: {fileName} PID: {sub.pid}");
                     continue;
                 }
 
@@ -293,8 +293,8 @@ namespace subbuzz.Providers
                 {
                     ProviderName = Name,
                     ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                    Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
-                    Name = $"<a href='{sub.url}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
+                    Id = Download.GetId(subLink, fileName, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
+                    Name = $"<a href='{sub.url}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{fileName}</a>",
                     Format = "srt",
                     Author = sub.uploaderName,
                     Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",

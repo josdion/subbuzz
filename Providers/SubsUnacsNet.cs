@@ -136,6 +136,9 @@ namespace subbuzz.Providers
                     return res;
                 }
 
+                si.SearchText = si.SearchText.Replace(':', ' ').Replace("  ", " ");
+                si.SearchEpByName = si.SearchEpByName.Replace(':', ' ').Replace("  ", " ");
+
                 var tasks = new List<Task<List<SubtitleInfo>>>();
 
                 if (!String.IsNullOrEmpty(si.SearchText))
@@ -286,14 +289,14 @@ namespace subbuzz.Providers
                 {
                 }
 
-                subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
+                subInfo += string.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
-                var subFiles = new List<ArchiveFileInfo>();
-                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, null, cancellationToken).ConfigureAwait(false);
+                var subFiles = new List<(string fileName, string fileExt)>();
+                var files = await downloader.GetArchiveFiles(subLink, HttpReferer, null, cancellationToken).ConfigureAwait(false);
 
                 int imdbId = 0;
                 string subImdb = "";
-                foreach (var fitem in files)
+                foreach (var fitem in files) using (fitem)
                 {
                     if (Regex.IsMatch(fitem.Name, @"subsunacs\.net_\d*\.txt"))
                     {
@@ -316,7 +319,7 @@ namespace subbuzz.Providers
                         if (fileExt == "txt" && Regex.IsMatch(file, @"subsunacs\.net|танете част|прочети|^read ?me|procheti|Info\.txt", RegexOptions.IgnoreCase)) continue;
                         if (fileExt != "srt" && fileExt != "sub" && fileExt != "txt") continue;
 
-                        subFiles.Add(fitem);
+                        subFiles.Add((fitem.Name, fitem.Ext));
                     }
                 }
 
@@ -328,9 +331,8 @@ namespace subbuzz.Providers
 
                 si.MatchFps(subFps, ref subScoreBase);
 
-                foreach (var fitem in subFiles)
+                foreach (var (file, fileExt) in subFiles)
                 {
-                    string file = fitem.Name;
                     bool scoreVideoFileName = subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName);
                     bool ignorMutliDiscSubs = subFiles.Count > 1;
 
@@ -347,7 +349,7 @@ namespace subbuzz.Providers
                         Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
                         ProviderName = Name,
                         Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = fitem.Ext,
+                        Format = fileExt,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = dt,

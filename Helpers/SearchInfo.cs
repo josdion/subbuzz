@@ -93,7 +93,7 @@ namespace subbuzz.Helpers
                     res.MvInfo.Year = request.ProductionYear ?? 0;
             }
             else
-            if (res.VideoType == VideoContentType.Episode && !String.IsNullOrEmpty(episode_format))
+            if (res.VideoType == VideoContentType.Episode && episode_format.IsNotNullOrWhiteSpace())
             {
                 res.SeasonNumber = request.ParentIndexNumber;
                 res.EpisodeNumber = request.IndexNumber;
@@ -102,7 +102,7 @@ namespace subbuzz.Helpers
                 MediaStream media = ep.GetDefaultVideoStream();
                 if (media != null) res.VideoFps = media.AverageFrameRate;
 
-                string title = !String.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name;
+                string title = !string.IsNullOrEmpty(ep.Series.OriginalTitle) ? ep.Series.OriginalTitle : ep.Series.Name;
                 if (inconsistentTvs != null)
                 {
                     title = inconsistentTvs.Aggregate(title, (current, value) =>
@@ -111,20 +111,20 @@ namespace subbuzz.Helpers
 
                 // episode format {0} - series name, {1} - season, {2} - episode
                 if (res.SeasonNumber != null && res.EpisodeNumber != null)
-                    res.SearchText = String.Format(episode_format,
+                    res.SearchText = string.Format(episode_format,
                         title,
                         res.SeasonNumber,
                         res.EpisodeNumber);
 
                 // season format {0} - series name, {1} - season
-                if (res.SeasonNumber != null)
-                    res.SearchSeason = String.Format(season_format,
+                if (res.SeasonNumber != null && season_format.IsNotNullOrWhiteSpace())
+                    res.SearchSeason = string.Format(season_format,
                         title,
                         res.SeasonNumber);
 
-                string titleEp = !String.IsNullOrEmpty(ep.OriginalTitle) ? ep.OriginalTitle : ep.Name;
+                string titleEp = !string.IsNullOrEmpty(ep.OriginalTitle) ? ep.OriginalTitle : ep.Name;
                 if (titleEp.ContainsIgnoreCase(title)) res.SearchEpByName = titleEp;
-                else res.SearchEpByName = String.Format("{0} {1}", title, titleEp);
+                else res.SearchEpByName = string.Format("{0} {1}", title, titleEp);
 
                 ep.Series.ProviderIds.TryGetValue("Imdb", out res.ImdbId);
                 ep.Series.ProviderIds.TryGetValue("Tmdb", out res.TmdbId);
@@ -137,9 +137,6 @@ namespace subbuzz.Helpers
                 if (res.EpInfo != null && res.EpInfo.SeriesTitleInfo.Year == 0)
                     res.EpInfo.SeriesTitleInfo.Year = request.ProductionYear ?? 0;
             }
-
-            res.SearchText = res.SearchText.Replace(':', ' ').Replace("  ", " ");
-            res.SearchEpByName = res.SearchEpByName.Replace(':', ' ').Replace("  ", " ");
 
             var regexImdbId = new Regex(@"tt(\d+)");
 

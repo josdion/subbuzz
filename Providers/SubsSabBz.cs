@@ -324,20 +324,17 @@ namespace subbuzz.Providers
 
                 subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
 
-                var subFiles = new List<ArchiveFileInfo>();
-                var files = await downloader.GetArchiveSubFiles(subLink, HttpReferer, null, cancellationToken).ConfigureAwait(false);
+                var subFiles = new List<(string fileName, string fileExt)>();
+                var files = await downloader.GetArchiveFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
 
                 foreach (var fitem in files)
                 {
-                    string fileExt = fitem.Ext.ToLower();
-                    if (fileExt != "srt" && fileExt != "sub") continue;
-
+                    if (fitem.fileExt != "srt" && fitem.fileExt != "sub") continue;
                     subFiles.Add(fitem);
                 }
 
-                foreach (var fitem in subFiles)
+                foreach (var (file, fileExt) in subFiles)
                 {
-                    string file = fitem.Name;
                     bool scoreVideoFileName = subFiles.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName);
                     bool ignorMutliDiscSubs = subFiles.Count > 1;
 
@@ -354,7 +351,7 @@ namespace subbuzz.Providers
                         Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
                         ProviderName = Name,
                         Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = fitem.Ext,
+                        Format = fileExt,
                         Author = subUploader,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = dt,

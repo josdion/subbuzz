@@ -51,10 +51,11 @@ namespace subbuzz.Providers
             Providers = new Dictionary<string, ISubBuzzProvider>
             {
                 { SubsSabBz.NAME,           new SubsSabBz(logger, fileSystem, localizationManager, libraryManager, http) },
-                { PodnapisiNet.NAME,        new PodnapisiNet(logger, fileSystem, localizationManager, libraryManager, http) },
                 { SubsUnacsNet.NAME,        new SubsUnacsNet(logger, fileSystem, localizationManager, libraryManager, http) },
                 { YavkaNet.NAME,            new YavkaNet(logger, fileSystem, localizationManager, libraryManager, http) },
                 { OpenSubtitlesCom.NAME,    new OpenSubtitlesCom(logger, fileSystem, localizationManager, libraryManager, http) },
+                { PodnapisiNet.NAME,        new PodnapisiNet(logger, fileSystem, localizationManager, libraryManager, http) },
+                { Subscene.NAME,            new Subscene(logger, fileSystem, localizationManager, libraryManager, http) },
                 { YifySubtitles.NAME,       new YifySubtitles(logger, fileSystem, localizationManager, libraryManager, http) },
             };
         }

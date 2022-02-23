@@ -226,7 +226,7 @@ namespace subbuzz.Providers
                 string subInfo = $"{itemTitle}<br>{subItem.Release}";
                 subInfo += (subItem.Comments.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comments}" : "";
                 subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate.ToString("g", CultureInfo.CurrentCulture), subItem.Uploader.Name);
-                if ((subItem.Fps ?? 0.0) > 0) subInfo += $" | {subItem.Fps}";
+                if ((subItem.Fps ?? 0.0) > 0) subInfo += $" | {subItem.Fps?.ToString(CultureInfo.InvariantCulture)}";
 
                 var subScoreBase = new SubtitleScore();
                 si.MatchTitle(itemTitle, ref subScoreBase);
