@@ -91,6 +91,8 @@ namespace subbuzz.Helpers
                 res.MvInfo = Parser.Movie.ParsePath(mv.Path);
                 if (res.MvInfo != null && res.MvInfo.Year == 0)
                     res.MvInfo.Year = request.ProductionYear ?? 0;
+
+                res.Year = mv.ProductionYear;
             }
             else
             if (res.VideoType == VideoContentType.Episode && episode_format.IsNotNullOrWhiteSpace())
@@ -136,6 +138,8 @@ namespace subbuzz.Helpers
                 res.EpInfo = Parser.Episode.ParsePath(ep.Path);
                 if (res.EpInfo != null && res.EpInfo.SeriesTitleInfo.Year == 0)
                     res.EpInfo.SeriesTitleInfo.Year = request.ProductionYear ?? 0;
+
+                res.Year = ep.Series.ProductionYear;
             }
 
             var regexImdbId = new Regex(@"tt(\d+)");
@@ -153,8 +157,6 @@ namespace subbuzz.Helpers
                 if (match.Success && match.Groups.Count > 1)
                     res.ImdbIdEpisodeInt = int.Parse(match.Groups[1].ToString());
             }
-
-            res.Year = request.ProductionYear;
 
             return res;
         }
