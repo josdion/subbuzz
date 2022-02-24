@@ -24,7 +24,7 @@ namespace subbuzz.Helpers
     public class Download
     {
         private const string UrlSeparator = "*:*";
-        private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0";
+        private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) Gecko/20100101 Firefox/97.0";
 
         public class ArchiveFileInfo : IDisposable
         {

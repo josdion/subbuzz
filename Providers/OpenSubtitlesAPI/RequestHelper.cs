@@ -134,7 +134,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             var request = new HttpRequestOptions
             {
                 Url = url,
-                UserAgent = _userAgent,
+                UserAgent = $"{_userAgent}/{_version}",
                 AcceptHeader = new MediaTypeWithQualityHeaderValue("*/*").ToString(),
                 TimeoutMs = 30000, // in milliseconds
                 CancellationToken = cancellationToken,
