@@ -705,7 +705,7 @@ namespace subbuzz.Parser
             return title;
         }
 
-        private static SeriesTitleInfo GetSeriesTitleInfo(string title)
+        public static SeriesTitleInfo GetSeriesTitleInfo(string title)
         {
             var seriesTitleInfo = new SeriesTitleInfo();
             seriesTitleInfo.Title = title;

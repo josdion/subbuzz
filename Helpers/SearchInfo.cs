@@ -35,6 +35,7 @@ namespace subbuzz.Helpers
         public int? SeasonNumber = null;
         public int? EpisodeNumber = null;
         public int? Year = null;
+        public int? SeriesYear = null;
         public string TitleMovie = "";
         public string TitleSeries = "";
         public string FileName = "";
@@ -91,8 +92,6 @@ namespace subbuzz.Helpers
                 res.MvInfo = Parser.Movie.ParsePath(mv.Path);
                 if (res.MvInfo != null && res.MvInfo.Year == 0)
                     res.MvInfo.Year = request.ProductionYear ?? 0;
-
-                res.Year = mv.ProductionYear;
             }
             else
             if (res.VideoType == VideoContentType.Episode && episode_format.IsNotNullOrWhiteSpace())
@@ -139,24 +138,26 @@ namespace subbuzz.Helpers
                 if (res.EpInfo != null && res.EpInfo.SeriesTitleInfo.Year == 0)
                     res.EpInfo.SeriesTitleInfo.Year = request.ProductionYear ?? 0;
 
-                res.Year = ep.Series.ProductionYear;
+                res.SeriesYear = ep.Series.ProductionYear;
             }
 
             var regexImdbId = new Regex(@"tt(\d+)");
 
-            if (!String.IsNullOrWhiteSpace(res.ImdbId))
+            if (!string.IsNullOrWhiteSpace(res.ImdbId))
             {
                 var match = regexImdbId.Match(res.ImdbId);
                 if (match.Success && match.Groups.Count > 1)
                     res.ImdbIdInt = int.Parse(match.Groups[1].ToString());
             }
 
-            if (!String.IsNullOrWhiteSpace(res.ImdbIdEpisode))
+            if (!string.IsNullOrWhiteSpace(res.ImdbIdEpisode))
             {
                 var match = regexImdbId.Match(res.ImdbIdEpisode);
                 if (match.Success && match.Groups.Count > 1)
                     res.ImdbIdEpisodeInt = int.Parse(match.Groups[1].ToString());
             }
+
+            res.Year = request.ProductionYear;
 
             return res;
         }
@@ -176,8 +177,8 @@ namespace subbuzz.Helpers
                     if (!MatchEpisode(epInfo, ref subScore) && !checkSuccess)
                         return 0;
                 }
-                else 
-                if (!checkSuccess) 
+                else
+                if (!checkSuccess)
                     return 0;
 
                 return subScore.CalcScoreEpisode();
@@ -209,13 +210,63 @@ namespace subbuzz.Helpers
             if (VideoType == VideoContentType.Episode)
             {
                 Parser.EpisodeInfo epInfo = Parser.Episode.ParseTitle(title);
-                MatchEpisode(epInfo, ref score);
+                if (epInfo == null) 
+                {
+                    var seriesTitleInfo = Parser.Episode.GetSeriesTitleInfo(title);
+                    MatchTitleSimple(seriesTitleInfo.TitleWithoutYear, ref score);
+                    MatchYear(seriesTitleInfo.Year, ref score);
+                }
+                else MatchEpisode(epInfo, ref score);
             }
             else
             if (VideoType == VideoContentType.Movie)
             {
                 Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(title, false);
                 MatchMovie(mvInfo, ref score, true);
+            }
+        }
+
+        public void MatchTitleSimple(string title, ref SubtitleScore score)
+        {
+
+            if (VideoType == VideoContentType.Episode)
+            {
+                string titleNorm = Parser.Episode.NormalizeTitle(title);
+                if (titleNorm == Parser.Episode.NormalizeTitle(TitleSeries) ||
+                    titleNorm == Parser.Episode.NormalizeTitle(SearchEpByName))
+                {
+                    score.AddMatch("title");
+                }
+            }
+            else
+            if (VideoType == VideoContentType.Movie)
+            {
+                string titleNorm = Parser.Movie.NormalizeTitle(title);
+                if (titleNorm == Parser.Movie.NormalizeTitle(TitleMovie))
+                {
+                    score.AddMatch("title");
+                }
+            }
+        }
+
+        public void MatchYear(int? year, ref SubtitleScore score)
+        {
+            if (year == null) return;
+            if (Year != null && Year == year)
+                score.AddMatch("year");
+
+            if (VideoType == VideoContentType.Episode)
+            {
+                if (SeriesYear != null && SeriesYear == year)
+                    score.AddMatch("year");
+            }
+        }
+
+        public void MatchYear(string yearStr, ref SubtitleScore score)
+        {
+            if (yearStr != null && int.TryParse(yearStr, NumberStyles.Number, CultureInfo.InvariantCulture, out int yearNum))
+            {
+                MatchYear(yearNum, ref score);
             }
         }
 
@@ -292,16 +343,8 @@ namespace subbuzz.Helpers
             bool season = true;
             bool episode = true;
 
-            string title = Parser.Episode.NormalizeTitle(epInfo.SeriesTitleInfo.TitleWithoutYear);
-            if (title == Parser.Episode.NormalizeTitle(TitleSeries))
-            {
-                score.AddMatch("title");
-            }
-
-            if (Year != null && Year == epInfo.SeriesTitleInfo.Year)
-            {
-                score.AddMatch("year");
-            }
+            MatchTitleSimple(epInfo.SeriesTitleInfo.TitleWithoutYear, ref score);
+            MatchYear(epInfo.SeriesTitleInfo.Year, ref score);
 
             if (SeasonNumber != null)
             {
@@ -345,16 +388,8 @@ namespace subbuzz.Helpers
                 return true; // no enough info to decide if the movie should be skipped
             }
 
-            string title = Parser.Movie.NormalizeTitle(mvInfo.MovieTitle);
-            if (title == Parser.Movie.NormalizeTitle(TitleMovie))
-            {
-                score.AddMatch("title");
-            }
-
-            if (Year != null && Year == mvInfo.Year)
-            {
-                score.AddMatch("year");
-            }
+            MatchTitleSimple(mvInfo.MovieTitle, ref score);
+            MatchYear(mvInfo.Year, ref score);
 
             if (MvInfo != null)
             {

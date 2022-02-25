@@ -243,12 +243,7 @@ namespace subbuzz.Providers
 
             var subScoreBase = new SubtitleScore();
             si.MatchTitle(title, ref subScoreBase);
-
-            if (si.Year != null && int.TryParse(sub.year, NumberStyles.Number, CultureInfo.InvariantCulture, out int year))
-            {
-                if (si.Year > 0 && si.Year == year)
-                    subScoreBase.AddMatch("year");
-            }
+            si.MatchYear(sub.year, ref subScoreBase);
 
             string subDate = "";
             DateTime? dt = null;
