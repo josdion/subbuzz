@@ -182,7 +182,7 @@ namespace subbuzz.Providers
                 }
                 else
                 {
-                    options.Add("query", si.TitleSeries.ToLower());
+                    options.Add("query", si.TitleSeries);
                 }
 
                 if (si.SeasonNumber != null) options.Add("season_number", si.SeasonNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
@@ -197,7 +197,7 @@ namespace subbuzz.Providers
                     options.Add("tmdb_id", si.TmdbId);
                 else
                 {
-                    options.Add("query", si.TitleMovie.ToLower());
+                    options.Add("query", si.TitleMovie);
                     if ((si.Year ?? 0) > 0)
                     {
                         options["query"] += $" ({si.Year ?? 0})";
@@ -233,6 +233,7 @@ namespace subbuzz.Providers
                 si.MatchImdbId(subItem.FeatureDetails.ImdbId, ref subScoreBase);
                 si.MatchImdbId(subItem.FeatureDetails.ParentImdbId, ref subScoreBase);
                 si.MatchFps(subItem.Fps, ref subScoreBase);
+                si.MatchYear(subItem.FeatureDetails.Year, ref subScoreBase);
 
                 if (subItem.Files.Count == 1)
                 {
@@ -243,16 +244,16 @@ namespace subbuzz.Providers
                 {
                     bool ignorMutliDiscSubs = subItem.Files.Count > 1;
                     float score = si.CaclScore(file.FileName, subScoreBase, false, ignorMutliDiscSubs);
-                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                    if ((score == 0 || score < Plugin.Instance.Configuration.MinScore) && ((subItem.MovieHashMatch ?? false) == false))
                     {
-                        _logger.LogInformation($"{NAME}: Ignore file: {file.FileName ?? ""} ID: {file.FileId}");
+                        _logger.LogInformation($"{NAME}: Ignore file: {file.FileName ?? ""} ID: {file.FileId} Score: {score}");
                         continue;
                     }
 
                     var fileExt = string.Empty;
                     if (file.FileName != null)
                     {
-                        fileExt = file.FileName.Split('.').LastOrDefault().ToLower();
+                        fileExt = file.FileName.GetPathExtension().ToLower();
                     }
 
                     var format = subItem.Format ?? (fileExt.IsNullOrWhiteSpace() ? "srt" : fileExt);

@@ -183,7 +183,7 @@ namespace subbuzz.Helpers
 
                 return subScore.CalcScoreEpisode();
             }
-            else
+            
             if (VideoType == VideoContentType.Movie)
             {
                 Parser.MovieInfo mvInfo = Parser.Movie.ParseTitle(subFileName, true);

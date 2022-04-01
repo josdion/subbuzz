@@ -274,7 +274,8 @@ namespace subbuzz.Providers
             if (imdbMatch == null || !imdbMatch.Success)
                 return res;
 
-            if (si.ImdbIdInt != int.Parse(imdbMatch.Groups["imdbid"].Value))
+            _ = int.TryParse(imdbMatch.Groups["imdbid"].Value, out int imdbId);
+            if (imdbId <= 0 || (si.ImdbIdInt != imdbId && si.ImdbIdEpisodeInt != imdbId))
                 return res;
 
             var tbl = htmlDoc.QuerySelector("table > tbody");
@@ -472,7 +473,7 @@ namespace subbuzz.Providers
                 float score = si.CaclScore(fileName, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
                 if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                 {
-                    _logger.LogInformation($"{NAME}: Ignore file: {fileName} Page: {urlPage}");
+                    _logger.LogInformation($"{NAME}: Ignore file: {fileName} Page: {urlPage} Socre: {score}");
                     continue;
                 }
 
