@@ -18,10 +18,11 @@
 
   <ItemGroup>
     <Compile Remove="API\ControllerJellyfin.cs" />
+    <Compile Remove="Helpers\DownloadJellyfin.cs" />
   </ItemGroup>
 
   <ItemGroup> 
-    <PackageReference Include="mediabrowser.server.core" Version="4.7.*-*" /> 
+    <PackageReference Include="mediabrowser.server.core" Version="4.7.*" /> 
     <PackageReference Include="SharpCompress" Version="0.26.0" /> 
     <PackageReference Include="System.Memory" Version="4.5.4" />
     <PackageReference Include="System.Text.Json" Version="4.7.0" />

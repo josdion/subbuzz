@@ -10,7 +10,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>subbuzz</RootNamespace>
     <AssemblyName>subbuzz</AssemblyName>
-    <DefineConstants>JELLYFIN,JELLYFIN_10_8</DefineConstants>	
+    <DefineConstants>JELLYFIN</DefineConstants>	
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
@@ -19,6 +19,7 @@
   <ItemGroup>
     <Compile Remove="API\ControllerEmby.cs" />
     <Compile Remove="Extensions/ILoggerExtensions.cs" />
+    <Compile Remove="Helpers\DownloadEmby.cs" />
   </ItemGroup>
 
   <ItemGroup>

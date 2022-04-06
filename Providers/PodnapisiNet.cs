@@ -34,7 +34,7 @@ namespace subbuzz.Providers
     class PodnapisiNet : ISubBuzzProvider
     {
         internal const string NAME = "Podnapisi.NET";
-        private const string ServerUrl = "https://podnapisi.net";
+        private const string ServerUrl = "https://www.podnapisi.net";
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;

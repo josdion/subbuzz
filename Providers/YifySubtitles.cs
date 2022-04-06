@@ -161,10 +161,23 @@ namespace subbuzz.Providers
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(html);
 
-            string subTitle = htmlDoc.GetElementsByClassName("movie-main-title").FirstOrDefault().TextContent;
+            var tagTitle = htmlDoc.GetElementsByClassName("movie-main-title").FirstOrDefault();
+            if (tagTitle == null)
+            {
+                _logger.LogInformation($"{NAME}: Invalid HTML. Can't find element with class=movie-main-title");
+                return res;
+            }
+
+            string subTitle = tagTitle.TextContent;
 
             var tbl = htmlDoc.QuerySelector("table.other-subs > tbody");
             var trs = tbl?.GetElementsByTagName("tr");
+            if (trs == null)
+            {
+                _logger.LogInformation($"{NAME}: Invalid HTML");
+                return res;
+            }
+
             foreach (var tr in trs)
             {
                 var tds = tr.GetElementsByTagName("td");

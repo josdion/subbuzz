@@ -1,6 +1,4 @@
-﻿using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Subtitles;
-using MediaBrowser.Model.Net;
+﻿using MediaBrowser.Controller.Subtitles;
 using SharpCompress.Archives;
 using subbuzz.Extensions;
 using System;
@@ -8,20 +6,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
-
-#if !EMBY
-using System.IO.Compression;
-using System.Net.Http;
-#endif
 
 namespace subbuzz.Helpers
 {
-    public class Download
+    public partial class Download
     {
         private const string UrlSeparator = "*:*";
         private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:98.0) Gecko/20100101 Firefox/98.0";
@@ -41,24 +32,6 @@ namespace subbuzz.Helpers
             public string FileName { get; set; }
             public void Dispose() => Content?.Dispose();
         };
-
-#if JELLYFIN
-        private readonly HttpClient _httpClient;
-        public Download(IHttpClientFactory http)
-        {
-            _httpClient = http.CreateClient();
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
-            _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
-            _httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip");
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
-        }
-#else
-        private readonly IHttpClient _httpClient;
-        public Download(IHttpClient httpClient)
-        {
-            _httpClient = httpClient;
-        }
-#endif
 
         public static string GetId(string link, string file, string lang, string fps, Dictionary<string, string> post_params = null)
         {
@@ -192,172 +165,6 @@ namespace subbuzz.Helpers
             ResponseInfo resp = await Get(link, referer, post_params, cancellationToken, maxRetry);
             return resp.Content;
         }
-
-#if JELLYFIN
-        private async Task<ResponseInfo> GetRespInfo(HttpResponseMessage response, CancellationToken cancellationToken)
-        {
-            var res = new ResponseInfo
-            {
-                Content = new MemoryStream(),
-                ContentType = response.Content.Headers.ContentType?.MediaType ?? "",
-                FileName = response.Content.Headers.ContentDisposition?.FileName ?? ""
-            };
-
-            if (response.Content.Headers.ContentEncoding.Contains("gzip"))
-            {
-                using (var gz = new GZipStream(response.Content.ReadAsStream(cancellationToken), CompressionMode.Decompress))
-                {
-                    gz.CopyTo(res.Content);
-                }
-            }
-            else
-            {
-                await response.Content.CopyToAsync(res.Content, cancellationToken).ConfigureAwait(false);
-            }
-
-            // TODO: store to cache
-            res.Content.Seek(0, SeekOrigin.Begin);
-            return res;
-        }
-
-        private async Task<ResponseInfo> Get(
-            string link,
-            string referer,
-            Dictionary<string, string> post_params,
-            CancellationToken cancellationToken,
-            int maxRetry = 5
-            )
-        {
-            int retry = 0;
-
-            while (true)
-            {
-                using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, link);
-                if (post_params != null && post_params.Count > 0)
-                {
-                    request.Method = HttpMethod.Post;
-                    request.Content = new FormUrlEncodedContent(post_params);
-                }
-
-                request.Headers.Add("Referer", referer);
-                using (HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken))
-                {
-                    if (retry++ < maxRetry)
-                    {
-                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable || // for PodnapisiNet
-                            response.StatusCode == HttpStatusCode.Conflict) // for Subscene
-                        {
-                            await Task.Delay(retry * 500, cancellationToken).ConfigureAwait(false);
-                            continue;
-                        }
-                    }
-
-                    response.EnsureSuccessStatusCode();
-                    return await GetRespInfo(response, cancellationToken).ConfigureAwait(false);
-                }
-            }
-        }
-#else
-        private ResponseInfo GetRespInfo(HttpResponseInfo response)
-        {
-            string fileName = string.Empty;
-            if (response.Headers.TryGetValue("Content-Disposition", out string contentDisposition))
-            {
-                var parts = contentDisposition.Split(';');
-                if (parts.Length > 1 && parts[0].Trim().EqualsIgnoreCase("attachment"))
-                {
-                    foreach (var part in parts)
-                    {
-                        var names = part.Split('=');
-                        if (names.Length > 1 && names[0].Trim().EqualsIgnoreCase("filename"))
-                        {
-                            fileName = names[1].Trim();
-                        }
-                    }
-                }
-            }
-
-            var res = new ResponseInfo
-            {
-                Content = new MemoryStream(),
-                ContentType = response.ContentType,
-                FileName = fileName
-            };
-
-            // TODO: store to cache
-            response.Content.CopyTo(res.Content);
-            res.Content.Seek(0, SeekOrigin.Begin);
-            return res;
-        }
-
-        private async Task<ResponseInfo> Get(
-            string link,
-            string referer,
-            Dictionary<string, string> post_params,
-            CancellationToken cancellationToken,
-            int maxRetry = 5
-            )
-        {
-            // TODO: check if cached
-
-            var opts = new HttpRequestOptions
-            {
-                Url = link,
-                UserAgent = UserAgent,
-                Referer = referer,
-                EnableKeepAlive = false,
-                CancellationToken = cancellationToken,
-                TimeoutMs = 30000, // in milliseconds
-                DecompressionMethod = CompressionMethod.Gzip,
-            };
-
-            if (post_params != null && post_params.Count() > 0)
-            {
-                var postParamsEncode = new Dictionary<string, string>();
-                var keys = new List<string>(post_params.Keys);
-                foreach (string key in keys)
-                {
-                    if (key.IsNotNullOrWhiteSpace())
-                        postParamsEncode[key] = HttpUtility.UrlEncode(post_params[key]);
-                }
-                opts.SetPostData(postParamsEncode);
-            }
-
-            int retry = 0;
-            while (true)
-            {
-                try
-                {
-                    if (post_params != null && post_params.Count() > 0)
-                    {
-                        using (HttpResponseInfo response = await _httpClient.Post(opts).ConfigureAwait(false))
-                        {
-                            return GetRespInfo(response);
-                        }
-                    }
-                    else
-                    {
-                        using (HttpResponseInfo response = await _httpClient.GetResponse(opts).ConfigureAwait(false))
-                        {
-                            return GetRespInfo(response);
-                        }
-                    }
-                }
-                catch (HttpException ex)
-                {
-                    if (ex.StatusCode == HttpStatusCode.ServiceUnavailable || // for PodnapisiNet
-                        ex.StatusCode == HttpStatusCode.Conflict) // for Subscene
-                    {
-                        if (retry++ >= maxRetry) throw;
-                        await Task.Delay(retry * 500, cancellationToken).ConfigureAwait(false);
-                        continue;
-                    }
-
-                    throw;
-                }
-            }
-        }
-#endif
 
         private static string SerializePostParams(Dictionary<string, string> post_params)
         {
