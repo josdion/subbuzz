@@ -18,7 +18,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore subbuzz.jellyfin.10.8.csproj
     - name: Build
       run: dotnet build subbuzz.jellyfin.10.8.csproj --configuration Release --no-restore
 
