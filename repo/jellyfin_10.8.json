@@ -5,7 +5,7 @@
     "description": "Download subtitles from various sites.",
     "overview": "Download subtitles for your media",
     "owner": "josdion",
-    "imageURL": "https://raw.githubusercontent.com/josdion/subbuzz/master/thumb.png",
+    "imageURL": "https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin-plugin-subbuzz.png",
     "category": "Metadata",
     "versions": [
       {
