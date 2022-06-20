@@ -32,8 +32,10 @@ jobs:
         
       - run: pwd 
       - run: ls -la
-      - run: rm -v !(subbuzz.jellyfin.10.8.csproj)
+      - run: rm *.sln
+      - run: find *.csproj -not -name 'subbuzz.jellyfin.10.8.csproj' -delete
       - run: mv build.jellyfin.10.8.yaml build.yaml
+      - run: ls -la
       
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
