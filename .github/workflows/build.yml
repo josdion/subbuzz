@@ -8,7 +8,7 @@ on:
 
 jobs:
   build_emby_4_6:
-    name: Build emby-4.6
+    name: Build for emby-4.6
     runs-on: ubuntu-latest
 
     steps:
@@ -20,11 +20,14 @@ jobs:
         with:
           dotnet-version: 2.0.x
           
+      - name: Restore dependencies
+        run: dotnet restore subbuzz.emby.4.6.csproj
+        
       - name: Build emby-4.6
         run: dotnet build subbuzz.emby.4.6.csproj --configuration Release --no-restore
 
   build_emby_4_7:
-    name: Build emby-4.7
+    name: Build for emby-4.7
     runs-on: ubuntu-latest
 
     steps:
@@ -36,11 +39,14 @@ jobs:
         with:
           dotnet-version: 2.0.x
           
+      - name: Restore dependencies
+        run: dotnet restore subbuzz.emby.4.7.csproj
+          
       - name: Build emby-4.7
         run: dotnet build subbuzz.emby.4.7.csproj --configuration Release --no-restore
 
   build_jellyfin_10_7:
-    name: Build jellyfin-10.7
+    name: Build for jellyfin-10.7
     runs-on: ubuntu-latest
 
     steps:
@@ -55,7 +61,7 @@ jobs:
         run: dotnet build subbuzz.jellyfin.10.7.csproj --configuration Release --no-restore
 
   build_jellyfin_10_8:
-    name: Build jellyfin-10.8
+    name: Build for jellyfin-10.8
     runs-on: ubuntu-latest
 
     steps:
