@@ -27,13 +27,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
       - uses: actions/checkout@v3
+      
       - name: jellyfin-10.8
         uses: actions/setup-dotnet@v2
         with:
           dotnet-version: 6.0.x
+          
       - name: Restore dependencies
         run: dotnet restore subbuzz.jellyfin.10.8.csproj
+        
       - name: Build
         run: dotnet build subbuzz.jellyfin.10.8.csproj --configuration Release --no-restore
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact
+          retention-days: 30
+          if-no-files-found: error
+          path: subbuzz.dll
