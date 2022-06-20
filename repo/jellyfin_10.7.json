@@ -9,6 +9,14 @@
     "category": "Metadata",
     "versions": [
       {
+        "version": "1.0.3.0",
+        "changelog": "Added new providers: Podnapisi.NET and Subscene.\n",
+        "targetAbi": "10.7.7.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.0.3.0/subbuzz_1.0.3.0_jellyfin_10.7.zip",
+        "checksum": "46a157d6b6d946cd6d36a04b610bb0a4",
+        "timestamp": "2022-06-20T09:26:32Z"
+      },    
+      {
         "version": "1.0.2.0",
         "changelog": "Bug fix release.\n",
         "targetAbi": "10.7.7.0",
