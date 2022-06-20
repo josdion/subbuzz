@@ -29,6 +29,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        
+      - run: rm *.sln
+      - run: rm *emby*.csproj
+      - run: rm subbuzz.jellyfin.10.7.csproj
       
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
@@ -39,8 +43,7 @@ jobs:
         uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
         with:
           dotnet-target: net6.0
-          path: subbuzz.jellyfin.10.7.csproj
-
+          
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
