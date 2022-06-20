@@ -1,5 +1,4 @@
-﻿using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Library;
+﻿using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
@@ -13,6 +12,7 @@ using System.Threading.Tasks;
 using System.Linq;
 
 #if EMBY
+using MediaBrowser.Common.Net;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
@@ -69,7 +69,7 @@ namespace subbuzz.Providers
                     return await p.Value.GetSubtitles(id.Substring(p.Key.Length), cancellationToken);
                 }
             }
-             
+
             return new SubtitleResponse();
         }
 
@@ -95,7 +95,20 @@ namespace subbuzz.Providers
                     s.Id = task.Key + s.Id;
                     s.SubBuzzProviderName = task.Key;
                     s.ProviderName = Name;
+#if NO_HTML
+                    var parser = new AngleSharp.Html.Parser.HtmlParser();
+                    var nodeList = parser.ParseFragment(s.Name, null);
+                    s.Name = string.Concat(nodeList.Select(x => x.TextContent));
+
+                    var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    s.Comment = regex.Replace(s.Comment, " &#9734; ");
+
+                    nodeList = parser.ParseFragment(s.Comment, null);
+                    s.Comment = $"[{task.Key}] " + string.Concat(nodeList.Select(x => x.TextContent));
+#else
                     s.Comment = $"<b>[{task.Key}]</b> " + s.Comment;
+#endif
                 }
 
                 Utils.MergeSubtitleInfo(res, subs);
