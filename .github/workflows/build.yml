@@ -7,6 +7,38 @@ on:
     branches: [ "master" ]
 
 jobs:
+  build_emby_4_6:
+    name: Build emby-4.6
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 2.0.x
+          
+      - name: Build emby-4.6
+        run: dotnet build subbuzz.emby.4.6.csproj --configuration Release --no-restore
+
+  build_emby_4_7:
+    name: Build emby-4.7
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 2.0.x
+          
+      - name: Build emby-4.7
+        run: dotnet build subbuzz.emby.4.7.csproj --configuration Release --no-restore
+
   build_jellyfin_10_7:
     name: Build jellyfin-10.7
     runs-on: ubuntu-latest
