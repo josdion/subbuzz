@@ -44,6 +44,11 @@ jobs:
         with:
           dotnet-version: 2.0.x
           
+      - name: Install OpenSSL 1.0      
+        run: |
+          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.9_amd64.deb 
+          sudo apt install ./libssl1.0.0_1.0.2n-1ubuntu5.9_amd64.deb
+          
       - name: Install dependencies
         run: dotnet restore subbuzz.emby.4.7.csproj
           
@@ -73,9 +78,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         
-      - run: rm *.sln
-      - run: find *.csproj -not -name 'subbuzz.jellyfin.10.8.csproj' -delete
-      - run: mv build.jellyfin.10.8.yaml build.yaml
+      - name: Remove unused files
+        run: |
+        rm *.sln
+        find *.csproj -not -name 'subbuzz.jellyfin.10.8.csproj' -delete
+        mv build.jellyfin.10.8.yaml build.yaml
       
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
@@ -91,7 +98,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: build-artifact
+          name: build-artifact-jellyfin-10.8
           retention-days: 30
           if-no-files-found: error
           path: ${{ steps.jprm.outputs.artifact }}
