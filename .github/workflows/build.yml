@@ -60,15 +60,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - name: jellyfin-10.7
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Remove unused files
+        run: |
+          rm *.sln
+          find *.csproj -not -name 'subbuzz.jellyfin.10.7.csproj' -delete
+          mv build.jellyfin.10.7.yaml build.yaml
+      
+      - name: Setup .NET
         uses: actions/setup-dotnet@v2
         with:
           dotnet-version: 5.0.x
-      - name: Restore dependencies
-        run: dotnet restore subbuzz.jellyfin.10.7.csproj
-      - name: Build
-        run: dotnet build subbuzz.jellyfin.10.7.csproj --configuration Release --no-restore
+          
+      - name: Build for jellyfin-10.7
+        uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
+        id: jprm
+        with:
+          dotnet-target: net5.0
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact-jellyfin-10.7
+          retention-days: 30
+          if-no-files-found: error
+          path: ${{ steps.jprm.outputs.artifact }}
 
   build_jellyfin_10_8:
     name: Build for jellyfin-10.8
@@ -89,7 +107,7 @@ jobs:
         with:
           dotnet-version: 6.0.x
           
-      - name: Build jellyfin-10.8
+      - name: Build for jellyfin-10.8
         uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
         id: jprm
         with:
