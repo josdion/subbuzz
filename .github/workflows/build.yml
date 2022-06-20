@@ -30,9 +30,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         
-      - run: rm *.sln
-      - run: rm *emby*.csproj
-      - run: rm subbuzz.jellyfin.10.7.csproj
+      - run: rm -v !("subbuzz.jellyfin.10.8.csproj")
+      - run: mv build.jellyfin.10.8.yaml build.yaml
       
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
