@@ -20,6 +20,11 @@ jobs:
         with:
           dotnet-version: 2.0.x
           
+      - run: sudo apt-get install -y --allow-downgrades openssl1.0=1.0.2n-1ubuntu5.9
+          
+      - name: Install dependencies
+        run: dotnet restore subbuzz.emby.4.6.csproj
+        
       - name: Build emby-4.6
         run: dotnet build subbuzz.emby.4.6.csproj --configuration Release --no-restore
 
@@ -35,6 +40,9 @@ jobs:
         uses: actions/setup-dotnet@v2
         with:
           dotnet-version: 2.0.x
+          
+      - name: Install dependencies
+        run: dotnet restore subbuzz.emby.4.7.csproj
           
       - name: Build emby-4.7
         run: dotnet build subbuzz.emby.4.7.csproj --configuration Release --no-restore
