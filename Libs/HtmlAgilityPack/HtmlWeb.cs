@@ -26,6 +26,7 @@ using Microsoft.Win32;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Collections.Concurrent;
 #endif
 #if FX40 || FX45
 using System.Collections;
@@ -116,6 +117,21 @@ namespace HtmlAgilityPack
         #endregion
 
         #region Static Members
+
+#if FX45 || NETSTANDARD
+        internal static ConcurrentDictionary<string, HttpClient> SharedHttpClient = new ConcurrentDictionary<string, HttpClient>();
+
+
+        internal static HttpClient GetSharedHttpClient(string userAgent)
+        {
+            return SharedHttpClient.GetOrAdd(userAgent, x =>
+            {
+                var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", userAgent);
+                return client;
+            });
+        }
+#endif
 
         //private static Dictionary<string, string> _mimeTypes;
 
@@ -780,6 +796,10 @@ namespace HtmlAgilityPack
         #endregion
 
         #region Properties
+
+        /// <summary>Gets or sets the automatic decompression.</summary>
+        /// <value>The automatic decompression.</value>
+        public DecompressionMethods AutomaticDecompression { get; set; }
 
         /// <summary>
         /// Gets or Sets a value indicating if document encoding must be automatically detected.
@@ -1553,6 +1573,8 @@ namespace HtmlAgilityPack
             req = WebRequest.Create(uri) as HttpWebRequest;
             req.Method = method;
             req.UserAgent = UserAgent;
+            req.AutomaticDecompression = AutomaticDecompression;
+
             if (CaptureRedirect)
             {
                 req.AllowAutoRedirect = false;
@@ -1677,15 +1699,32 @@ namespace HtmlAgilityPack
             bool html = IsHtmlContent(resp.ContentType);
             bool isUnknown = string.IsNullOrEmpty(resp.ContentType);
 
-			// keep old code because logic on  ReadDocumentEncoding(HtmlNode node), now use resp.CharacterSet here.
-			// for futur maybe harmonise.
-			//Encoding respenc = !string.IsNullOrEmpty(resp.ContentEncoding)
-			// ? Encoding.GetEncoding(resp.ContentEncoding)
-			// : null;
+            // keep old code because logic on  ReadDocumentEncoding(HtmlNode node), now use resp.CharacterSet here.
+            // for futur maybe harmonise.
+            //Encoding respenc = !string.IsNullOrEmpty(resp.ContentEncoding)
+            // ? Encoding.GetEncoding(resp.ContentEncoding)
+            // : null;
 
-			Encoding respenc = !string.IsNullOrEmpty(html ? resp.CharacterSet : resp.ContentEncoding)
-				? Encoding.GetEncoding(html ? resp.CharacterSet : resp.ContentEncoding)
-				: null;
+            string characterSet = "";
+            if (!string.IsNullOrEmpty(resp.CharacterSet))
+			{
+                // Example : "\"utf-8\"", no utf or other have " so, just remove...
+                characterSet = resp.CharacterSet.Replace("\"","");
+            }
+
+            Encoding respenc = null;
+
+            try
+			{
+                respenc = !string.IsNullOrEmpty(html ? characterSet : resp.ContentEncoding)
+                ? Encoding.GetEncoding(html ? characterSet : resp.ContentEncoding)
+                : null; 
+            }
+            catch (Exception )
+			{
+
+			} 
+
 			if (OverrideEncoding != null)
                 respenc = OverrideEncoding;
 
@@ -2344,11 +2383,19 @@ namespace HtmlAgilityPack
 				clientHandler.AllowAutoRedirect = false;
 	        }
 
-            var client = new HttpClient(clientHandler);
+            HttpClient client;
 
-			//https://stackoverflow.com/questions/44076962/how-do-i-set-a-default-user-agent-on-an-httpclient
-			client.DefaultRequestHeaders.Add("User-Agent", this.UserAgent);
-	     
+            if(credentials != null || CaptureRedirect)
+            {
+                client = new HttpClient(clientHandler);
+
+                //https://stackoverflow.com/questions/44076962/how-do-i-set-a-default-user-agent-on-an-httpclient
+                client.DefaultRequestHeaders.Add("User-Agent", this.UserAgent);
+            }
+            else
+            {
+                client = GetSharedHttpClient(this.UserAgent);
+            }
 
 			var e = await client.GetAsync(uri, cancellationToken).ConfigureAwait(false);
 
@@ -2500,6 +2547,17 @@ namespace HtmlAgilityPack
                 var scripErrorSuppressedProperty = webBrowserType.GetProperty("ScriptErrorsSuppressed");
                 scripErrorSuppressedProperty.SetValue(webBrowser, true, null);
 
+                // disable popup
+                {
+                    var newWindowEvent = webBrowser.GetType().GetEvent("NewWindow");
+                    if(newWindowEvent != null)
+                    {
+                        var newWindowHandler = this.GetType().GetMethod("Web_NewWindow", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        Delegate newWindowDelegate = Delegate.CreateDelegate(newWindowEvent.EventHandlerType, null, newWindowHandler);
+                        newWindowEvent.AddEventHandler(webBrowser, newWindowDelegate);
+                    }
+                }
+
                 var navigateMethod = webBrowserType.GetMethod("Navigate", new Type[] {typeof(Uri)});
                 navigateMethod.Invoke(webBrowser, new object[] {uri});
 
@@ -2546,6 +2604,17 @@ namespace HtmlAgilityPack
 
             return doc;
         }
+
+        private void Web_NewWindow(object sender, object e)
+        {
+            // we don't want a dynamic reference so we do it via reflection
+            var cancelProperty = e.GetType().GetProperty("Cancel");
+            if(cancelProperty != null)
+            {
+                cancelProperty.SetValue(e, true, null);
+            }
+        }
+
 #endif
 
         #endregion

@@ -35,7 +35,10 @@ namespace HtmlAgilityPack
         internal int _streamposition;
         internal string _value;
         internal int _valuelength;
-        internal int _valuestartindex;
+        internal int _valuestartindex; 
+        internal bool _isFromParse;
+        internal bool _hasEqual;
+        private bool? _localUseOriginalName;
 
         #endregion
 
@@ -83,12 +86,34 @@ namespace HtmlAgilityPack
             get { return _valuelength; }
         }
 
-	    public bool UseOriginalName { get; set; } = false;
+        /// <summary>Gets or sets a value indicating whether the attribute should use the original name.</summary>
+        /// <value>True if the attribute should use the original name, false if not.</value>
+        public bool UseOriginalName
+        {
+            get
+            {
+                var useOriginalName = false;
+                if (this._localUseOriginalName.HasValue)
+				{
+                    useOriginalName = this._localUseOriginalName.Value;
+                }
+                else if (this.OwnerDocument != null)
+				{
+                    useOriginalName = this.OwnerDocument.OptionDefaultUseOriginalName;
+                }
 
-	    /// <summary>
-		/// Gets the qualified name of the attribute.
-		/// </summary>
-		public string Name
+                return useOriginalName;
+            }
+            set
+            {
+                this._localUseOriginalName = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets the qualified name of the attribute.
+        /// </summary>
+        public string Name
         {
             get
             {
@@ -146,6 +171,11 @@ namespace HtmlAgilityPack
             get { return _quoteType; }
             set { _quoteType = value; }
         }
+
+        /// <summary>
+        /// Specifies what type of quote the data should be wrapped in (internal to keep backward compatibility)
+        /// </summary>
+        internal AttributeValueQuote InternalQuoteType { get; set; }
 
         /// <summary>
         /// Gets the stream position of this attribute in the document, relative to the start of the document.
@@ -252,9 +282,13 @@ namespace HtmlAgilityPack
         public HtmlAttribute Clone()
         {
             HtmlAttribute att = new HtmlAttribute(_ownerdocument);
-            att.Name = Name;
+            att.Name = OriginalName;
             att.Value = Value;
             att.QuoteType = QuoteType;
+            att.InternalQuoteType = InternalQuoteType;
+
+            att._isFromParse = _isFromParse;
+            att._hasEqual = _hasEqual;
             return att;
         }
 
@@ -305,6 +339,20 @@ namespace HtmlAgilityPack
         /// <summary>
         /// A double quote mark "
         /// </summary>
-        DoubleQuote
+        DoubleQuote,
+
+        /// <summary>
+        /// No quote mark
+        /// </summary>
+        None,
+
+
+        /// <summary>Without the value such as '&lt;span readonly&gt;'</summary>
+        WithoutValue,
+
+        /// <summary>
+        /// The initial value (current value)
+        /// </summary>
+        Initial
     }
 }
