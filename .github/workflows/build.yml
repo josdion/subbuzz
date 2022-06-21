@@ -65,7 +65,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: build-artifact-emby-4.6
+          name: build-artifact-emby-4.7
           if-no-files-found: error
           path: ./bin/emby-4.7/Release/netstandard2.0/subbuzz.dll
           

@@ -8,6 +8,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
     <RootNamespace>subbuzz</RootNamespace>
     <AssemblyName>subbuzz</AssemblyName>
     <DefineConstants>JELLYFIN,NO_HTML</DefineConstants>	
