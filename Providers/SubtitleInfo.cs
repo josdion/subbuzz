@@ -1,7 +1,4 @@
 ﻿using MediaBrowser.Model.Providers;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace subbuzz.Providers
 {
@@ -10,6 +7,21 @@ namespace subbuzz.Providers
 #if !EMBY
         public bool? IsForced { get; set; }
 #endif
+
+#if EMBY_4_7
+        public new string ThreeLetterISOLanguageName
+        {
+            get
+            {
+                return base.Language;
+            }
+            set
+            {
+                base.Language = value;
+            }
+        }
+#endif 
+
         public float Score { get; set; }
         public string SubBuzzProviderName { get; set; }
 
