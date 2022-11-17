@@ -22,7 +22,7 @@ jobs:
       
       - name: Install OpenSSL 1.0      
         run: |
-          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.9_amd64.deb 
+          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.10_amd64.deb 
           sudo apt install ./libssl1.0.0_1.0.2n-1ubuntu5.9_amd64.deb
           
       - name: Install dependencies
@@ -53,7 +53,7 @@ jobs:
           
       - name: Install OpenSSL 1.0      
         run: |
-          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.9_amd64.deb 
+          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.10_amd64.deb 
           sudo apt install ./libssl1.0.0_1.0.2n-1ubuntu5.9_amd64.deb
           
       - name: Install dependencies
