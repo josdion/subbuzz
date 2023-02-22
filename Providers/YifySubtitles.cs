@@ -197,7 +197,11 @@ namespace subbuzz.Providers
                 var link = tds[2].GetElementsByTagName("a")[0];
                 string subLinkPage = link.GetAttribute("href");
                 var regexLink = new Regex(@"^/subtitles/");
-                string subLink = regexLink.Replace(subLinkPage, ServerUrl + "/subtitle/") + ".zip";
+                string subLink;
+                if (subLinkPage.Contains("://"))
+                    subLink = regexLink.Replace(subLinkPage, "/subtitle/") + ".zip";
+                else
+                    subLink = regexLink.Replace(subLinkPage, ServerUrl + "/subtitle/") + ".zip";
 
                 string subInfoBase = link.InnerHtml;
                 var regexInfo = new Regex(@"<span.*/span>");
