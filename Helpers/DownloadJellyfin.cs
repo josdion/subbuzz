@@ -11,6 +11,7 @@ namespace subbuzz.Helpers
 {
     public partial class Download
     {
+        private Random _rand = new Random();
         private readonly HttpClient _httpClient;
         public Download(IHttpClientFactory http)
         {
@@ -93,10 +94,14 @@ namespace subbuzz.Helpers
                 {
                     if (retry++ < maxRetry)
                     {
-                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable || // for PodnapisiNet
-                            response.StatusCode == HttpStatusCode.Conflict) // for Subscene
+                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable // for PodnapisiNet
+                            || response.StatusCode == HttpStatusCode.Conflict // for Subscene
+                            || response.StatusCode == HttpStatusCode.NotFound // for Subf2m
+                            || response.StatusCode == (HttpStatusCode)429 // TooManyRequests
+                            )
                         {
-                            await Task.Delay(retry * 500, cancellationToken).ConfigureAwait(false);
+                            var waitTime = (response.StatusCode == (HttpStatusCode)429) ? _rand.Next(4000, 5000) : _rand.Next(600, 1000);
+                            await Task.Delay(retry * waitTime, cancellationToken).ConfigureAwait(false);
                             continue;
                         }
 

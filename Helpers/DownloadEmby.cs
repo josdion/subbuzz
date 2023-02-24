@@ -1,6 +1,7 @@
 ﻿using MediaBrowser.Common.Net;
 using MediaBrowser.Model.Net;
 using subbuzz.Extensions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,7 @@ namespace subbuzz.Helpers
 {
     public partial class Download
     {
+        private Random _rand = new Random();
         private readonly IHttpClient _httpClient;
         public Download(IHttpClient httpClient)
         {
@@ -105,11 +107,15 @@ namespace subbuzz.Helpers
                 }
                 catch (HttpException ex)
                 {
-                    if (ex.StatusCode == HttpStatusCode.ServiceUnavailable || // for PodnapisiNet
-                        ex.StatusCode == HttpStatusCode.Conflict) // for Subscene
+                    if (ex.StatusCode == HttpStatusCode.ServiceUnavailable // for PodnapisiNet
+                        || ex.StatusCode == HttpStatusCode.Conflict // for Subscene
+                        || ex.StatusCode == HttpStatusCode.NotFound // for Subf2m
+                        || ex.StatusCode == (HttpStatusCode)429 // TooManyRequests
+                        )
                     {
                         if (retry++ >= maxRetry) throw;
-                        await Task.Delay(retry * 500, cancellationToken).ConfigureAwait(false);
+                        var waitTime = (ex.StatusCode == (HttpStatusCode)429) ? _rand.Next(4000, 5000) : _rand.Next(600, 1000);
+                        await Task.Delay(retry * waitTime, cancellationToken).ConfigureAwait(false);
                         continue;
                     }
 
