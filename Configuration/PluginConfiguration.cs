@@ -6,6 +6,7 @@ namespace subbuzz
     {
         public bool EnableOpenSubtitles { get; set; }
         public bool EnablePodnapisiNet { get; set; }
+        public bool EnableSubf2m { get; set; }
         public bool EnableSubscene { get; set; }
         public bool EnableSubssabbz { get; set; }
         public bool EnableSubsunacsNet { get; set; }
@@ -25,6 +26,7 @@ namespace subbuzz
         {
             EnableOpenSubtitles = true;
             EnablePodnapisiNet = true;
+            EnableSubf2m = true;
             EnableSubscene = true;
             EnableSubssabbz = true;
             EnableSubsunacsNet = true;

@@ -31,10 +31,10 @@ using System.Net.Http;
 
 namespace subbuzz.Providers
 {
-    public class Subscene : ISubBuzzProvider
+    public class Subf2m : ISubBuzzProvider
     {
-        internal const string NAME = "Subscene";
-        private const string ServerUrl = "https://subscene.com";
+        internal const string NAME = "Subf2m";
+        private const string ServerUrl = "https://subf2m.co";
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -83,7 +83,7 @@ namespace subbuzz.Providers
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
-        public Subscene(
+        public Subf2m(
             ILogger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
@@ -129,7 +129,7 @@ namespace subbuzz.Providers
 
             try
             {
-                if (!Plugin.Instance.Configuration.EnableSubscene)
+                if (!Plugin.Instance.Configuration.EnableSubf2m)
                 {
                     // provider is disabled
                     return res;
@@ -250,8 +250,6 @@ namespace subbuzz.Providers
         protected class SubData
         {
             public List<string> Releases = new List<string>();
-            public int Files = 0;
-            public bool Hi = false;
             public string Uploader = string.Empty;
             public string Comment = string.Empty;
         };
@@ -278,41 +276,43 @@ namespace subbuzz.Providers
             if (imdbId <= 0 || (si.ImdbIdInt != imdbId && si.ImdbIdEpisodeInt != imdbId))
                 return res;
 
-            var tbl = htmlDoc.QuerySelector("table > tbody");
-            var trs = tbl?.GetElementsByTagName("tr");
+            var tbl = htmlDoc.QuerySelector("ul.sublist");
+            var trs = tbl?.QuerySelectorAll("li.item");
             foreach (var tr in trs)
             {
                 try
                 {
-                    var tagTitle = tr.QuerySelector("td.a1");
-                    if (tagTitle == null) continue;
+                    var tagInfo = tr.QuerySelector("div.col-info");
+                    if (tagInfo == null) continue;
 
-                    var tagLink = tagTitle.QuerySelector("a");
+                    var tagUl = tagInfo.QuerySelector("ul.scrolllist");
+                    var tagLi = tagUl?.QuerySelectorAll("li");
+                    if (tagLi == null || tagLi.Length < 1) continue;
+                    
+                    var releases = new List<string>();
+                    foreach (var item in tagLi)
+                    {
+                        releases.Add(item.InnerHtml.Trim());
+                    }
+
+                    var tagLink = tr.QuerySelector("a.download");
                     if (tagLink == null || !tagLink.HasAttribute("href")) continue;
                     var subLink = ServerUrl + tagLink.Attributes["href"].Value;
-
-                    var tagSpan = tagTitle.QuerySelectorAll("span");
-                    if (tagSpan == null || tagSpan.Length < 2) continue;
-                    var subRelease = tagSpan[1].InnerHtml.Trim();
 
                     if (!links.ContainsKey(subLink))
                     {
                         links[subLink] = new SubData();
 
-                        var files = tr.QuerySelector("td.a3")?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
-                        _ = int.TryParse(files, out links[subLink].Files);
+                        var tagComment = tr.QuerySelector("div.comment-col");
 
-                        if (tr.QuerySelector("td.a41") != null)
-                            links[subLink].Hi = true;
-
-                        var uploader = tr.QuerySelector("td.a5")?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
+                        var uploader = tagComment.QuerySelector("a")?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
                         links[subLink].Uploader = uploader.IsNotNullOrWhiteSpace() ? uploader : "Anonymous";
 
-                        var comment = tr.QuerySelector("td.a6 div")?.TextContent;
+                        var comment = tagComment.QuerySelector("p")?.TextContent;
                         if (comment != null) links[subLink].Comment = comment;
                     }
 
-                    links[subLink].Releases.Add(subRelease);
+                    links[subLink].Releases.AddRange(releases);
                 }
                 catch (Exception e)
                 {
