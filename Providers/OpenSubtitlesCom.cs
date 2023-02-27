@@ -113,6 +113,7 @@ namespace subbuzz.Providers
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request, CancellationToken cancellationToken)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             var res = new List<SubtitleInfo>();
 
             try
@@ -133,12 +134,15 @@ namespace subbuzz.Providers
 
                 string hash = GetOptions().OpenSubUseHash ? CalcHash(request.MediaPath) : string.Empty;
 
-                return await Search(si, apiKey, hash, cancellationToken).ConfigureAwait(false);
+                res = await Search(si, apiKey, hash, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
                 _logger.LogError(e, $"{NAME}: Search error: {e}");
             }
+
+            watch.Stop();
+            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
@@ -250,13 +254,7 @@ namespace subbuzz.Providers
                         continue;
                     }
 
-                    var fileExt = string.Empty;
-                    if (file.FileName != null)
-                    {
-                        fileExt = file.FileName.GetPathExtension().ToLower();
-                    }
-
-                    var format = subItem.Format ?? (fileExt.IsNullOrWhiteSpace() ? "srt" : fileExt);
+                    var format = subItem.Format ?? "srt";
 
                     var item = new SubtitleInfo
                     {

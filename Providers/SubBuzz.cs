@@ -17,6 +17,7 @@ using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
+using System.Xml.Linq;
 #endif
 
 #if JELLYFIN
@@ -34,6 +35,7 @@ namespace subbuzz.Providers
 
         public int Order => 0;
 
+        private readonly ILogger _logger;
         private Dictionary<string, ISubBuzzProvider> Providers;
 
         public SubBuzz(
@@ -48,6 +50,7 @@ namespace subbuzz.Providers
 #endif
             )
         {
+            _logger = logger;
             Providers = new Dictionary<string, ISubBuzzProvider>
             {
                 { SubsSabBz.NAME,           new SubsSabBz(logger, fileSystem, localizationManager, libraryManager, http) },
@@ -77,6 +80,7 @@ namespace subbuzz.Providers
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,
             CancellationToken cancellationToken)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             var tasks = new Dictionary<string, Task<IEnumerable<RemoteSubtitleInfo>>>();
 
             foreach (var p in Providers)
@@ -121,6 +125,10 @@ namespace subbuzz.Providers
             }
 
             res.Sort((x, y) => y.Score.CompareTo(x.Score));
+
+            watch.Stop();
+            _logger.LogInformation($"{Name}: Search duration: {watch.ElapsedMilliseconds/1000.0} sec. Subtitles found: {res.Count}");
+
             return res;
         }
     }

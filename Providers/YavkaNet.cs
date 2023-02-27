@@ -102,6 +102,7 @@ namespace subbuzz.Providers
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,
             CancellationToken cancellationToken)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             var res = new List<SubtitleInfo>();
 
             try
@@ -190,6 +191,9 @@ namespace subbuzz.Providers
             {
                 _logger.LogError(e, $"{NAME}: Search error: {e}");
             }
+
+            watch.Stop();
+            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
