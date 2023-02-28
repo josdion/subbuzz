@@ -17,7 +17,6 @@ using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-using System.Xml.Linq;
 #endif
 
 #if JELLYFIN
@@ -83,6 +82,8 @@ namespace subbuzz.Providers
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var tasks = new Dictionary<string, Task<IEnumerable<RemoteSubtitleInfo>>>();
 
+            _logger.LogInformation($"{Name}: Start subtitle search for {request.Name}.");
+
             foreach (var p in Providers)
             {
                 if (!p.Value.SupportedMediaTypes.Contains(request.ContentType)) continue;
@@ -93,6 +94,16 @@ namespace subbuzz.Providers
 
             foreach (var task in tasks)
             {
+#if JELLYFIN
+                // Jellyfin search request times out after 30 seconds, so ignore searches not completed in time.
+                var elapsedTime = watch.ElapsedMilliseconds;
+                if (!task.Value.Wait((int)(elapsedTime >= 29000 ? 1 : 29000 - elapsedTime)))
+                {
+                    _logger.LogInformation($"{Name}: The response from {task.Key} is ignored because it did not complete in time.");
+                    continue;
+                }
+#endif
+
                 List<SubtitleInfo> subs = (List<SubtitleInfo>)await task.Value;
 
                 foreach (var s in subs)

@@ -1,5 +1,4 @@
 ﻿using HtmlAgilityPack;
-using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
@@ -10,7 +9,6 @@ using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +16,7 @@ using System.Text;
 using System.Globalization;
 
 #if EMBY
+using MediaBrowser.Common.Net;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;

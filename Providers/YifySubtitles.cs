@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AngleSharp;
 using AngleSharp.Html.Parser;
-using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
@@ -19,6 +18,7 @@ using subbuzz.Extensions;
 using subbuzz.Helpers;
 
 #if EMBY
+using MediaBrowser.Common.Net;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;

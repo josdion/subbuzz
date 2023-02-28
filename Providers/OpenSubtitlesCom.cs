@@ -1,5 +1,4 @@
-﻿using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Library;
+﻿using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
@@ -12,7 +11,6 @@ using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Security.Authentication;
 using System.Text;
@@ -20,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 #if EMBY
+using MediaBrowser.Common.Net;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
 using Microsoft.Extensions.Logging;
