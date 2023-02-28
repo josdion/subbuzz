@@ -4,6 +4,7 @@ Subtitles plugin for emby and jellyfin
 ## Supported subtitles providers:
 * Opensubtitles.com
 * Podnapisi.NET
+* Subf2m.co
 * Subscene
 * Subs.sab.bz
 * Subsunacs.net
