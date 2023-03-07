@@ -68,6 +68,27 @@
                             <div class="fieldDescription checkboxFieldDescription">Re-encode downloaded Subtitles to UTF8.</div>
                         </div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="AdjustDuration" name="AdjustDuration" type="checkbox" is="emby-checkbox" />
+                                <span>Adjust Durations</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Correct subtitles reading speed when saving.</div>
+                        </div>
+
+                        <div class="inputContainer" style="margin-left: 2.3em;">
+                            <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1" label="Characters per second (CPS)" />
+                            <div class="fieldDescription">Select the optimal reading speed for subtitles adjustment.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-left: 2.3em;">
+                            <label class="emby-checkbox-label">
+                                <input id="AdjustDurationExtendOnly" name="AdjustDurationExtendOnly" type="checkbox" is="emby-checkbox" />
+                                <span>Extend Only</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not reduce the original duration.</div>
+                        </div>
+
                     </p>
 
                     <hr>
@@ -133,11 +154,17 @@
                     page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
                     page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
                     page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
-                    page.querySelector("#EncodeSubtitlesToUTF8").checked = config.EncodeSubtitlesToUTF8;
+                    page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
+                    page.querySelector("#AdjustDuration").checked = config.SubPostProcessing.AdjustDuration;
+                    page.querySelector("#AdjustDurationCps").value = config.SubPostProcessing.AdjustDurationCps;
+                    page.querySelector("#AdjustDurationExtendOnly").checked = config.SubPostProcessing.AdjustDurationExtendOnly;
                     page.querySelector('#OpenSubUserName').value = config.OpenSubUserName || '';
                     page.querySelector('#OpenSubPassword').value = config.OpenSubPassword || '';
                     page.querySelector('#OpenSubApiKey').value = config.OpenSubApiKey || '';
                     page.querySelector('#OpenSubUseHash').checked = config.OpenSubUseHash;
+
+                    $('#AdjustDurationCps').prop("disabled", !config.SubPostProcessing.AdjustDuration);
+                    $('#AdjustDurationExtendOnly').prop("disabled", !config.SubPostProcessing.AdjustDuration);
 
                     Dashboard.hideLoadingMsg();
                });
@@ -172,7 +199,10 @@
                         config.EnableSubsunacsNet = document.getElementById("EnableSubsunacsNet").checked;
                         config.EnableYavkaNet = document.getElementById("EnableYavkaNet").checked;
                         config.EnableYifySubtitles = document.getElementById("EnableYifySubtitles").checked;
-                        config.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
+                        config.SubPostProcessing.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
+                        config.SubPostProcessing.AdjustDuration = document.getElementById("AdjustDuration").checked;
+                        config.SubPostProcessing.AdjustDurationCps = document.querySelector("#AdjustDurationCps").value;
+                        config.SubPostProcessing.AdjustDurationExtendOnly = document.getElementById("AdjustDurationExtendOnly").checked;
                         config.OpenSubUseHash = document.getElementById("OpenSubUseHash").checked;
                         config.OpenSubUserName = username;
                         config.OpenSubPassword = password;
@@ -221,6 +251,12 @@
                 // Disable default form submission
                 return false;
             });
+
+            $('body').on('change', '#AdjustDuration', function() {
+                $('#AdjustDurationCps').prop("disabled", !this.checked);
+                $('#AdjustDurationExtendOnly').prop("disabled", !this.checked);
+            });
+
         </script>
     </div>
 </body>

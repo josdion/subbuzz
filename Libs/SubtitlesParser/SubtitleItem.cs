@@ -27,6 +27,9 @@ namespace SubtitlesParser.Classes
         /// </summary>
         public List<string> PlaintextLines { get; set; }
         
+        public int Duration {  get {  return EndTime - StartTime; } }
+        public string Text { get { return string.Join(Environment.NewLine, Lines); } }
+        public string Plaintext { get {  return string.Join(Environment.NewLine, PlaintextLines); } }
 
         //Constructors-----------------------------------------------------------------
 
@@ -47,7 +50,7 @@ namespace SubtitlesParser.Classes
             var startTs = new TimeSpan(0, 0, 0, 0, StartTime);
             var endTs = new TimeSpan(0, 0, 0, 0, EndTime);
 
-            var res = string.Format("{0} --> {1}: {2}", startTs.ToString("G"), endTs.ToString("G"), string.Join(Environment.NewLine, Lines));
+            var res = string.Format("{0} --> {1}: {2}", startTs.ToString("G"), endTs.ToString("G"), Text);
             return res;
         }
 

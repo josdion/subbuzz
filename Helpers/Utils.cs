@@ -9,14 +9,14 @@ namespace subbuzz.Helpers
     {
         public static string Base64UrlDecode(string str)
         {
-            byte[] decbuff = Convert.FromBase64String(str.Replace(",", "=").Replace("-", "+").Replace("/", "_"));
+            byte[] decbuff = Convert.FromBase64String(str.Replace(",", "=").Replace("-", "+").Replace("_", "/"));
             return System.Text.Encoding.UTF8.GetString(decbuff);
         }
 
         public static string Base64UrlEncode(string input)
         {
             byte[] encbuff = System.Text.Encoding.UTF8.GetBytes(input ?? "");
-            return Convert.ToBase64String(encbuff).Replace("=", ",").Replace("+", "-").Replace("_", "/");
+            return Convert.ToBase64String(encbuff).Replace("=", ",").Replace("+", "-").Replace("/", "_");
         }
 
         public static string ByteArrayToString(byte[] ba)
