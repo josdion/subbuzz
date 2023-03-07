@@ -70,7 +70,7 @@ namespace subbuzz.Helpers
                 {
                     Timestamp = DateTime.Now,
                     Key = key,
-                    Data = metaData ?? default,
+                    Data = metaData,
                 };
 
                 byte[] data = new UTF8Encoding(true).GetBytes(JsonSerializer.Serialize<Meta<T>>(meta));

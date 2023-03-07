@@ -35,6 +35,7 @@ namespace subbuzz.Providers
     {
         internal const string NAME = "Podnapisi.NET";
         private const string ServerUrl = "https://www.podnapisi.net";
+        private const string CacheRegion = "podnapisi";
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -63,7 +64,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(NAME));
+            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(CacheRegion));
 
         }
 

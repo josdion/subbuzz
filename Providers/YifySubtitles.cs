@@ -36,6 +36,7 @@ namespace subbuzz.Providers
         internal const string NAME = "YIFY Subtitles";
         private const string ServerUrl = "https://yifysubtitles.org";
         private const string HttpReferer = "https://yifysubtitles.org/";
+        private const string CacheRegion = "yifysubtitles";
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -65,7 +66,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(NAME));
+            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(CacheRegion));
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
