@@ -35,6 +35,7 @@ namespace subbuzz.Providers
     {
         internal const string NAME = "Subscene";
         private const string ServerUrl = "https://subscene.com";
+        private const string CacheRegion = "subscene";
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -99,7 +100,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http);
+            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(CacheRegion));
 
         }
 
@@ -107,11 +108,14 @@ namespace subbuzz.Providers
         {
             try
             {
+                var postProcessing = Plugin.Instance.Configuration.SubPostProcessing;
+                postProcessing.EncodeSubtitlesToUTF8 = true;
+
                 return await downloader.GetArchiveSubFile(
                     id,
                     ServerUrl,
                     Encoding.GetEncoding(1251),
-                    true,
+                    postProcessing,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -470,36 +474,48 @@ namespace subbuzz.Providers
             if (subData.Releases.Count == 1)
                 si.MatchTitle(subData.Releases[0], ref subScoreBase);
 
-            var files = await downloader.GetArchiveFileNames(downloadLink, ServerUrl, cancellationToken).ConfigureAwait(false);
-
-            foreach (var (fileName, fileExt) in files)
+            Download.LinkSub link = new()
             {
-                bool scoreVideoFileName = files.Count == 1 && subData.Releases.Find(x => x.EqualsIgnoreCase(si.FileName)).IsNotNullOrWhiteSpace();
-                bool ignorMutliDiscSubs = files.Count > 1;
+                Url = downloadLink,
+                CacheKey = urlPage,
+                CacheRegion = "sub"
+            };
 
-                float score = si.CaclScore(fileName, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
-                if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+            using (var files = await downloader.GetArchiveFiles(link, ServerUrl, cancellationToken).ConfigureAwait(false))
+            {
+                foreach (var file in files)
                 {
-                    _logger.LogInformation($"{NAME}: Ignore file: {fileName} Page: {urlPage} Socre: {score}");
-                    continue;
+                    bool scoreVideoFileName = files.Count == 1 && subData.Releases.Find(x => x.EqualsIgnoreCase(si.FileName)).IsNotNullOrWhiteSpace();
+                    bool ignorMutliDiscSubs = files.Count > 1;
+
+                    float score = si.CaclScore(file.Name, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
+                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                    {
+                        _logger.LogInformation($"{NAME}: Ignore file: {file.Name} Page: {urlPage} Socre: {score}");
+                        continue;
+                    }
+
+                    link.File = file.Name;
+                    link.Lang = si.LanguageInfo.TwoLetterISOLanguageName;
+                    link.Fps = subFps;
+
+                    var subItmem = new SubtitleInfo
+                    {
+                        ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                        Id = link.GetId(),
+                        ProviderName = Name,
+                        Name = $"<a href='{urlPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.Name}</a>",
+                        Format = "srt",
+                        Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                        DateCreated = dt,
+                        DownloadCount = subDownloads,
+                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                        IsForced = false,
+                        Score = score,
+                    };
+
+                    res.Add(subItmem);
                 }
-
-                var subItmem = new SubtitleInfo
-                {
-                    ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                    Id = Download.GetId(downloadLink, fileName, si.LanguageInfo.TwoLetterISOLanguageName, subFps),
-                    ProviderName = Name,
-                    Name = $"<a href='{urlPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{fileName}</a>",
-                    Format = "srt",
-                    Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
-                    DateCreated = dt,
-                    DownloadCount = subDownloads,
-                    IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
-                    IsForced = false,
-                    Score = score,
-                };
-
-                res.Add(subItmem);
             }
 
             return res;

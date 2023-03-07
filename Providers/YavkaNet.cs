@@ -77,7 +77,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http);
+            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(NAME));
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -88,7 +88,7 @@ namespace subbuzz.Providers
                     id, 
                     HttpReferer, 
                     Encoding.GetEncoding(1251),
-                    Plugin.Instance.Configuration.EncodeSubtitlesToUTF8,
+                    Plugin.Instance.Configuration.SubPostProcessing,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)

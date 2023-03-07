@@ -13,7 +13,7 @@ namespace subbuzz.Helpers
     {
         private Random _rand = new Random();
         private readonly HttpClient _httpClient;
-        public Download(IHttpClientFactory http)
+        public Download(IHttpClientFactory http, FileCache cache = null)
         {
             _httpClient = http.CreateClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -23,15 +23,19 @@ namespace subbuzz.Helpers
             _httpClient.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.7,bg;q=0.3");
             _httpClient.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
+            _cache = cache;
         }
 
-        private async Task<ResponseInfo> GetRespInfo(HttpResponseMessage response, CancellationToken cancellationToken)
+        private async Task<Response> GetRespInfo(HttpResponseMessage response, CancellationToken cancellationToken)
         {
-            var res = new ResponseInfo
+            var res = new Response
             {
                 Content = new MemoryStream(),
-                ContentType = response.Content.Headers.ContentType?.MediaType ?? "",
-                FileName = response.Content.Headers.ContentDisposition?.FileName ?? ""
+                Info = new ResponseInfo
+                {
+                    ContentType = response.Content.Headers.ContentType?.MediaType ?? "",
+                    FileName = response.Content.Headers.ContentDisposition?.FileName ?? ""
+                }
             };
 
             if (response.Content.Headers.ContentEncoding.Contains("gzip"))
@@ -67,12 +71,12 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        private async Task<ResponseInfo> Get(
+        private async Task<Response> Get(
             string link,
             string referer,
             Dictionary<string, string> post_params,
             CancellationToken cancellationToken,
-            int maxRetry = 5
+            int maxRetry = DefaultMaxRetry
             )
         {
             int retry = 0;

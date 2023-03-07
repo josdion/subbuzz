@@ -63,7 +63,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http);
+            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(NAME));
 
         }
 
@@ -71,11 +71,14 @@ namespace subbuzz.Providers
         {
             try
             {
+                var postProcessing = Plugin.Instance.Configuration.SubPostProcessing;
+                postProcessing.EncodeSubtitlesToUTF8 = true;
+
                 return await downloader.GetArchiveSubFile(
                     id, 
                     ServerUrl, 
-                    Encoding.GetEncoding(1251), 
-                    true,
+                    Encoding.GetEncoding(1251),
+                    postProcessing,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -187,7 +190,7 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<List<SubtitleInfo>> ProcessSubtitles(Subtitle[] subs, SearchInfo si, CancellationToken cancellationToken)
+        protected async Task<List<SubtitleInfo>> ProcessSubtitles(PodnapisiAPI.Models.Subtitle[] subs, SearchInfo si, CancellationToken cancellationToken)
         {
             var res = new List<SubtitleInfo>();
             if (subs == null) return res;
@@ -208,7 +211,7 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<List<SubtitleInfo>> ProcessSubtitle(Subtitle sub, SearchInfo si, CancellationToken cancellationToken)
+        protected async Task<List<SubtitleInfo>> ProcessSubtitle(PodnapisiAPI.Models.Subtitle sub, SearchInfo si, CancellationToken cancellationToken)
         {
             var res = new List<SubtitleInfo>();
             if (sub == null) return res;

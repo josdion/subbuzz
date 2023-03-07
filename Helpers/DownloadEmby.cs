@@ -16,11 +16,12 @@ namespace subbuzz.Helpers
     {
         private Random _rand = new Random();
         private readonly IHttpClient _httpClient;
-        public Download(IHttpClient httpClient)
+        public Download(IHttpClient httpClient, FileCache cache = null)
         {
             _httpClient = httpClient;
+            _cache = cache;
         }
-        private ResponseInfo GetRespInfo(HttpResponseInfo response)
+        private Response GetRespInfo(HttpResponseInfo response)
         {
             string fileName = string.Empty;
             if (response.Headers.TryGetValue("Content-Disposition", out string contentDisposition))
@@ -33,17 +34,20 @@ namespace subbuzz.Helpers
                         var names = part.Split('=');
                         if (names.Length > 1 && names[0].Trim().EqualsIgnoreCase("filename"))
                         {
-                            fileName = names[1].Trim();
+                            fileName = names[1].Trim(' ', '"');
                         }
                     }
                 }
             }
 
-            var res = new ResponseInfo
+            var res = new Response
             {
                 Content = new MemoryStream(),
-                ContentType = response.ContentType,
-                FileName = fileName
+                Info = new ResponseInfo
+                {
+                    ContentType = response.ContentType,
+                    FileName = fileName
+                }
             };
 
             // TODO: store to cache
@@ -52,12 +56,12 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        private async Task<ResponseInfo> Get(
+        private async Task<Response> Get(
             string link,
             string referer,
             Dictionary<string, string> post_params,
             CancellationToken cancellationToken,
-            int maxRetry = 5
+            int maxRetry = DefaultMaxRetry
             )
         {
             // TODO: check if cached

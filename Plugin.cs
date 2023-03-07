@@ -4,6 +4,7 @@ using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using System;
 using System.Collections.Generic;
+using subbuzz.Helpers;
 
 #if EMBY
 using System.IO;
@@ -19,6 +20,7 @@ namespace subbuzz
 #endif
     {
         public const string NAME = "subbuzz";
+        public FileCache Cache = null;
 
         public Plugin(
 			IApplicationPaths applicationPaths, 
@@ -26,6 +28,7 @@ namespace subbuzz
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
+            Cache = new FileCache(applicationPaths.CachePath).FromRegion(NAME);
         }
 
         public override string Name => NAME;

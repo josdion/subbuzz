@@ -16,6 +16,7 @@ using System.Security.Authentication;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 
 #if EMBY
 using MediaBrowser.Common.Net;
@@ -48,6 +49,8 @@ namespace subbuzz.Providers
 
         private PluginConfiguration GetOptions()
             => Plugin.Instance.Configuration;
+        
+        private FileCache _cache = null;
 
         public OpenSubtitlesCom(
             ILogger logger,
@@ -68,6 +71,7 @@ namespace subbuzz.Providers
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
             RequestHelper.Instance = new RequestHelper(http, version);
+            _cache = Plugin.Instance.Cache?.FromRegion(NAME);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -77,29 +81,41 @@ namespace subbuzz.Providers
                 var token = GetOptions().OpenSubToken;
 
                 var (fileId, lang, format, fps) = ParseId(id);
-                var link = await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);
+                var fileStream = _cache?.FromRegion("sub").Get(fileId);
 
-                if (link.IsNullOrWhiteSpace())
+                if (fileStream == null)
                 {
-                    return new SubtitleResponse();
+                    var link = await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);
+
+                    if (link.IsNullOrWhiteSpace())
+                    {
+                        return new SubtitleResponse();
+                    }
+
+                    var res = await OpenSubtitles.DownloadSubtitleAsync(link, cancellationToken).ConfigureAwait(false);
+
+                    if (!res.Ok)
+                    {
+                        _logger.LogInformation($"{NAME}: Subtitle with Id {id} could not be downloaded: {res.Code}");
+                        return new SubtitleResponse();
+                    }
+
+                    fileStream = new MemoryStream();
+                    res.Data.CopyTo(fileStream);
+                    res.Data.Close();
+
+                    _cache?.FromRegion("sub").Add(fileId, fileStream);
                 }
 
-                var res = await OpenSubtitles.DownloadSubtitleAsync(link, cancellationToken).ConfigureAwait(false);
-
-                if (!res.Ok)
-                {
-                    _logger.LogInformation($"{NAME}: Subtitle with Id {id} could not be downloaded: {res.Code}");
-                    return new SubtitleResponse();
-                }
-
-                var fileStream = SubtitleConvert.ToSupportedFormat(res.Data, Encoding.UTF8, GetOptions().EncodeSubtitlesToUTF8, fps, ref format);
+                var outStream = SubtitleConvert.ToSupportedFormat(fileStream, Encoding.UTF8, fps, ref format, GetOptions().SubPostProcessing);
+                fileStream.Close();
 
                 return new SubtitleResponse
                 {
                     Format = format,
                     Language = lang,
                     IsForced = false,
-                    Stream = fileStream,
+                    Stream = outStream,
                 };
             }
             catch (Exception e)
