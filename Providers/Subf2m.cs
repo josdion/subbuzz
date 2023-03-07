@@ -474,7 +474,7 @@ namespace subbuzz.Providers
             if (subData.Releases.Count == 1)
                 si.MatchTitle(subData.Releases[0], ref subScoreBase);
 
-            Download.LinkSub link = new ()
+            Download.LinkSub link = new Download.LinkSub
             {
                 Url = downloadLink,
                 CacheKey = urlPage,

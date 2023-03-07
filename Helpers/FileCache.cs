@@ -98,16 +98,18 @@ namespace subbuzz.Helpers
 
             using (FileStream streamMeta = GetStream(Path.Combine(subDir, fileName + ".meta"), FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                using var sr = new StreamReader(streamMeta, Encoding.UTF8);
-                Meta<T> meta = JsonSerializer.Deserialize<Meta<T>>(sr.ReadToEnd());
-                metaData = meta.Data;
-                
-                using (FileStream stream = GetStream(Path.Combine(subDir, fileName + ".dat"), FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var sr = new StreamReader(streamMeta, Encoding.UTF8))
                 {
-                    Stream value = new MemoryStream();
-                    stream.CopyTo(value);
-                    value.Seek(0, SeekOrigin.Begin);
-                    return value;
+                    Meta<T> meta = JsonSerializer.Deserialize<Meta<T>>(sr.ReadToEnd());
+                    metaData = meta.Data;
+
+                    using (FileStream stream = GetStream(Path.Combine(subDir, fileName + ".dat"), FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        Stream value = new MemoryStream();
+                        stream.CopyTo(value);
+                        value.Seek(0, SeekOrigin.Begin);
+                        return value;
+                    }
                 }
             }
         }
