@@ -44,7 +44,7 @@ namespace SubtitlesParser.Classes.Parsers
             {
                 foreach (var format in SubtitlesFormat.SupportedSubtitlesFormats)
                 {
-                    if (format.Extension != null && Regex.IsMatch(extension, format.Extension, RegexOptions.IgnoreCase))
+                    if (format.Extension != null && Regex.IsMatch(extension, format.ExtensionPattern, RegexOptions.IgnoreCase))
                     {
                         return format;
                     }

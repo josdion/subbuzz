@@ -36,6 +36,7 @@ namespace subbuzz.Providers
     {
         internal const string NAME = "opensubtitles.com";
         private const string ServerUrl = "https://www.opensubtitles.com";
+        private const string CacheRegion = "opensubtitles";
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -71,52 +72,63 @@ namespace subbuzz.Providers
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
             RequestHelper.Instance = new RequestHelper(http, version);
-            _cache = Plugin.Instance.Cache?.FromRegion(NAME);
+            _cache = Plugin.Instance.Cache?.FromRegion(CacheRegion);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                var token = GetOptions().OpenSubToken;
-
                 var (fileId, lang, format, fps) = ParseId(id);
-                var fileStream = _cache?.FromRegion("sub").Get(fileId);
 
-                if (fileStream == null)
+                SubtitleResponse subResp = GetSubtitlesFromCache(fileId, lang, fps);
+                if (subResp != null) {
+                    _logger.LogDebug($"{NAME}: Subtitles with file id {fileId} loaded from cache");
+                    return subResp;
+                }
+
+                var token = GetOptions().OpenSubToken;
+                var link = await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);
+
+                if (link.IsNullOrWhiteSpace())
                 {
-                    var link = await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation($"{NAME}: Can't get download link for file ID {fileId}");
+                    return new SubtitleResponse();
+                }
 
-                    if (link.IsNullOrWhiteSpace())
-                    {
-                        return new SubtitleResponse();
-                    }
+                var res = await OpenSubtitles.DownloadSubtitleAsync(link, cancellationToken).ConfigureAwait(false);
+                if (!res.Ok)
+                {
+                    _logger.LogInformation($"{NAME}: Subtitle {link} could not be downloaded: {res.Code}");
+                    return new SubtitleResponse();
+                }
 
-                    var res = await OpenSubtitles.DownloadSubtitleAsync(link, cancellationToken).ConfigureAwait(false);
-
-                    if (!res.Ok)
-                    {
-                        _logger.LogInformation($"{NAME}: Subtitle with Id {id} could not be downloaded: {res.Code}");
-                        return new SubtitleResponse();
-                    }
-
-                    fileStream = new MemoryStream();
+                using (Stream fileStream = new MemoryStream())
+                { 
                     res.Data.CopyTo(fileStream);
                     res.Data.Close();
 
-                    _cache?.FromRegion("sub").Add(fileId, fileStream);
+                    Stream outStream = SubtitleConvert.ToSupportedFormat(fileStream, Encoding.UTF8, fps, out format, GetOptions().SubPostProcessing);
+                    if (GetOptions().SubtitleCache)
+                    {
+                        try
+                        {
+                            _cache?.FromRegion("sub").Add(fileId, fileStream);
+                        }
+                        catch (Exception e) 
+                        {
+                            _logger.LogError(e, $"{NAME}: Can't add subtitles to cache: {e}");
+                        }
+                    }
+
+                    return new SubtitleResponse
+                    {
+                        Format = format,
+                        Language = lang,
+                        IsForced = false,
+                        Stream = outStream,
+                    };
                 }
-
-                var outStream = SubtitleConvert.ToSupportedFormat(fileStream, Encoding.UTF8, fps, ref format, GetOptions().SubPostProcessing);
-                fileStream.Close();
-
-                return new SubtitleResponse
-                {
-                    Format = format,
-                    Language = lang,
-                    IsForced = false,
-                    Stream = outStream,
-                };
             }
             catch (Exception e)
             {
@@ -124,6 +136,40 @@ namespace subbuzz.Providers
             }
 
             return new SubtitleResponse();
+        }
+
+        protected SubtitleResponse GetSubtitlesFromCache(string fileId, string lang, float fps)
+        {
+            try
+            {
+                if (!GetOptions().SubtitleCache)
+                {
+                    return null;
+                }
+
+                using (Stream fileStream = _cache?.FromRegion("sub").Get(fileId))
+                {
+                    string format;
+                    Stream outStream = SubtitleConvert.ToSupportedFormat(fileStream, Encoding.UTF8, fps, out format, GetOptions().SubPostProcessing);
+                    return new SubtitleResponse
+                    {
+                        Format = format,
+                        Language = lang,
+                        IsForced = false,
+                        Stream = outStream,
+                    };
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                return null;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{NAME}: Unable to load subtitles from cache: {e}");
+            }
+
+            return null;
         }
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request, CancellationToken cancellationToken)

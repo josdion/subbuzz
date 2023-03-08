@@ -19,6 +19,7 @@ namespace subbuzz.Helpers
 
         public SubtitlesFormat Format { get; private set; }
         public List<SubtitleItem> Paragraphs { get; private set; }
+        public Encoding Encoding {get; private set; }
 
         public void AdjustDuration(double charPerSec, bool extendOnly = false, bool onlyOptimal = false)
         {
@@ -134,6 +135,7 @@ namespace subbuzz.Helpers
                     Subtitle sub = new Subtitle();
                     sub.Paragraphs = parser.Value.ParseStream(inStream, encoding);
                     sub.Format = parser.Key;
+                    sub.Encoding = encoding;
                     return sub;
                 }
                 catch
@@ -144,72 +146,90 @@ namespace subbuzz.Helpers
 
             return null;
         }
+
+        public void WriteStream(Stream stream, bool encodeToUTF8, out string format)
+        {
+            if (Format == SubtitlesFormat.SubStationAlphaFormat)
+            {
+                var writer = new SsaWriter();
+                writer.WriteStream(stream, encodeToUTF8 ? Encoding.UTF8 : Encoding, Paragraphs, true);
+                format = "ssa";
+            }
+            else
+            {
+                // convert to srt
+                var writer = new SrtWriter();
+                writer.WriteStream(stream, encodeToUTF8 ? Encoding.UTF8 : Encoding, Paragraphs, Format == SubtitlesFormat.SubRipFormat);
+                format = "srt";
+            }
+        }
+
+        public void RemoveStyleTags()
+        {
+            foreach (var p in Paragraphs)
+            {
+                if (p.PlaintextLines.Count > 0)
+                    p.Lines = p.PlaintextLines;
+            }
+        }
     }
 
     class SubtitleConvert
     {
-        // emby: Supported formats
-        // ass, srt, ssa, sub/idx, vtt
+        public static bool IsSupportedByEmby(SubtitlesFormat format)
+        {
+            return format == SubtitlesFormat.SubRipFormat ||
+                   format == SubtitlesFormat.SubStationAlphaFormat ||
+                   format == SubtitlesFormat.WebVttFormat;
+        }
 
-        public static Stream ToSupportedFormat(Stream inStream, Encoding encoding, float fps, ref string format, SubPostProcessingCfg postProcessing)
+        public static Stream ToSupportedFormat(Stream inStream, Encoding encoding, float fps, out string format, SubPostProcessingCfg postProcessing)
         {
             Stream outs = new MemoryStream();
 
             try
             {
+                if (inStream == null)
+                    throw new ArgumentNullException("inStream");
+
                 using (Stream ins = new MemoryStream())
                 {
                     inStream.CopyTo(ins);
                     ins.Seek(0, SeekOrigin.Begin);
 
                     Subtitle sub = Subtitle.Load(ins, encoding, fps);
-                    if (sub == null) return outs;
+                    if (sub == null)
+                        throw new FormatException("Subtitle format not supported");
 
                     if (postProcessing.AdjustDuration)
                     {
                         sub.AdjustDuration(postProcessing.AdjustDurationCps, postProcessing.AdjustDurationExtendOnly);
                     }
 
-                    if (!postProcessing.AdjustDuration &&
-                        (sub.Format == SubtitlesFormat.SubRipFormat ||
-                         sub.Format == SubtitlesFormat.SubStationAlphaFormat ||
-                         sub.Format == SubtitlesFormat.WebVttFormat))
+                    if (!postProcessing.AdjustDuration && IsSupportedByEmby(sub.Format))
                     {
                         // Do not convert formats supported by emby/jellyfin, just re-encode to UTF8 if needed
                         ins.Seek(0, SeekOrigin.Begin);
-                        var sr = new StreamReader(ins, encoding, true);
-                        var writer = new StreamWriter(outs, postProcessing.EncodeSubtitlesToUTF8 ? Encoding.UTF8 : encoding);
+                        var sr = new StreamReader(ins, sub.Encoding, true);
+                        var writer = new StreamWriter(outs, postProcessing.EncodeSubtitlesToUTF8 ? Encoding.UTF8 : sub.Encoding);
                         writer.Write(sr.ReadToEnd());
                         writer.Flush();
-                        format = sub.Format.Extension.Split('.').LastOrDefault().ToLower();
+                        format = sub.Format.Extension;
                     }
                     else
                     {
-                        if (sub.Format == SubtitlesFormat.SubStationAlphaFormat)
-                        {
-                            var writer = new SsaWriter();
-                            writer.WriteStream(outs, postProcessing.EncodeSubtitlesToUTF8 ? Encoding.UTF8 : encoding, sub.Paragraphs, true);
-                            format = "ssa";
-                        }
-                        else
-                        {
-                            // convert to srt
-                            var writer = new SrtWriter();
-                            writer.WriteStream(outs, postProcessing.EncodeSubtitlesToUTF8 ? Encoding.UTF8 : encoding, sub.Paragraphs, sub.Format == SubtitlesFormat.SubRipFormat);
-                            format = "srt";
-                        }
+                        sub.WriteStream(outs, postProcessing.EncodeSubtitlesToUTF8, out format);
                     }
+                    
+                    outs.Seek(0, SeekOrigin.Begin);
+                    return outs;
                 }
-
-                outs.Seek(0, SeekOrigin.Begin);
-                return outs;
-
             }
-            catch
+            catch 
             {
+                outs.Close();
+                throw;
             }
-
-            return outs;
         }
 
     }

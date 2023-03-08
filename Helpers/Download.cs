@@ -129,13 +129,13 @@ namespace subbuzz.Helpers
                 {
                     if (string.IsNullOrWhiteSpace(link.File) || link.File == file.Name)
                     {
-                        string fileExt = file.Ext;
-                        Stream fileStream = SubtitleConvert.ToSupportedFormat(file.Content, defaultEncoding, link.GetFps(), ref fileExt, postProcessing);
+                        string format;
+                        Stream fileStream = SubtitleConvert.ToSupportedFormat(file.Content, defaultEncoding, link.GetFps(), out format, postProcessing);
 
                         return new SubtitleResponse
                         {
                             Language = link.Lang,
-                            Format = fileExt,
+                            Format = format,
                             IsForced = false,
                             Stream = fileStream
                         };

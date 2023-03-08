@@ -6,8 +6,9 @@ namespace SubtitlesParser.Classes
     {
         // Properties -----------------------------------------
 
-        public string Name { get; set; }
-        public string Extension { get; set; }
+        public string Name { get; private set; }
+        public string Extension { get; private set; }
+        public string ExtensionPattern { get; private set; }    
 
 
         // Private constructor to avoid duplicates ------------
@@ -20,37 +21,44 @@ namespace SubtitlesParser.Classes
         public static SubtitlesFormat SubRipFormat = new SubtitlesFormat()
         {
             Name = "SubRip",
-            Extension = @"\.srt"
+            Extension = "srt",
+            ExtensionPattern = @"\.srt"
         };
         public static SubtitlesFormat MicroDvdFormat = new SubtitlesFormat()
         {
             Name = "MicroDvd",
-            Extension = @"\.sub"
+            Extension = "sub",
+            ExtensionPattern = @"\.sub"
         };
         public static SubtitlesFormat SubViewerFormat = new SubtitlesFormat()
         {
             Name = "SubViewer",
-            Extension = @"\.sub"
+            Extension = "sub",
+            ExtensionPattern = @"\.sub"
         };
         public static SubtitlesFormat SubStationAlphaFormat = new SubtitlesFormat()
         {
             Name = "SubStationAlpha",
-            Extension = @"\.ssa"
+            Extension = "ssa",
+            ExtensionPattern = @"\.(ssa|ass)"
         };
         public static SubtitlesFormat TtmlFormat = new SubtitlesFormat()
         {
             Name = "TTML",
-            Extension = @"\.ttml"
+            Extension = "ttml",
+            ExtensionPattern = @"\.ttml"
         };
         public static SubtitlesFormat WebVttFormat = new SubtitlesFormat()
         {
             Name = "WebVTT",
-            Extension = @"\.vtt"
+            Extension = "vtt",
+            ExtensionPattern = @"\.vtt"
         };
         public static SubtitlesFormat YoutubeXmlFormat = new SubtitlesFormat()
         {
             Name = "YoutubeXml",
-            //Extension = @"\.*"
+            Extension = "xml",
+            ExtensionPattern = @"\.xml"
         };
 
         public static List<SubtitlesFormat> SupportedSubtitlesFormats = new List<SubtitlesFormat>()

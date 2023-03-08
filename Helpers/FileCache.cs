@@ -9,6 +9,9 @@ namespace subbuzz.Helpers
 {
     public class FileCache
     {
+        private const string ExtMeta = ".meta";
+        private const string ExtDat = ".dat";
+
         protected class NoData { }
 
         public class Meta<T>
@@ -23,8 +26,6 @@ namespace subbuzz.Helpers
         public FileCache(string cacheDir)
         {
             CacheDir = cacheDir;
-            if (!Directory.Exists(CacheDir))
-                Directory.CreateDirectory(CacheDir);
         }
 
         public FileCache FromRegion(string region)
@@ -33,22 +34,15 @@ namespace subbuzz.Helpers
             return new FileCache(Path.Combine(CacheDir, region));
         }
 
-        public bool Add(string key, Stream value)
+        public void Add(string key, Stream value)
         {
-            try
-            {
-                Add<NoData>(key, value, null);
-                return true;
-            }
-            catch 
-            { 
-                return false; 
-            }
+            Add<NoData>(key, value, null);
         }
 
         public void Add<T>(string key, Stream value, T metaData)
         {
-            if (value == null) return;
+            if (value == null)
+                throw new ArgumentNullException("value");
 
             string keyHash = ComputeKeyHash(key);
             string subDir = Path.Combine(CacheDir, keyHash.Substring(0, 3));
@@ -57,9 +51,9 @@ namespace subbuzz.Helpers
             if (!Directory.Exists(subDir))
                 Directory.CreateDirectory(subDir);
 
-            using (FileStream streamMeta = GetStream(Path.Combine(subDir, fileName + ".meta"), FileMode.Create, FileAccess.Write, FileShare.None))
+            using (FileStream streamMeta = GetStream(Path.Combine(subDir, fileName + ExtMeta), FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                using (FileStream streamDat = GetStream(Path.Combine(subDir, fileName + ".dat"), FileMode.Create, FileAccess.Write, FileShare.None))
+                using (FileStream streamDat = GetStream(Path.Combine(subDir, fileName + ExtDat), FileMode.Create, FileAccess.Write, FileShare.None))
                 {
                     value.Seek(0, SeekOrigin.Begin);
                     value.CopyTo(streamDat);
@@ -80,14 +74,7 @@ namespace subbuzz.Helpers
 
         public Stream Get(string key)
         {
-            try
-            {
-                return Get<NoData>(key, out _);
-            }
-            catch 
-            {
-                return null;
-            }
+            return Get<NoData>(key, out _);
         }
 
         public Stream Get<T>(string key, out T metaData)
@@ -95,15 +82,22 @@ namespace subbuzz.Helpers
             string keyHash = ComputeKeyHash(key);
             string subDir = Path.Combine(CacheDir, keyHash.Substring(0, 3));
             string fileName = keyHash.Substring(3);
+            string fileNameMeta = Path.Combine(subDir, fileName + ExtMeta);
+            string fileNameDat = Path.Combine(subDir, fileName + ExtDat);
 
-            using (FileStream streamMeta = GetStream(Path.Combine(subDir, fileName + ".meta"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            if (!File.Exists(fileNameMeta) || !File.Exists(fileNameDat))
+            {
+                throw new FileNotFoundException();
+            }
+
+            using (FileStream streamMeta = GetStream(fileNameMeta, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 using (var sr = new StreamReader(streamMeta, Encoding.UTF8))
                 {
                     Meta<T> meta = JsonSerializer.Deserialize<Meta<T>>(sr.ReadToEnd());
                     metaData = meta.Data;
 
-                    using (FileStream stream = GetStream(Path.Combine(subDir, fileName + ".dat"), FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (FileStream stream = GetStream(fileNameDat, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         Stream value = new MemoryStream();
                         stream.CopyTo(value);

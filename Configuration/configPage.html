@@ -5,123 +5,149 @@
     <title>subbuzz</title>
 </head>
 <body>
-    <div id="SubbuzzConfigPage" data-role="page" class="page type-interior pluginConfigurationPage SubbuzzConfigPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div id="SubbuzzConfigPage" 
+         data-role="page" 
+         data-title="SubBuzz"
+         class="page type-interior pluginConfigurationPage SubbuzzConfigPage" 
+         data-require="emby-input,emby-button,emby-select,emby-checkbox"
+         data-helpurl="https://github.com/josdion/subbuzz">
+
         <div data-role="content">
             <div class="content-primary">
 
-                <div class="verticalSection verticalSection">
-                    <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">SubBuzz</h2>
-                    </div>
-                </div>
-
                 <form id="SubbuzzConfigForm" class="SubbuzzConfigForm">
 
-                    <hr>
-
-                    <div style="margin-top: 2em;">
-                        <h3 class="checkboxListLabel">Providers</h3>
-                        <div class="paperList checkboxList checkboxList-paperList">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableOpenSubtitles" id="EnableOpenSubtitles" />
-                                <span>OpenSubtitles.com</span>
-                            </label>
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnablePodnapisiNet" id="EnablePodnapisiNet" />
-                                <span>Podnapisi.NET</span>
-                            </label>
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableSubf2m" id="EnableSubf2m" />
-                                <span>Subf2me</span>
-                            </label>
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableSubscene" id="EnableSubscene" />
-                                <span>Subscene</span>
-                            </label>
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
-                                <span>Subs.sab.bz</span>
-                            </label>
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableSubsunacsNet" id="EnableSubsunacsNet" />
-                                <span>Subsunacs.net</span>
-                            </label>
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableYavkaNet" id="EnableYavkaNet" />
-                                <span>Yavka.net</span>
-                            </label>
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles" id="EnableYifySubtitles" />
-                                <span>YIFY Subtitles</span>
-                            </label>
+                    <div class="verticalSection ">
+                        <div class="sectionTitleContainer flex align-items-center">
+                            <h2 class="sectionTitle">Providers</h2>
                         </div>
                     </div>
 
-                    <h3>Post-Processing</h3>
+                    <div class="paperList checkboxList checkboxList-paperList">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnableOpenSubtitles" id="EnableOpenSubtitles" />
+                            <span>OpenSubtitles.com</span>
+                        </label>
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnablePodnapisiNet" id="EnablePodnapisiNet" />
+                            <span>Podnapisi.NET</span>
+                        </label>
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnableSubf2m" id="EnableSubf2m" />
+                            <span>Subf2me</span>
+                        </label>
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnableSubscene" id="EnableSubscene" />
+                            <span>Subscene</span>
+                        </label>
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
+                            <span>Subs.sab.bz</span>
+                        </label>
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnableSubsunacsNet" id="EnableSubsunacsNet" />
+                            <span>Subsunacs.net</span>
+                        </label>
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnableYavkaNet" id="EnableYavkaNet" />
+                            <span>Yavka.net</span>
+                        </label>
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles" id="EnableYifySubtitles" />
+                            <span>YIFY Subtitles</span>
+                        </label>
+                    </div>
+
+                    <div class="verticalSection ">
+                        <div class="sectionTitleContainer flex align-items-center">
+                            <h2 class="sectionTitle">Post-Processing</h2>
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EncodeSubtitlesToUTF8" name="EncodeSubtitlesToUTF8" type="checkbox" is="emby-checkbox" />
+                            <span>Encode Subtitles To UTF8</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Re-encode downloaded Subtitles to UTF8.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AdjustDuration" name="AdjustDuration" type="checkbox" is="emby-checkbox" />
+                            <span>Adjust Durations</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Correct subtitles reading speed when saving.</div>
+                    </div>
+
+                    <div class="inputContainer" style="margin-left: 2.3em;">
+                        <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1" label="Characters per second (CPS)" />
+                        <div class="fieldDescription">Select the optimal reading speed for subtitles adjustment.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-left: 2.3em;">
+                        <label class="emby-checkbox-label">
+                            <input id="AdjustDurationExtendOnly" name="AdjustDurationExtendOnly" type="checkbox" is="emby-checkbox" />
+                            <span>Extend Only</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not reduce the original duration.</div>
+                    </div>
+
+                    <div class="verticalSection ">
+                        <div class="sectionTitleContainer flex align-items-center">
+                            <h2 class="sectionTitle">Cache</h2>
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="SubtitleCache" name="SubtitleCache" type="checkbox" is="emby-checkbox" />
+                            <span>Subtitle Cache</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Store downloaded subtitle files localy to reduce requests to the providers.
+                        </div>
+                    </div>
+
+                    <div class="verticalSection ">
+                        <div class="sectionTitleContainer flex align-items-center">
+                            <h2 class="sectionTitle">OpenSubtitles.com Account</h2>
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                                <input is="emby-input" type="text" id="OpenSubUserName" label="${LabelUsername}" />
+                                <div class="fieldDescription">
+                                    Don't have an account yet? 
+                                    <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com">
+                                        Register here
+                                    </a>
+                                </div>
+                    </div>
+
+                    <div class="inputContainer">
+                                <input is="emby-input" type="password" id="OpenSubPassword" label="${LabelPassword}" />
+                                <div class="fieldDescription"></div>
+                    </div>
+
+                    <div class="inputContainer">
+                                <input is="emby-input" type="password" id="OpenSubApiKey" label="API Key (Optional):" />
+                                <div class="fieldDescription">
+                                    You can provide an <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers">API Key</a> for doing API requests, if left empty the default API key will be used.
+                                </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label class="emby-checkbox-label">
+                                    <input id="OpenSubUseHash" name="OpenSubUseHash" type="checkbox" is="emby-checkbox" />
+                                    <span>Use Hash</span>
+                                </label>
+                                <div class="fieldDescription checkboxFieldDescription">
+                                    When enabled, the hash of the video file will be sent in search requests to opensubtitles.com
+                                </div>
+                    </div>
+
                     <p>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label class="emby-checkbox-label">
-                                <input id="EncodeSubtitlesToUTF8" name="EncodeSubtitlesToUTF8" type="checkbox" is="emby-checkbox" />
-                                <span>Encode Subtitles To UTF8</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">Re-encode downloaded Subtitles to UTF8.</div>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label class="emby-checkbox-label">
-                                <input id="AdjustDuration" name="AdjustDuration" type="checkbox" is="emby-checkbox" />
-                                <span>Adjust Durations</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">Correct subtitles reading speed when saving.</div>
-                        </div>
-
-                        <div class="inputContainer" style="margin-left: 2.3em;">
-                            <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1" label="Characters per second (CPS)" />
-                            <div class="fieldDescription">Select the optimal reading speed for subtitles adjustment.</div>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-left: 2.3em;">
-                            <label class="emby-checkbox-label">
-                                <input id="AdjustDurationExtendOnly" name="AdjustDurationExtendOnly" type="checkbox" is="emby-checkbox" />
-                                <span>Extend Only</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not reduce the original duration.</div>
-                        </div>
-
-                    </p>
-
-                    <hr>
-
-                    <h3>OpenSubtitles.com Account</h3>
-                    <p>
-                        <div class="inputContainer">
-                            <input is="emby-input" type="text" id="OpenSubUserName" label="${LabelUsername}" />
-                            <div class="fieldDescription">
-                                <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com">Register</a>
-                            </div>
-                        </div>
-
-                        <div class="inputContainer">
-                            <input is="emby-input" type="password" id="OpenSubPassword" label="${LabelPassword}" />
-                            <div class="fieldDescription"></div>
-                        </div>
-
-                        <div class="inputContainer">
-                            <input is="emby-input" type="password" id="OpenSubApiKey" label="API Key (Optional):" />
-                            <div class="fieldDescription">
-                                You can provide an <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers">API Key</a> for doing API requests, if left empty the default API key will be used.
-                            </div>
-                        </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label class="emby-checkbox-label">
-                                <input id="OpenSubUseHash" name="OpenSubUseHash" type="checkbox" is="emby-checkbox" />
-                                <span>Use Hash</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription"></div>
-                        </div>
-
                         <div class="fieldDescription" id="ossresponse"></div>
                     </p>
 
@@ -158,6 +184,7 @@
                     page.querySelector("#AdjustDuration").checked = config.SubPostProcessing.AdjustDuration;
                     page.querySelector("#AdjustDurationCps").value = config.SubPostProcessing.AdjustDurationCps;
                     page.querySelector("#AdjustDurationExtendOnly").checked = config.SubPostProcessing.AdjustDurationExtendOnly;
+                    page.querySelector("#SubtitleCache").checked = config.SubtitleCache;
                     page.querySelector('#OpenSubUserName').value = config.OpenSubUserName || '';
                     page.querySelector('#OpenSubPassword').value = config.OpenSubPassword || '';
                     page.querySelector('#OpenSubApiKey').value = config.OpenSubApiKey || '';
@@ -203,6 +230,7 @@
                         config.SubPostProcessing.AdjustDuration = document.getElementById("AdjustDuration").checked;
                         config.SubPostProcessing.AdjustDurationCps = document.querySelector("#AdjustDurationCps").value;
                         config.SubPostProcessing.AdjustDurationExtendOnly = document.getElementById("AdjustDurationExtendOnly").checked;
+                        config.SubtitleCache = document.getElementById("SubtitleCache").checked;
                         config.OpenSubUseHash = document.getElementById("OpenSubUseHash").checked;
                         config.OpenSubUserName = username;
                         config.OpenSubPassword = password;
