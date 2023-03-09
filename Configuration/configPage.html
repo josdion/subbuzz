@@ -90,7 +90,7 @@
                             <input id="AdjustDurationExtendOnly" name="AdjustDurationExtendOnly" type="checkbox" is="emby-checkbox" />
                             <span>Extend Only</span>
                         </label>
-                        <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not reduce the original duration.</div>
+                        <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not decrease the original duration.</div>
                     </div>
 
                     <div class="verticalSection ">
@@ -105,7 +105,7 @@
                             <span>Subtitle Cache</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Store downloaded subtitle files localy to reduce requests to the providers.
+                            Store downloaded subtitle files localy to reduce the requests to the providers.
                         </div>
                     </div>
 
@@ -116,36 +116,36 @@
                     </div>
 
                     <div class="inputContainer">
-                                <input is="emby-input" type="text" id="OpenSubUserName" label="${LabelUsername}" />
-                                <div class="fieldDescription">
-                                    If you don't have an account yet, go to
-                                    <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com">
-                                        opensubtitles.com
-                                    </a>
-                                    to create one.
-                                </div>
+                        <input is="emby-input" type="text" id="OpenSubUserName" label="${LabelUsername}" />
+                        <div class="fieldDescription">
+                            If you don't have an account yet, go to
+                            <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com">
+                                opensubtitles.com
+                            </a>
+                            to create one.
+                        </div>
                     </div>
 
                     <div class="inputContainer">
-                                <input is="emby-input" type="password" id="OpenSubPassword" label="${LabelPassword}" />
-                                <div class="fieldDescription"></div>
+                        <input is="emby-input" type="password" id="OpenSubPassword" label="${LabelPassword}" />
+                        <div class="fieldDescription"></div>
                     </div>
 
                     <div class="inputContainer">
-                                <input is="emby-input" type="password" id="OpenSubApiKey" label="API Key (Optional):" />
-                                <div class="fieldDescription">
-                                    You can provide an <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers">API Key</a> for doing API requests, if left empty the default API key will be used.
-                                </div>
+                        <input is="emby-input" type="password" id="OpenSubApiKey" label="API Key (Optional):" />
+                        <div class="fieldDescription">
+                            You can provide an <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers">API Key</a> for doing API requests, if left empty the default API key will be used.
+                        </div>
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
-                                <label class="emby-checkbox-label">
-                                    <input id="OpenSubUseHash" name="OpenSubUseHash" type="checkbox" is="emby-checkbox" />
-                                    <span>Use Hash</span>
-                                </label>
-                                <div class="fieldDescription checkboxFieldDescription">
-                                    When enabled, the hash of the video file will be sent in search requests to opensubtitles.com
-                                </div>
+                        <label class="emby-checkbox-label">
+                            <input id="OpenSubUseHash" name="OpenSubUseHash" type="checkbox" is="emby-checkbox" />
+                            <span>Use Hash</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When enabled, the hash of the video file will be sent in the search requests to opensubtitles.com
+                        </div>
                     </div>
 
                     <p>
