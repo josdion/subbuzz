@@ -66,19 +66,14 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(CacheRegion));
+            downloader = new Download(http, logger, Plugin.Instance.Cache?.FromRegion(CacheRegion), NAME);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetArchiveSubFile(
-                    id, 
-                    HttpReferer, 
-                    Encoding.GetEncoding(1251),
-                    Plugin.Instance.Configuration.SubPostProcessing,
-                    cancellationToken).ConfigureAwait(false);
+                return await downloader.GetArchiveSubFile(id, HttpReferer, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -199,8 +194,8 @@ namespace subbuzz.Providers
                     continue;
                 }
 
-                var link = tds[2].GetElementsByTagName("a")[0];
-                string subLinkPage = link.GetAttribute("href");
+                var linkTag = tds[2].GetElementsByTagName("a")[0];
+                string subLinkPage = linkTag.GetAttribute("href");
                 var regexLink = new Regex(@"/subtitles/");
                 string subLink;
                 if (subLinkPage.Contains("://"))
@@ -208,41 +203,55 @@ namespace subbuzz.Providers
                 else
                     subLink = regexLink.Replace(subLinkPage, ServerUrl + "/subtitle/", 1) + ".zip";
 
-                string subInfoBase = link.InnerHtml;
+                string subInfoBase = linkTag.InnerHtml;
                 var regexInfo = new Regex(@"<span.*/span>");
                 subInfoBase = regexInfo.Replace(subInfoBase, "").Trim();
                 string subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfoBase) ? "" : "<br>" + subInfoBase);
                 subInfo += string.Format("<br>{0}", subUploader);
 
-                var files = await downloader.GetArchiveFileNames(subLink, HttpReferer, cancellationToken).ConfigureAwait(false);
-
-                foreach (var (fileName, fileExt) in files) 
+                Download.LinkSub link = new Download.LinkSub
                 {
-                    if (fileExt != "srt" && fileExt != "sub") continue;
+                    Url = subLink,
+                    CacheKey = subLink,
+                    CacheRegion = "sub",
+                    Lang = si.LanguageInfo.TwoLetterISOLanguageName
+                };
 
-                    SubtitleScore subScore = new SubtitleScore();
-                    if (byImdb) subScore.AddMatch("imdb");
+                using (var files = await downloader.GetArchiveFiles(link, HttpReferer, cancellationToken).ConfigureAwait(false))
+                {
+                    int subFilesCount = files.CountSubFiles();
 
-                    float score = si.CaclScore(fileName, subScore, files.Count == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
-
-                    var item = new SubtitleInfo
+                    foreach (var file in files)
                     {
-                        ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                        Id = Download.GetId(subLink, "", si.LanguageInfo.TwoLetterISOLanguageName, si.VideoFps.ToString()),
-                        ProviderName = Name,
-                        Name = $"<a href='{ServerUrl}{subLinkPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{fileName}</a>",
-                        Format = fileExt,
-                        Author = subUploader,
-                        Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
-                        //DateCreated = DateTimeOffset.Parse(subDate),
-                        CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
-                        //DownloadCount = int.Parse(subDownloads),
-                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
-                        IsForced = false,
-                        Score = score,
-                    };
+                        if (!file.IsSubfile()) continue;
 
-                    res.Add(item);
+                        SubtitleScore subScore = new SubtitleScore();
+                        if (byImdb) subScore.AddMatch("imdb");
+
+                        float score = si.CaclScore(file.Name, subScore, subFilesCount == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
+
+                        link.File = file.Name;
+                        link.Fps = si.VideoFps.ToString();
+
+                        var item = new SubtitleInfo
+                        {
+                            ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                            Id = link.GetId(),
+                            ProviderName = Name,
+                            Name = $"<a href='{ServerUrl}{subLinkPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.Name}</a>",
+                            Format = file.GetExtSupportedByEmby(),
+                            Author = subUploader,
+                            Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                            //DateCreated = DateTimeOffset.Parse(subDate),
+                            CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
+                            //DownloadCount = int.Parse(subDownloads),
+                            IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                            IsForced = false,
+                            Score = score,
+                        };
+
+                        res.Add(item);
+                    }
                 }
             }
 

@@ -62,15 +62,24 @@ namespace SubtitlesParser.Classes
         };
 
         public static List<SubtitlesFormat> SupportedSubtitlesFormats = new List<SubtitlesFormat>()
+        {
+            SubRipFormat, 
+            MicroDvdFormat,
+            SubViewerFormat,
+            SubStationAlphaFormat,
+            TtmlFormat,
+            WebVttFormat,
+            YoutubeXmlFormat
+        };
+
+        public static bool IsFormatSupported(SubtitlesFormat format)
+        {
+            foreach (var f in SupportedSubtitlesFormats)
             {
-                SubRipFormat, 
-                MicroDvdFormat,
-                SubViewerFormat,
-                SubStationAlphaFormat,
-                TtmlFormat,
-                WebVttFormat,
-                YoutubeXmlFormat
-            };
+                if (f == format) return true;
+            }
+            return false;
+        }
 
     }
 

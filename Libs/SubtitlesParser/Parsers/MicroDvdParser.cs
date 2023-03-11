@@ -28,6 +28,7 @@ namespace SubtitlesParser.Classes.Parsers
         private readonly float defaultFrameRate = 25;
         private readonly char[] _lineSeparators = {'|'};
 
+        public float? DetectedFrameRate { get; private set; } = null;
 
         // Constructors --------------------------------------------------------------------
 
@@ -80,6 +81,10 @@ namespace SubtitlesParser.Classes.Parsers
 
                         // treat it as a regular line
                         items.Add(firstItem);
+                    }
+                    else
+                    {
+                        DetectedFrameRate = frameRate;
                     }
                 }
                 else

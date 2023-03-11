@@ -60,6 +60,25 @@
 
                     <div class="verticalSection ">
                         <div class="sectionTitleContainer flex align-items-center">
+                            <h2 class="sectionTitle">Settings</h2>
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AutoDetectEncoding" name="AutoDetectEncoding" type="checkbox" is="emby-checkbox" />
+                            <span>Auto-Detect Encoding</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription"></div>
+                    </div>
+
+                    <div class="selectContainer">
+                        <select is="emby-select" id="DefaultEncoding" name="DefaultEncoding" label="Default Encoding:"></select>
+                        <div class="fieldDescription">Use this encoding in cases where automatic encoding detection is disabled or when automatic detection fails.</div>
+                    </div>
+
+                    <div class="verticalSection ">
+                        <div class="sectionTitleContainer flex align-items-center">
                             <h2 class="sectionTitle">Post-Processing</h2>
                         </div>
                     </div>
@@ -81,7 +100,7 @@
                     </div>
 
                     <div class="inputContainer" style="margin-left: 2.3em;">
-                        <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1" label="Characters per second (CPS)" />
+                        <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1" label="Characters per second (CPS):" />
                         <div class="fieldDescription">Select the optimal reading speed for subtitles adjustment.</div>
                     </div>
 
@@ -181,21 +200,33 @@
                     page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
                     page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
                     page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
-                    page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
-                    page.querySelector("#AdjustDuration").checked = config.SubPostProcessing.AdjustDuration;
-                    page.querySelector("#AdjustDurationCps").value = config.SubPostProcessing.AdjustDurationCps;
-                    page.querySelector("#AdjustDurationExtendOnly").checked = config.SubPostProcessing.AdjustDurationExtendOnly;
                     page.querySelector("#SubtitleCache").checked = config.SubtitleCache;
                     page.querySelector('#OpenSubUserName').value = config.OpenSubUserName || '';
                     page.querySelector('#OpenSubPassword').value = config.OpenSubPassword || '';
                     page.querySelector('#OpenSubApiKey').value = config.OpenSubApiKey || '';
                     page.querySelector('#OpenSubUseHash').checked = config.OpenSubUseHash;
 
+                    page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
+                    page.querySelector("#AdjustDuration").checked = config.SubPostProcessing.AdjustDuration;
+                    page.querySelector("#AdjustDurationCps").value = config.SubPostProcessing.AdjustDurationCps;
+                    page.querySelector("#AdjustDurationExtendOnly").checked = config.SubPostProcessing.AdjustDurationExtendOnly;
+
+                    page.querySelector('#AutoDetectEncoding').checked = config.SubEncoding.AutoDetectEncoding;
+
+                    var encodingsHtml = config.SubEncoding.Encodings.map(function (e) {
+                        return '<option value="' + e + '">' + e + '</option>';
+                    }).join('');
+
+                    $('#DefaultEncoding', page).html(encodingsHtml).val(config.SubEncoding.DefaultEncoding || '');
+
                     $('#AdjustDurationCps').prop("disabled", !config.SubPostProcessing.AdjustDuration);
                     $('#AdjustDurationExtendOnly').prop("disabled", !config.SubPostProcessing.AdjustDuration);
 
                     Dashboard.hideLoadingMsg();
                });
+            });
+
+            $('.SubbuzzConfigPage').on('viewshow', function () {
             });
 
             $('.SubbuzzConfigForm').on('submit', function () {
@@ -227,16 +258,20 @@
                         config.EnableSubsunacsNet = document.getElementById("EnableSubsunacsNet").checked;
                         config.EnableYavkaNet = document.getElementById("EnableYavkaNet").checked;
                         config.EnableYifySubtitles = document.getElementById("EnableYifySubtitles").checked;
-                        config.SubPostProcessing.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
-                        config.SubPostProcessing.AdjustDuration = document.getElementById("AdjustDuration").checked;
-                        config.SubPostProcessing.AdjustDurationCps = document.querySelector("#AdjustDurationCps").value;
-                        config.SubPostProcessing.AdjustDurationExtendOnly = document.getElementById("AdjustDurationExtendOnly").checked;
                         config.SubtitleCache = document.getElementById("SubtitleCache").checked;
                         config.OpenSubUseHash = document.getElementById("OpenSubUseHash").checked;
                         config.OpenSubUserName = username;
                         config.OpenSubPassword = password;
                         config.OpenSubApiKey = apiKey;
                         config.OpenSubToken = token;
+
+                        config.SubPostProcessing.EncodeSubtitlesToUTF8 = document.getElementById("EncodeSubtitlesToUTF8").checked;
+                        config.SubPostProcessing.AdjustDuration = document.getElementById("AdjustDuration").checked;
+                        config.SubPostProcessing.AdjustDurationCps = document.querySelector("#AdjustDurationCps").value;
+                        config.SubPostProcessing.AdjustDurationExtendOnly = document.getElementById("AdjustDurationExtendOnly").checked;
+
+                        config.SubEncoding.AutoDetectEncoding = form.querySelector("#AutoDetectEncoding").checked;
+                        config.SubEncoding.DefaultEncoding = $('#DefaultEncoding', form).val();
 
                         ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {
                             Dashboard.processPluginConfigurationUpdateResult(result);

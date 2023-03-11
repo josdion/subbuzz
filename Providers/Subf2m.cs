@@ -100,7 +100,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(CacheRegion));
+            downloader = new Download(http, logger, Plugin.Instance.Cache?.FromRegion(CacheRegion), NAME);
 
         }
 
@@ -108,15 +108,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                var postProcessing = Plugin.Instance.Configuration.SubPostProcessing;
-                postProcessing.EncodeSubtitlesToUTF8 = true;
-
-                return await downloader.GetArchiveSubFile(
-                    id,
-                    ServerUrl,
-                    Encoding.GetEncoding(1251),
-                    postProcessing,
-                    cancellationToken).ConfigureAwait(false);
+                return await downloader.GetArchiveSubFile(id, ServerUrl, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -478,15 +470,20 @@ namespace subbuzz.Providers
             {
                 Url = downloadLink,
                 CacheKey = urlPage,
-                CacheRegion = "sub"
+                CacheRegion = "sub",
+                Lang = si.LanguageInfo.TwoLetterISOLanguageName
             };
 
             using (var files = await downloader.GetArchiveFiles(link, ServerUrl, cancellationToken).ConfigureAwait(false))
             {
+                int subFilesCount = files.CountSubFiles();
+
                 foreach (var file in files)
                 {
-                    bool scoreVideoFileName = files.Count == 1 && subData.Releases.Find(x => x.EqualsIgnoreCase(si.FileName)).IsNotNullOrWhiteSpace();
-                    bool ignorMutliDiscSubs = files.Count > 1;
+                    if (!file.IsSubfile()) continue;
+
+                    bool scoreVideoFileName = subFilesCount == 1 && subData.Releases.Find(x => x.EqualsIgnoreCase(si.FileName)).IsNotNullOrWhiteSpace();
+                    bool ignorMutliDiscSubs = subFilesCount > 1;
 
                     float score = si.CaclScore(file.Name, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
                     if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
@@ -496,7 +493,6 @@ namespace subbuzz.Providers
                     }
 
                     link.File = file.Name;
-                    link.Lang = si.LanguageInfo.TwoLetterISOLanguageName;
                     link.Fps = subFps;
 
                     var subItmem = new SubtitleInfo

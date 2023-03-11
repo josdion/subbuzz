@@ -1,4 +1,10 @@
 ﻿using MediaBrowser.Model.Plugins;
+using System.Collections.Generic;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
+using UtfUnknown.Core.Models.SingleByte.Thai;
 
 namespace subbuzz
 {
@@ -11,11 +17,54 @@ namespace subbuzz
 
         public SubPostProcessingCfg() 
         {
-            EncodeSubtitlesToUTF8 = false;
+            EncodeSubtitlesToUTF8 = true;
             AdjustDuration = false;
             AdjustDurationCps = 15;
             AdjustDurationExtendOnly = true;
         }
+    }
+
+    public class SubEncodingCfg
+    {
+        public string DefaultEncoding { get; set; }
+        public bool AutoDetectEncoding { get; set; }
+
+        [XmlIgnoreAttribute]
+        public List<string> Encodings { get;  }
+
+        public SubEncodingCfg()
+        {
+            DefaultEncoding = Encoding.Default.WebName;
+            AutoDetectEncoding = true;
+
+            Encodings = new List<string>();
+            foreach (var e in Encoding.GetEncodings()) Encodings.Add(e.Name);
+            Encodings.Sort();
+        }
+
+        public Encoding Get()
+        {
+            try
+            {
+                return Encoding.GetEncoding(DefaultEncoding);
+            }
+            catch
+            {
+                return Encoding.Default;
+            }
+        }
+
+        public SubEncodingCfg GetUtf8()
+        {
+            return new SubEncodingCfg
+            {
+                // override default encoding selected by user for some providers
+                // like opensubtitle.com as all their subtitles are UTF encoded
+                DefaultEncoding = Encoding.UTF8.WebName,
+                AutoDetectEncoding = AutoDetectEncoding,
+            };
+        }
+
     }
 
     public class PluginConfiguration : BasePluginConfiguration
@@ -36,9 +85,8 @@ namespace subbuzz
         public string OpenSubApiKey { get; set; }
         public string OpenSubToken { get; set; }
         public bool OpenSubUseHash { get; set; }
-
         public bool SubtitleCache { get; set; }
-
+        public SubEncodingCfg SubEncoding { get; set; }
         public SubPostProcessingCfg SubPostProcessing { get; set; }
 
         public PluginConfiguration()
@@ -62,6 +110,7 @@ namespace subbuzz
 
             SubtitleCache = true;
 
+            SubEncoding = new SubEncodingCfg();
             SubPostProcessing = new SubPostProcessingCfg();
         }
     }

@@ -1,17 +1,22 @@
 ﻿using MediaBrowser.Controller.Subtitles;
 using SharpCompress.Archives;
-using SharpCompress.Common;
 using subbuzz.Extensions;
+using SubtitlesParser.Classes;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.IO.Pipes;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if EMBY
+using ILogger = MediaBrowser.Model.Logging.ILogger;
+#else
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
+#endif
 
 namespace subbuzz.Helpers
 {
@@ -20,7 +25,11 @@ namespace subbuzz.Helpers
         private const int DefaultMaxRetry = 5;
         private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0";
 
+        private readonly ILogger _logger;
         private FileCache _cache = null;
+        private string _providerName = "";
+        private PluginConfiguration GetOptions()
+            => Plugin.Instance.Configuration;
 
         public class Link
         {
@@ -71,7 +80,20 @@ namespace subbuzz.Helpers
             public string Name { get; set; }
             public string Ext { get; set; }
             public Stream Content { get; set; }
+            public Subtitle Sub { get; set; } = null;
             public void Dispose() => Content?.Dispose();
+
+            public bool IsSubfile()
+            {
+                return Sub == null ? false : SubtitlesFormat.IsFormatSupported(Sub.Format);
+            }
+
+            public string GetExtSupportedByEmby()
+            {
+                if (Sub ==  null) return null;
+                return SubtitleConvert.GetExtSupportedByEmby(Sub.Format);
+            }
+
         };
 
         public class ArchiveFileInfoList : List<ArchiveFileInfo>, IDisposable
@@ -83,6 +105,17 @@ namespace subbuzz.Helpers
                     item.Dispose();
                 }
             }
+
+            public int CountSubFiles()
+            {
+                int count = 0;
+                foreach (var item in this)
+                {
+                    if (item.IsSubfile()) count++;
+                }
+                return count;
+            }
+
         }
 
         public class ResponseInfo
@@ -99,26 +132,9 @@ namespace subbuzz.Helpers
             public void Dispose() => Content?.Dispose();
         };
 
-        public static string GetId(string link, string file, string lang, string fps, Dictionary<string, string> post_params = null)
-        {
-            LinkSub sub = new LinkSub
-            {
-                Url = link,
-                PostParams = post_params,
-                CacheKey = link,
-                CacheRegion = "sub",
-                File = file,
-                Lang = lang,
-                Fps = fps,
-            };
-            return sub.GetId();
-        }
-
         public async Task<SubtitleResponse> GetArchiveSubFile(
             string id,
             string referer,
-            Encoding defaultEncoding,
-            SubPostProcessingCfg postProcessing,
             CancellationToken cancellationToken
             )
         {
@@ -130,7 +146,9 @@ namespace subbuzz.Helpers
                     if (string.IsNullOrWhiteSpace(link.File) || link.File == file.Name)
                     {
                         string format;
-                        Stream fileStream = SubtitleConvert.ToSupportedFormat(file.Content, defaultEncoding, link.GetFps(), out format, postProcessing);
+                        Stream fileStream = SubtitleConvert.ToSupportedFormat(
+                            file.Content, link.GetFps(), out format,
+                            GetOptions().SubEncoding, GetOptions().SubPostProcessing);
 
                         return new SubtitleResponse
                         {
@@ -146,31 +164,44 @@ namespace subbuzz.Helpers
             return new SubtitleResponse();
         }
 
-        public async Task<List<(string fileName, string fileExt)>> GetArchiveFileNames(string link, string referer, CancellationToken cancellationToken)
+        private ArchiveFileInfoList ReadArchive(Stream content, string baseKey = null)
         {
-            var res = new List<(string fileName, string fileExt)>();
-            using (var info = await GetArchiveFiles(link, referer, null, cancellationToken).ConfigureAwait(false))
+            var res = new ArchiveFileInfoList();
+
+            using (IArchive arcreader = ArchiveFactory.Open(content))
             {
-                foreach (var entry in info) using (entry) res.Add((entry.Name, entry.Ext));
+                foreach (IArchiveEntry entry in arcreader.Entries)
+                {
+                    if (!entry.IsDirectory)
+                    {
+                        var info = new ArchiveFileInfo
+                        {
+                            Name = string.IsNullOrWhiteSpace(baseKey) ? entry.Key : Path.Combine(baseKey, entry.Key),
+                            Ext = entry.Key.GetPathExtension().ToLower(),
+                            Content = new MemoryStream()
+                        };
+
+                        Stream arcStream = entry.OpenEntryStream();
+                        arcStream.CopyTo(info.Content);
+                        info.Content.Seek(0, SeekOrigin.Begin);
+
+                        try 
+                        {
+                            // try to extract internal archives
+                            res.AddRange(ReadArchive(info.Content, info.Name));
+                            info.Dispose();
+                        } 
+                        catch 
+                        {
+                            info.Content.Seek(0, SeekOrigin.Begin);
+                            res.Add(info);
+                        }
+
+                    }
+                }
             }
+
             return res;
-        }
-
-        public async Task<ArchiveFileInfoList> GetArchiveFiles(
-            string url,
-            string referer,
-            Dictionary<string, string> post_params,
-            CancellationToken cancellationToken)
-        {
-            Link link = new Link 
-            { 
-                Url = url, 
-                PostParams = post_params, 
-                CacheKey = url, 
-                CacheRegion = "sub", 
-            };
-
-            return await GetArchiveFiles(link, referer, cancellationToken);
         }
 
         public async Task<ArchiveFileInfoList> GetArchiveFiles(Link link, string referer, CancellationToken cancellationToken)
@@ -181,21 +212,7 @@ namespace subbuzz.Helpers
             {
                 try
                 {
-                    using (IArchive arcreader = ArchiveFactory.Open(resp.Content))
-                    {
-                        foreach (IArchiveEntry entry in arcreader.Entries)
-                        {
-                            if (!entry.IsDirectory)
-                            {
-                                var info = new ArchiveFileInfo { Name = entry.Key, Ext = entry.Key.GetPathExtension().ToLower(), Content = new MemoryStream() };
-                                Stream arcStream = entry.OpenEntryStream();
-                                arcStream.CopyTo(info.Content);
-                                info.Content.Seek(0, SeekOrigin.Begin);
-
-                                res.Add(info);
-                            }
-                        }
-                    }
+                    res.AddRange(ReadArchive(resp.Content));
                 }
                 catch
                 {
@@ -212,7 +229,12 @@ namespace subbuzz.Helpers
                     res.Add(info);
                 }
 
-                if (res.Count > 0)
+                foreach (var f in res)
+                {
+                    f.Sub = f.Content.Length < (1024*1024) ? Subtitle.Load(f.Content, GetOptions().SubEncoding, 25) : null;
+                }
+
+                if (res.CountSubFiles() > 0)
                     AddToCache(link, resp);
             }
 
@@ -235,17 +257,20 @@ namespace subbuzz.Helpers
         {
             try
             {
-                if (_cache == null || resp == null || resp.Cached) return;
+                if (!GetOptions().SubtitleCache || resp.Cached) return;
                 _cache.FromRegion(link.CacheRegion).Add<ResponseInfo>(link.CacheKey, resp.Content, resp.Info);
             }
-            catch { }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{_providerName}: Can't add subtitles to cache: {e}");
+            }
         }
 
         private async Task<Response> GetFromCache(Link link, string referer, CancellationToken cancellationToken, int maxRetry = DefaultMaxRetry)
         {
             try
             {
-                if (_cache != null)
+                if (GetOptions().SubtitleCache)
                 {
                     Response resp = new Response();
                     ResponseInfo respInfo;
@@ -258,7 +283,13 @@ namespace subbuzz.Helpers
                     }
                 }
             }
-            catch { }
+            catch (FileNotFoundException)
+            {
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{_providerName}: Unable to load subtitles from cache: {e}");
+            }
 
             return await Get(link.Url, referer, link.PostParams, cancellationToken, maxRetry);
         }

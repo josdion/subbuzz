@@ -108,7 +108,10 @@ namespace subbuzz.Providers
                     res.Data.CopyTo(fileStream);
                     res.Data.Close();
 
-                    Stream outStream = SubtitleConvert.ToSupportedFormat(fileStream, Encoding.UTF8, fps, out format, GetOptions().SubPostProcessing);
+                    Stream outStream = SubtitleConvert.ToSupportedFormat(
+                        fileStream, fps, out format, 
+                        GetOptions().SubEncoding.GetUtf8(), GetOptions().SubPostProcessing);
+                    
                     if (GetOptions().SubtitleCache)
                     {
                         try
@@ -150,7 +153,10 @@ namespace subbuzz.Providers
                 using (Stream fileStream = _cache?.FromRegion("sub").Get(fileId))
                 {
                     string format;
-                    Stream outStream = SubtitleConvert.ToSupportedFormat(fileStream, Encoding.UTF8, fps, out format, GetOptions().SubPostProcessing);
+                    Stream outStream = SubtitleConvert.ToSupportedFormat(
+                        fileStream, fps, out format, 
+                        GetOptions().SubEncoding.GetUtf8(), GetOptions().SubPostProcessing);
+
                     return new SubtitleResponse
                     {
                         Format = format,
@@ -315,7 +321,7 @@ namespace subbuzz.Providers
                         continue;
                     }
 
-                    var format = subItem.Format ?? "srt";
+                    var format = SubtitleConvert.GetExtSupportedByEmby(subItem.Format);
 
                     var item = new SubtitleInfo
                     {

@@ -35,6 +35,7 @@ namespace subbuzz.Providers
         internal const string NAME = "yavka.net";
         private const string ServerUrl = "https://yavka.net";
         private const string HttpReferer = "https://yavka.net/subtitles.php";
+        private const string CacheRegion = "yavka.net";
         private readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
 
         private readonly ILogger _logger;
@@ -77,19 +78,14 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, Plugin.Instance.Cache?.FromRegion(NAME));
+            downloader = new Download(http, logger, Plugin.Instance.Cache?.FromRegion(CacheRegion), NAME);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetArchiveSubFile(
-                    id, 
-                    HttpReferer, 
-                    Encoding.GetEncoding(1251),
-                    Plugin.Instance.Configuration.SubPostProcessing,
-                    cancellationToken).ConfigureAwait(false);
+                return await downloader.GetArchiveSubFile(id, HttpReferer, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -299,87 +295,98 @@ namespace subbuzz.Providers
             string subInfo = sritem.Title + (string.IsNullOrWhiteSpace(sritem.Info) ? "" : "<br>" + sritem.Info);
 
             var subFiles = new List<(string fileName, string fileExt)>();
-            var postParams = new Dictionary<string, string> { { "id", subPageInfo["id"] }, { "lng", subPageInfo["lng"] } };
-            var files = await downloader.GetArchiveFiles(subLink, sritem.Link, postParams, cancellationToken).ConfigureAwait(false);
-
-            int imdbId = 0;
-            string subImdb = "";
-            DateTime? dt = null;
-            DateTimeOffset? dtOffset = null;
-
-            foreach (var fitem in files) using (fitem)
+            
+            Download.LinkSub link = new Download.LinkSub
             {
-                if (fitem.Name == "YavkA.net.txt")
-                {
-                    fitem.Content.Seek(0, System.IO.SeekOrigin.Begin);
-                    var reader = new System.IO.StreamReader(fitem.Content, Encoding.UTF8, true);
-                    string info_text = reader.ReadToEnd();
-                    var regexDate = new Regex(@"Качени на: (\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)");
-                    var match = regexDate.Match(info_text);
-                    if (match.Success && match.Groups.Count > 0)
-                    {
-                        dt = DateTime.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
-                        dtOffset = DateTimeOffset.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
-                    }
+                Url = subLink,
+                PostParams = new Dictionary<string, string> { { "id", subPageInfo["id"] }, { "lng", subPageInfo["lng"] } },
+                CacheKey = sritem.Link,
+                CacheRegion = "sub",
+                Lang = si.LanguageInfo.TwoLetterISOLanguageName
+            };
 
-                    var regexImdbId = new Regex(@"iMDB ID: (tt(\d+))");
-                    match = regexImdbId.Match(info_text);
-                    if (match.Success && match.Groups.Count > 2)
+            using (var files = await downloader.GetArchiveFiles(link, sritem.Link, cancellationToken).ConfigureAwait(false))
+            {
+                int imdbId = 0;
+                string subImdb = "";
+                DateTime? dt = null;
+                DateTimeOffset? dtOffset = null;
+
+                foreach (var fitem in files) using (fitem)
+                {
+                    if (fitem.Name == "YavkA.net.txt")
                     {
-                        subImdb = match.Groups[1].ToString();
-                        imdbId = int.Parse(match.Groups[2].ToString());
+                        fitem.Content.Seek(0, System.IO.SeekOrigin.Begin);
+                        var reader = new System.IO.StreamReader(fitem.Content, Encoding.UTF8, true);
+                        string info_text = reader.ReadToEnd();
+                        var regexDate = new Regex(@"Качени на: (\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)");
+                        var match = regexDate.Match(info_text);
+                        if (match.Success && match.Groups.Count > 0)
+                        {
+                            dt = DateTime.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
+                            dtOffset = DateTimeOffset.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
+                        }
+
+                        var regexImdbId = new Regex(@"iMDB ID: (tt(\d+))");
+                        match = regexImdbId.Match(info_text);
+                        if (match.Success && match.Groups.Count > 2)
+                        {
+                            subImdb = match.Groups[1].ToString();
+                            imdbId = int.Parse(match.Groups[2].ToString());
+                        }
+                    }
+                    else
+                    {
+                        if (!fitem.IsSubfile()) continue;
+                        subFiles.Add((fitem.Name, fitem.GetExtSupportedByEmby()));
                     }
                 }
-                else
-                {
-                    string fileExt = fitem.Ext.ToLower();
-                    if (fileExt != "srt" && fileExt != "sub") continue;
 
-                    subFiles.Add((fitem.Name, fitem.Ext));
+                if (!si.MatchImdbId(imdbId, ref subScoreBase))
+                {
+                    //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                    //continue;
                 }
-            }
 
-            if (!si.MatchImdbId(imdbId, ref subScoreBase))
-            {
-                //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
-                //continue;
-            }
+                si.MatchFps(sritem.Fps, ref subScoreBase);
 
-            si.MatchFps(sritem.Fps, ref subScoreBase);
+                string subDate = dtOffset != null ? dtOffset?.ToString("g", CultureInfo.CurrentCulture) : "";
+                subInfo += string.Format("<br>{0} | {1} | {2}", subDate, sritem.Uploader, sritem.Fps);
 
-            string subDate = dtOffset != null ? dtOffset?.ToString("g", CultureInfo.CurrentCulture) : "";
-            subInfo += string.Format("<br>{0} | {1} | {2}", subDate, sritem.Uploader, sritem.Fps);
-
-            foreach (var (fileName, fileExt) in subFiles)
-            {
-                string file = fileName;
-                float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && sritem.InfoBase.ContainsIgnoreCase(si.FileName));
-
-                if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
-                    continue;
-
-                var item = new SubtitleInfo
+                foreach (var (fileName, fileExt) in subFiles)
                 {
-                    ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                    Id = Download.GetId(subLink, file, si.LanguageInfo.TwoLetterISOLanguageName, "", postParams),
-                    ProviderName = Name,
-                    Name = $"<a href='{sritem.Link}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                    Format = fileExt,
-                    Author = sritem.Uploader,
-                    Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
-                    //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
-                    DownloadCount = int.Parse(sritem.Downloads),
-                    IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
-                    IsForced = false,
-                    Score = score,
+                    string file = fileName;
+                    float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && sritem.InfoBase.ContainsIgnoreCase(si.FileName));
+
+                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                        continue;
+
+                    link.File = file;
+                    link.Fps = string.Empty;
+
+                    var item = new SubtitleInfo
+                    {
+                        ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                        Id = link.GetId(),
+                        ProviderName = Name,
+                        Name = $"<a href='{sritem.Link}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
+                        Format = fileExt,
+                        Author = sritem.Uploader,
+                        Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                        //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
+                        DownloadCount = int.Parse(sritem.Downloads),
+                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                        IsForced = false,
+                        Score = score,
 #if EMBY
                     DateCreated = dtOffset,
 #else
-                    DateCreated = dt,
+                        DateCreated = dt,
 #endif
-                };
+                    };
 
-                res.Add(item);
+                    res.Add(item);
+                }
             }
 
             return res;
