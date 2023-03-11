@@ -245,7 +245,8 @@ namespace subbuzz.Helpers
 
         public static Stream ToSupportedFormat(
             Stream inStream, float fps, out string format, 
-            SubEncodingCfg encoding, SubPostProcessingCfg postProcessing)
+            SubEncodingCfg encoding, SubPostProcessingCfg postProcessing,
+            Subtitle sub = null)
         {
             Stream outs = new MemoryStream();
 
@@ -259,7 +260,9 @@ namespace subbuzz.Helpers
 
                 inStream.Seek(0, SeekOrigin.Begin);
 
-                Subtitle sub = Subtitle.Load(inStream, encoding, fps);
+                if (sub == null)
+                    sub = Subtitle.Load(inStream, encoding, fps);
+
                 if (sub == null)
                     throw new FormatException("Subtitle format not supported");
 

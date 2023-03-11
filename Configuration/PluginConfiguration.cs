@@ -1,10 +1,7 @@
 ﻿using MediaBrowser.Model.Plugins;
 using System.Collections.Generic;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
-using System.Text.Json.Serialization;
 using System.Xml.Serialization;
-using UtfUnknown.Core.Models.SingleByte.Thai;
 
 namespace subbuzz
 {
