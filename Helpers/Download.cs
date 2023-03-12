@@ -139,7 +139,7 @@ namespace subbuzz.Helpers
             )
         {
             LinkSub link = LinkSub.FromId(id);
-            using (ArchiveFileInfoList files = await GetArchiveFiles(link, referer, cancellationToken, link.GetFps()))
+            using (ArchiveFileInfoList files = await GetArchiveFiles(link, referer, cancellationToken))
             {
                 foreach (ArchiveFileInfo file in files)
                 {
@@ -205,7 +205,7 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        public async Task<ArchiveFileInfoList> GetArchiveFiles(Link link, string referer, CancellationToken cancellationToken, float? fps = null)
+        public async Task<ArchiveFileInfoList> GetArchiveFiles(LinkSub link, string referer, CancellationToken cancellationToken)
         {
             var res = new ArchiveFileInfoList();
 
@@ -232,7 +232,7 @@ namespace subbuzz.Helpers
 
                 foreach (var f in res)
                 {
-                    f.Sub = f.Content.Length < (1024*1024) ? Subtitle.Load(f.Content, GetOptions().SubEncoding, fps ?? 25) : null;
+                    f.Sub = f.Content.Length < (1024*1024) ? Subtitle.Load(f.Content, GetOptions().SubEncoding, link.GetFps()) : null;
                 }
 
                 if (res.CountSubFiles() > 0)
