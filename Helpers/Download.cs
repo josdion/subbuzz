@@ -132,11 +132,7 @@ namespace subbuzz.Helpers
             public void Dispose() => Content?.Dispose();
         };
 
-        public async Task<SubtitleResponse> GetArchiveSubFile(
-            string id,
-            string referer,
-            CancellationToken cancellationToken
-            )
+        public async Task<SubtitleResponse> GetArchiveSubFile(string id, string referer, CancellationToken cancellationToken)
         {
             LinkSub link = LinkSub.FromId(id);
             using (ArchiveFileInfoList files = await GetArchiveFiles(link, referer, cancellationToken))
@@ -163,46 +159,6 @@ namespace subbuzz.Helpers
             }
 
             return new SubtitleResponse();
-        }
-
-        private ArchiveFileInfoList ReadArchive(Stream content, string baseKey = null)
-        {
-            var res = new ArchiveFileInfoList();
-
-            using (IArchive arcreader = ArchiveFactory.Open(content))
-            {
-                foreach (IArchiveEntry entry in arcreader.Entries)
-                {
-                    if (!entry.IsDirectory)
-                    {
-                        var info = new ArchiveFileInfo
-                        {
-                            Name = string.IsNullOrWhiteSpace(baseKey) ? entry.Key : Path.Combine(baseKey, entry.Key),
-                            Ext = entry.Key.GetPathExtension().ToLower(),
-                            Content = new MemoryStream()
-                        };
-
-                        Stream arcStream = entry.OpenEntryStream();
-                        arcStream.CopyTo(info.Content);
-                        info.Content.Seek(0, SeekOrigin.Begin);
-
-                        try 
-                        {
-                            // try to extract internal archives
-                            res.AddRange(ReadArchive(info.Content, info.Name));
-                            info.Dispose();
-                        } 
-                        catch 
-                        {
-                            info.Content.Seek(0, SeekOrigin.Begin);
-                            res.Add(info);
-                        }
-
-                    }
-                }
-            }
-
-            return res;
         }
 
         public async Task<ArchiveFileInfoList> GetArchiveFiles(LinkSub link, string referer, CancellationToken cancellationToken)
@@ -252,6 +208,46 @@ namespace subbuzz.Helpers
         {
             Response resp = await Get(link, referer, post_params, cancellationToken, maxRetry);
             return resp.Content;
+        }
+
+        private ArchiveFileInfoList ReadArchive(Stream content, string baseKey = null)
+        {
+            var res = new ArchiveFileInfoList();
+
+            using (IArchive arcreader = ArchiveFactory.Open(content))
+            {
+                foreach (IArchiveEntry entry in arcreader.Entries)
+                {
+                    if (!entry.IsDirectory)
+                    {
+                        var info = new ArchiveFileInfo
+                        {
+                            Name = string.IsNullOrWhiteSpace(baseKey) ? entry.Key : Path.Combine(baseKey, entry.Key),
+                            Ext = entry.Key.GetPathExtension().ToLower(),
+                            Content = new MemoryStream()
+                        };
+
+                        Stream arcStream = entry.OpenEntryStream();
+                        arcStream.CopyTo(info.Content);
+                        info.Content.Seek(0, SeekOrigin.Begin);
+
+                        try
+                        {
+                            // try to extract internal archives
+                            res.AddRange(ReadArchive(info.Content, info.Name));
+                            info.Dispose();
+                        }
+                        catch
+                        {
+                            info.Content.Seek(0, SeekOrigin.Begin);
+                            res.Add(info);
+                        }
+
+                    }
+                }
+            }
+
+            return res;
         }
 
         private void AddToCache(Link link, Response resp)
