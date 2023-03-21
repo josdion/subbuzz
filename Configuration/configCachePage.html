@@ -1,0 +1,155 @@
+﻿
+<div id="SubbuzzConfigCachePage"
+     data-role="page"
+     data-title="SubBuzz"
+     class="page type-interior withTabs pluginConfigurationPage SubbuzzConfigCachePage"
+     data-require="emby-input,emby-button,emby-select,emby-checkbox,mainTabsManager"
+     data-helpurl="https://github.com/josdion/subbuzz"
+     data-controller="__plugin/SubbuzzConfigCachePageJs">
+
+    <div data-role="content">
+        <div class="content-primary">
+
+            <form id="SubbuzzConfigFormCache" class="SubbuzzConfigCacheForm">
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Cache</h2>
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="SubtitleCache" name="SubtitleCache" type="checkbox" is="emby-checkbox" />
+                        <span>Subtitle Cache</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Store downloaded subtitle files localy to reduce the requests to the providers. 
+                    </div>
+                </div>
+
+                <div class="selectContainer" style="margin-left: 2.3em;">
+                    <select is="emby-select" id="SubLifeInMinutes" name="SubLifeInMinutes" label="Lifespan:">
+                        <option value="60">1 hour</option>
+                        <option value="120">2 hours</option>
+                        <option value="240">4 hours</option>
+                        <option value="480">8 hours</option>
+                        <option value="720">12 hour</option>
+                        <option value="1440">1 day</option>
+                        <option value="2880">2 days</option>
+                        <option value="5760">4 days</option>
+                        <option value="10080">1 week</option>
+                        <option value="20160">2 weeks</option>
+                        <option value="40320">4 weeks</option>
+                        <option value="0">Always use cache</option>
+                    </select>
+                    <div class="fieldDescription">The subtitles will be downloaded again only when the selected period expires.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="SearchCache" name="SearchCache" type="checkbox" is="emby-checkbox" />
+                        <span>Search Cache</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">Save results from search requests and reuse them for a specified period of time.</div>
+                </div>
+
+                <div class="selectContainer" style="margin-left: 2.3em;">
+                    <select is="emby-select" id="SearchLifeOutMinutes" name="SearchLifeOutMinutes" label="Lifespan:">
+                        <option value="60">1 hour</option>
+                        <option value="120">2 hours</option>
+                        <option value="240">4 hours</option>
+                        <option value="480">8 hours</option>
+                        <option value="720">12 hour</option>
+                        <option value="1440">1 day</option>
+                        <option value="2880">2 days</option>
+                        <option value="5760">4 days</option>
+                        <option value="10080">1 week</option>
+                        <option value="20160">2 weeks</option>
+                        <option value="40320">4 weeks</option>
+                    </select>
+                    <div class="fieldDescription">Send search requests to the providers again only after the selected period expires.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <div class="flex align-items-center">
+                        <div class="flex-grow">
+                            <input id="CachePath" name="CachePath" is="emby-input" label="Cache Path:" autocomplete="off" />
+                        </div>
+                        <button id="SelectCachePath" name="SelectCachePath" type="button" is="paper-icon-button-light" title="Select Directory" class="emby-input-iconbutton">
+                        </button>
+                    </div>
+                    <div class="fieldDescription"></div>
+                </div>
+
+
+                <p>
+                    <div class="fieldDescription" id="cache_response"></div>
+                </p>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block">
+                        <span>Save</span>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        //# sourceURL=subbuzz_config_cache_page.js
+        var SubbuzzConfig = {
+            pluginUniqueId: '5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4'
+        };
+
+        $('.SubbuzzConfigCachePage').on('pageshow', function () {
+            Dashboard.showLoadingMsg();
+            var page = this;
+
+            ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
+
+                page.querySelector("#SubtitleCache").checked = config.Cache.Subtitle;
+                page.querySelector("#SubLifeInMinutes").value = config.Cache.SubLifeInMinutes;
+                page.querySelector("#SearchCache").checked = config.Cache.Search;
+                page.querySelector("#SearchLifeOutMinutes").value = config.Cache.SearchLifeOutMinutes;
+                page.querySelector('#CachePath').value = config.Cache.BasePath || '';
+
+                Dashboard.hideLoadingMsg();
+            });
+
+        });
+
+        $('.SubbuzzConfigCacheForm').on('submit', function (e) {
+            Dashboard.showLoadingMsg();
+            var form = this;
+
+            ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
+
+                var saveConfig = function () {
+
+                    config.Cache.Subtitle = form.querySelector("#SubtitleCache").checked;
+                    config.Cache.SubLifeInMinutes = form.querySelector("#SubLifeInMinutes").value;
+                    config.Cache.Search = form.querySelector("#SearchCache").checked;
+                    config.Cache.SearchLifeOutMinutes = form.querySelector("#SearchLifeOutMinutes").value;
+                    config.Cache.BasePath = form.querySelector('#CachePath').value;
+
+                    ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                }
+
+                saveConfig();
+            });
+
+            // Disable default form submission
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+
+    </script>
+
+</div>
+

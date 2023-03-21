@@ -15,7 +15,7 @@ namespace subbuzz.Helpers
         private Random _rand = new Random();
         private readonly HttpClient _httpClient;
 
-        public Download(IHttpClientFactory http, ILogger logger, FileCache cache, string provder)
+        public Download(IHttpClientFactory http, ILogger logger, string provder)
         {
             _httpClient = http.CreateClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -27,7 +27,6 @@ namespace subbuzz.Helpers
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
             
             _logger = logger;
-            _cache = cache;
             _providerName = provder;
         }
 

@@ -35,7 +35,7 @@ namespace subbuzz.Providers
         public int Order => 0;
 
         private readonly ILogger _logger;
-        private Dictionary<string, ISubBuzzProvider> Providers;
+        private readonly Dictionary<string, ISubBuzzProvider> Providers;
 
         public SubBuzz(
             ILogger logger,
@@ -50,6 +50,7 @@ namespace subbuzz.Providers
             )
         {
             _logger = logger;
+            Plugin.Instance.InitCache();
             Providers = new Dictionary<string, ISubBuzzProvider>
             {
                 { SubsSabBz.NAME,           new SubsSabBz(logger, fileSystem, localizationManager, libraryManager, http) },

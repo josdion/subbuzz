@@ -31,8 +31,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Configuration\configPage.html" />
-    <EmbeddedResource Include="Configuration\configPage.html" />
+    <None Remove="Configuration\*.html" />
+    <None Remove="Configuration\*.js" />
+	<None Remove="Configuration\**" />
+    <EmbeddedResource Include="Configuration\*.html" />
+	<EmbeddedResource Include="Configuration\*.js" />
+    <EmbeddedResource Include="Configuration\Jellyfin\*.js" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

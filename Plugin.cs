@@ -4,10 +4,11 @@ using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using subbuzz.Helpers;
+using subbuzz.Extensions;
 
 #if EMBY
-using System.IO;
 using MediaBrowser.Model.Drawing;
 #endif
 
@@ -15,12 +16,16 @@ namespace subbuzz
 {
 #if EMBY
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasThumbImage
+    {
+        public const string SERVER = "Emby";
 #else
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
-#endif
     {
+        public const string SERVER = "Jellyfin";
+#endif
         public const string NAME = "subbuzz";
         public FileCache Cache = null;
+        private readonly IApplicationPaths _appPaths;
 
         public Plugin(
 			IApplicationPaths applicationPaths, 
@@ -28,7 +33,43 @@ namespace subbuzz
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            Cache = new FileCache(applicationPaths.CachePath).FromRegion(NAME);
+            Cache = null;
+            _appPaths = applicationPaths;
+        }
+
+        public void InitCache()
+        {
+            if (Cache != null && Cache.CacheDir == Configuration.Cache.BasePath)
+                return;
+
+            if (Configuration.Cache.BasePath.IsNotNullOrWhiteSpace())
+            {
+                try
+                {
+                    Directory.CreateDirectory(Configuration.Cache.BasePath);
+                    Cache = new FileCache(Configuration.Cache.BasePath);
+                    return;
+                }
+                catch
+                {
+                }
+            }
+
+            try
+            {
+                string defaultPath = Path.Combine(_appPaths.CachePath, NAME);
+                Cache = new FileCache(defaultPath);
+                Configuration.Cache.BasePath = Cache.CacheDir;
+            }
+            catch 
+            {
+            }
+        }
+
+        public override void SaveConfiguration()
+        {
+            InitCache();
+            base.SaveConfiguration();
         }
 
         public override string Name => NAME;
@@ -58,9 +99,30 @@ namespace subbuzz
             {
                 new PluginPageInfo
                 {
+                    DisplayName = "SubBuzz",
                     Name = "SubbuzzConfigPage",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html"
-                }
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html",
+                    EnableInMainMenu = true,
+                    MenuIcon = "closed_caption"
+                },
+                new PluginPageInfo
+                {
+                    Name = "SubbuzzConfigPageJs",
+                    EmbeddedResourcePath = GetType().Namespace + $".Configuration.{SERVER}.configPage.js"
+                },
+
+                new PluginPageInfo
+                {
+                    Name = "SubbuzzConfigCachePage",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configCachePage.html",
+                    MenuIcon = "closed_caption"
+                },
+                new PluginPageInfo
+                {
+                    Name = "SubbuzzConfigCachePageJs",
+                    EmbeddedResourcePath = GetType().Namespace + $".Configuration.{SERVER}.configCachePage.js"
+                },
+
             };
         }
 

@@ -18,9 +18,11 @@ namespace subbuzz.Helpers
         public SubtitlesFormat Format { get; private set; }
         public List<SubtitleItem> Paragraphs { get; private set; }
         public Encoding Encoding {get; private set; }
-        public float? DetectedFrameRate { get; private set; } = null;
+        public float? FpsRequested { get; private set; } = null;
+        public float? FpsDetected { get; private set; } = null;
 
-        public static Subtitle Load(Stream inStream, SubEncodingCfg encodingCfg, float fps)
+
+        public static Subtitle Load(Stream inStream, SubEncodingCfg encodingCfg, float? fps)
         {
             Encoding encoding = encodingCfg.Get();
             if (encodingCfg.AutoDetectEncoding)
@@ -49,9 +51,10 @@ namespace subbuzz.Helpers
                     sub.Paragraphs = parser.Value.ParseStream(inStream, encoding);
                     sub.Format = parser.Key;
                     sub.Encoding = encoding;
-
+                    sub.FpsRequested = fps;
+                    
                     if (sub.Format == SubtitlesFormat.MicroDvdFormat)
-                        sub.DetectedFrameRate = ((MicroDvdParser)parser.Value).DetectedFrameRate;
+                        sub.FpsDetected = ((MicroDvdParser)parser.Value).DetectedFrameRate;
 
                     return sub;
                 }
@@ -244,7 +247,7 @@ namespace subbuzz.Helpers
         }
 
         public static Stream ToSupportedFormat(
-            Stream inStream, float fps, out string format, 
+            Stream inStream, float? fps, out string format, 
             SubEncodingCfg encoding, SubPostProcessingCfg postProcessing,
             Subtitle sub = null)
         {

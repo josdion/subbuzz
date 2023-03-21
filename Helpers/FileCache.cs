@@ -1,5 +1,7 @@
-﻿using subbuzz.Extensions;
+﻿using MediaBrowser.Controller.MediaEncoding;
+using subbuzz.Extensions;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -7,6 +9,22 @@ using System.Threading;
 
 namespace subbuzz.Helpers
 {
+    public class FileCacheItemNotFoundException : Exception
+    {
+        public FileCacheItemNotFoundException() { }
+    }
+
+    public class FileCacheItemExpiredException : Exception
+    {
+        public FileCacheItemExpiredException()  { }
+    }
+
+    public class FileCacheItemLockedException : Exception
+    {
+        public FileCacheItemLockedException(string message, Exception inner) : base(message, inner) { }
+    }
+
+
     public class FileCache
     {
         private const string ExtMeta = ".meta";
@@ -22,16 +40,26 @@ namespace subbuzz.Helpers
         }
 
         public string CacheDir { get; protected set; }
+        protected TimeSpan Lifespan = TimeSpan.MaxValue;
 
-        public FileCache(string cacheDir)
+        public FileCache(string cacheDir, TimeSpan? life = null)
         {
             CacheDir = cacheDir;
+            Lifespan = life ?? TimeSpan.MaxValue;
         }
 
-        public FileCache FromRegion(string region)
+        public FileCache FromRegion(string[] region, TimeSpan? life = null)
         {
-            if (region.IsNullOrWhiteSpace()) return this;
-            return new FileCache(Path.Combine(CacheDir, region));
+            if (region == null || region.Length < 1) return this;
+            var paths = new List<string> { CacheDir };
+            paths.AddRange(region);
+            return new FileCache(Path.Combine(paths.ToArray()), life);
+        }
+
+        public FileCache FromRegion(string[] region, int lifeMinutes)
+        {
+            TimeSpan life = lifeMinutes < 1 ? TimeSpan.MaxValue : TimeSpan.FromMinutes(lifeMinutes);
+            return FromRegion(region, life);
         }
 
         public void Add(string key, Stream value)
@@ -44,9 +72,7 @@ namespace subbuzz.Helpers
             if (value == null)
                 throw new ArgumentNullException("value");
 
-            string keyHash = ComputeKeyHash(key);
-            string subDir = Path.Combine(CacheDir, keyHash.Substring(0, 3));
-            string fileName = keyHash.Substring(3);
+            var (subDir, fileName) = GetFilePathName(key);
 
             if (!Directory.Exists(subDir))
                 Directory.CreateDirectory(subDir);
@@ -79,15 +105,13 @@ namespace subbuzz.Helpers
 
         public Stream Get<T>(string key, out T metaData)
         {
-            string keyHash = ComputeKeyHash(key);
-            string subDir = Path.Combine(CacheDir, keyHash.Substring(0, 3));
-            string fileName = keyHash.Substring(3);
+            var (subDir, fileName) = GetFilePathName(key);
             string fileNameMeta = Path.Combine(subDir, fileName + ExtMeta);
             string fileNameDat = Path.Combine(subDir, fileName + ExtDat);
 
             if (!File.Exists(fileNameMeta) || !File.Exists(fileNameDat))
             {
-                throw new FileNotFoundException();
+                throw new FileCacheItemNotFoundException();
             }
 
             using (FileStream streamMeta = GetStream(fileNameMeta, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -95,6 +119,12 @@ namespace subbuzz.Helpers
                 using (var sr = new StreamReader(streamMeta, Encoding.UTF8))
                 {
                     Meta<T> meta = JsonSerializer.Deserialize<Meta<T>>(sr.ReadToEnd());
+
+                    if (DateTime.Now - meta.Timestamp > Lifespan)
+                    {
+                        throw new FileCacheItemExpiredException();
+                    }
+
                     metaData = meta.Data;
 
                     using (FileStream stream = GetStream(fileNameDat, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -124,6 +154,19 @@ namespace subbuzz.Helpers
             }
         }
 
+        protected (string, string) GetFilePathName(string key)
+        {
+            string keyHash = ComputeKeyHash(key);
+            string[] pathParts = 
+            { 
+                CacheDir,
+                keyHash.Substring(0, 3), 
+                keyHash.Substring(3, 3), 
+                keyHash.Substring(6, 3) 
+            };
+            return (Path.Combine(pathParts), keyHash.Substring(9));
+        }
+
         protected FileStream GetStream(string path, FileMode mode, FileAccess access, FileShare share)
         {
             int totalTime = 0;
@@ -135,9 +178,14 @@ namespace subbuzz.Helpers
                 }
                 catch (IOException ex)
                 {
-                    if ((ex.HResult & 0x0000FFFF) != 32 || totalTime > 500)
+                    if ((ex.HResult & 0x0000FFFF) != 32)
                     {
-                         throw ex;
+                        throw ex;
+                    }
+
+                    if (totalTime >= 1000)
+                    {
+                        throw new FileCacheItemLockedException("locked", ex);
                     }
 
                     Thread.Sleep(50);
@@ -145,7 +193,6 @@ namespace subbuzz.Helpers
                 }
             }
         }
-
 
     }
 }

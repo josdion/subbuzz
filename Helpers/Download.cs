@@ -26,51 +26,56 @@ namespace subbuzz.Helpers
         private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0";
 
         private readonly ILogger _logger;
-        private FileCache _cache = null;
         private string _providerName = "";
+
         private PluginConfiguration GetOptions()
-            => Plugin.Instance.Configuration;
+            => Plugin.Instance?.Configuration;
+
+        private FileCache GetCache(string[] region, int life = 0)
+            => Plugin.Instance?.Cache?.FromRegion(region, life);
+
+        private FileCache GetCacheSub(string[] region)
+            => GetCache(region, GetOptions().Cache.SubLifeInMinutes);
 
         public class Link
         {
             public string Url { get; set; } 
             public Dictionary<string, string> PostParams { get; set; }
-            public string CacheKey { get; set; }
-            public string CacheRegion { get; set; }
+            public string CacheKey { get; set; } = null;
+            public string[] CacheRegion { get; set; }
         }
 
         public class LinkSub : Link 
         {
-            public string File { get; set; }
-            public string Lang { get; set; }
-            public string Fps { get; set; }
+            public string File { get; set; } = string.Empty;
+            public string Lang { get; set; } = string.Empty;
+            public float? Fps { get; set; } = null;
+            public float? FpsVideo { get; set; } = null;
+
 
             public string GetId()
             {
-                byte[] encbuff = JsonSerializer.SerializeToUtf8Bytes(this, this.GetType());
-                return Convert.ToBase64String(encbuff).Replace("=", ",").Replace("+", "-").Replace("/", "_");
+                return Utils.Base64UrlEncode<LinkSub>(this);
             }
 
             public static LinkSub FromId(string id)
             {
                 if (id.IsNotNullOrWhiteSpace())
-                {
-                    byte[] decbuff = Convert.FromBase64String(id.Replace(",", "=").Replace("-", "+").Replace("_", "/"));
-                    return JsonSerializer.Deserialize<LinkSub>(decbuff);
-                }
+                    return Utils.Base64UrlDecode<LinkSub>(id);
 
                 return default;
             }
 
-            public float GetFps()
+            public static float? FpsFromStr(string fps)
             {
                 try 
                 { 
-                    return float.Parse(Fps, CultureInfo.InvariantCulture); 
+                    var f = float.Parse(fps, CultureInfo.InvariantCulture);
+                    return f < 1 ? null : f;
                 } 
                 catch 
                 {
-                    return 25; 
+                    return null; 
                 }
             }
         }
@@ -132,7 +137,7 @@ namespace subbuzz.Helpers
             public void Dispose() => Content?.Dispose();
         };
 
-        public async Task<SubtitleResponse> GetArchiveSubFile(string id, string referer, CancellationToken cancellationToken)
+        public async Task<SubtitleResponse> GetSubtitles(string id, string referer, CancellationToken cancellationToken)
         {
             LinkSub link = LinkSub.FromId(id);
             using (ArchiveFileInfoList files = await GetArchiveFiles(link, referer, cancellationToken))
@@ -143,7 +148,7 @@ namespace subbuzz.Helpers
                     {
                         string format;
                         Stream fileStream = SubtitleConvert.ToSupportedFormat(
-                            file.Content, link.GetFps(), out format,
+                            file.Content, link.Fps, out format,
                             GetOptions().SubEncoding, GetOptions().SubPostProcessing,
                             file.Sub);
 
@@ -188,7 +193,7 @@ namespace subbuzz.Helpers
 
                 foreach (var f in res)
                 {
-                    f.Sub = f.Content.Length < (1024*1024) ? Subtitle.Load(f.Content, GetOptions().SubEncoding, link.GetFps()) : null;
+                    f.Sub = f.Content.Length < (1024*1024) ? Subtitle.Load(f.Content, GetOptions().SubEncoding, link.Fps) : null;
                 }
 
                 if (res.CountSubFiles() > 0)
@@ -254,8 +259,8 @@ namespace subbuzz.Helpers
         {
             try
             {
-                if (!GetOptions().SubtitleCache || resp.Cached) return;
-                _cache.FromRegion(link.CacheRegion).Add<ResponseInfo>(link.CacheKey, resp.Content, resp.Info);
+                if (!GetOptions().Cache.Subtitle || resp.Cached) return;
+                GetCacheSub(link.CacheRegion).Add<ResponseInfo>(link.CacheKey ?? link.Url, resp.Content, resp.Info);
             }
             catch (Exception e)
             {
@@ -267,11 +272,11 @@ namespace subbuzz.Helpers
         {
             try
             {
-                if (GetOptions().SubtitleCache)
+                if (GetOptions().Cache.Subtitle)
                 {
                     Response resp = new Response();
-                    ResponseInfo respInfo;
-                    resp.Content = _cache.FromRegion(link.CacheRegion).Get<ResponseInfo>(link.CacheKey, out respInfo);
+                    ResponseInfo respInfo = null;
+                    resp.Content = GetCacheSub(link.CacheRegion).Get<ResponseInfo>(link.CacheKey ?? link.Url, out respInfo);
                     if (resp.Content != null)
                     {
                         resp.Info = respInfo;
@@ -280,7 +285,7 @@ namespace subbuzz.Helpers
                     }
                 }
             }
-            catch (FileNotFoundException)
+            catch (FileCacheItemNotFoundException)
             {
             }
             catch (Exception e)

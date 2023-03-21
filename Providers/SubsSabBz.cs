@@ -34,8 +34,8 @@ namespace subbuzz.Providers
         internal const string NAME = "subs.sab.bz";
         private const string ServerUrl = "http://subs.sab.bz";
         private const string HttpReferer = "http://subs.sab.bz/index.php?";
-        private const string CacheRegion = "subs.sab.bz";
-        private readonly List<string> Languages = new List<string> { "bg", "en" };
+        private static readonly List<string> Languages = new List<string> { "bg", "en" };
+        private static readonly string[] CacheRegionSub = { "subs.sab.bz", "sub" };
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -83,14 +83,14 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, Plugin.Instance.Cache?.FromRegion(CacheRegion), NAME);
+            downloader = new Download(http, logger, NAME);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetArchiveSubFile(id, HttpReferer, cancellationToken).ConfigureAwait(false);
+                return await downloader.GetSubtitles(id, HttpReferer, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -321,14 +321,16 @@ namespace subbuzz.Providers
                     subRating = subRating.Replace("Rating: ", "").Trim();
                 }
 
-                subInfo += String.Format("<br>{0} | {1} | {2}", subDate, subUploader, subFps);
+                subInfo += String.Format("<br>{0} | {1}", subDate, subUploader);
 
                 Download.LinkSub link = new Download.LinkSub
                 {
                     Url = subLink,
                     CacheKey = subLink,
-                    CacheRegion = "sub",
-                    Lang = si.LanguageInfo.TwoLetterISOLanguageName
+                    CacheRegion = CacheRegionSub,
+                    Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                    Fps = Download.LinkSub.FpsFromStr(subFps),
+                    FpsVideo = si.VideoFps,
                 };
 
                 using (var files = await downloader.GetArchiveFiles(link, HttpReferer, cancellationToken).ConfigureAwait(false))
@@ -338,18 +340,29 @@ namespace subbuzz.Providers
                     {
                         if (!file.IsSubfile()) continue;
 
+                        link.File = file.Name;
+                        link.Fps = file.Sub.FpsRequested;
+
+                        string subFpsInfo = subFps;
+                        if (file.Sub.FpsRequested != null && file.Sub.FpsDetected != null &&
+                            Math.Abs(file.Sub.FpsRequested ?? 0 - file.Sub.FpsDetected ?? 0) > 0.001)
+                        {
+                            subFpsInfo = $"{file.Sub.FpsRequested?.ToString(CultureInfo.InvariantCulture)} ({file.Sub.FpsDetected?.ToString(CultureInfo.InvariantCulture)})";
+                            link.Fps = file.Sub.FpsDetected;
+                        }
+
+                        SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
+                        si.MatchFps(link.Fps, ref subScore);
+
                         bool scoreVideoFileName = subFilesCount == 1 && subInfoBase.ContainsIgnoreCase(si.FileName);
                         bool ignorMutliDiscSubs = subFilesCount > 1;
 
-                        float score = si.CaclScore(file.Name, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
+                        float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
                         if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                         {
                             _logger.LogInformation($"{NAME}: Ignore file: {file.Name} Score: {score}");
                             continue;
                         }
-
-                        link.File = file.Name;
-                        link.Fps = subFps;
 
                         var item = new SubtitleInfo
                         {
@@ -359,7 +372,7 @@ namespace subbuzz.Providers
                             Name = $"<a href='{subLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.Name}</a>",
                             Format = file.GetExtSupportedByEmby(),
                             Author = subUploader,
-                            Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                            Comment = subInfo + " | " + subFpsInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                             DateCreated = dt,
                             CommunityRating = Convert.ToInt32(subRating),
                             DownloadCount = Convert.ToInt32(subDownloads),

@@ -8,7 +8,7 @@ namespace subbuzz.Providers
         public bool? IsForced { get; set; }
 #endif
 
-#if EMBY_4_7
+#if EMBY_4_7 || EMBY_4_8
         public new string ThreeLetterISOLanguageName
         {
             get

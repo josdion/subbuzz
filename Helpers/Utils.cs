@@ -2,21 +2,34 @@ using subbuzz.Providers;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 
 namespace subbuzz.Helpers
 {
     public class Utils
     {
+        public static string Base64UrlEncode(string input)
+        {
+            byte[] encbuff = System.Text.Encoding.UTF8.GetBytes(input ?? "");
+            return Convert.ToBase64String(encbuff).Replace("=", ",").Replace("+", "-").Replace("/", "_");
+        }
+
         public static string Base64UrlDecode(string str)
         {
             byte[] decbuff = Convert.FromBase64String(str.Replace(",", "=").Replace("-", "+").Replace("_", "/"));
             return System.Text.Encoding.UTF8.GetString(decbuff);
         }
 
-        public static string Base64UrlEncode(string input)
+        public static string Base64UrlEncode<T>(T obj)
         {
-            byte[] encbuff = System.Text.Encoding.UTF8.GetBytes(input ?? "");
+            byte[] encbuff = JsonSerializer.SerializeToUtf8Bytes(obj, obj.GetType());
             return Convert.ToBase64String(encbuff).Replace("=", ",").Replace("+", "-").Replace("/", "_");
+        }
+
+        public static T Base64UrlDecode<T>(string id)
+        {
+            byte[] decbuff = Convert.FromBase64String(id.Replace(",", "=").Replace("-", "+").Replace("_", "/"));
+            return JsonSerializer.Deserialize<T>(decbuff);
         }
 
         public static string ByteArrayToString(byte[] ba)

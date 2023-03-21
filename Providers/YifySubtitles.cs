@@ -36,7 +36,7 @@ namespace subbuzz.Providers
         internal const string NAME = "YIFY Subtitles";
         private const string ServerUrl = "https://yifysubtitles.org";
         private const string HttpReferer = "https://yifysubtitles.org/";
-        private const string CacheRegion = "yifysubtitles";
+        private static readonly string[] CacheRegionSub = { "yifysubtitles", "sub" };
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -66,14 +66,14 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, Plugin.Instance.Cache?.FromRegion(CacheRegion), NAME);
+            downloader = new Download(http, logger, NAME);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetArchiveSubFile(id, HttpReferer, cancellationToken).ConfigureAwait(false);
+                return await downloader.GetSubtitles(id, HttpReferer, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -213,8 +213,9 @@ namespace subbuzz.Providers
                 {
                     Url = subLink,
                     CacheKey = subLink,
-                    CacheRegion = "sub",
-                    Lang = si.LanguageInfo.TwoLetterISOLanguageName
+                    CacheRegion = CacheRegionSub,
+                    Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                    FpsVideo = si.VideoFps,
                 };
 
                 using (var files = await downloader.GetArchiveFiles(link, HttpReferer, cancellationToken).ConfigureAwait(false))
@@ -231,7 +232,6 @@ namespace subbuzz.Providers
                         float score = si.CaclScore(file.Name, subScore, subFilesCount == 1 && subInfoBase.ContainsIgnoreCase(si.FileName));
 
                         link.File = file.Name;
-                        link.Fps = si.VideoFps.ToString();
 
                         var item = new SubtitleInfo
                         {

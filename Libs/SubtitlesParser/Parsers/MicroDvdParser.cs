@@ -34,9 +34,9 @@ namespace SubtitlesParser.Classes.Parsers
 
         public MicroDvdParser(){}
 
-        public MicroDvdParser(float defaultFrameRate)
+        public MicroDvdParser(float? defaultFrameRate)
         {
-            this.defaultFrameRate = defaultFrameRate;
+            this.defaultFrameRate = defaultFrameRate ?? this.defaultFrameRate;
         }
 
 

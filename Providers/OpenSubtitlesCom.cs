@@ -36,7 +36,6 @@ namespace subbuzz.Providers
     {
         internal const string NAME = "opensubtitles.com";
         private const string ServerUrl = "https://www.opensubtitles.com";
-        private const string CacheRegion = "opensubtitles";
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -49,9 +48,37 @@ namespace subbuzz.Providers
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
         private PluginConfiguration GetOptions()
-            => Plugin.Instance.Configuration;
-        
-        private FileCache _cache = null;
+            => Plugin.Instance?.Configuration;
+
+        private FileCache GetCache(string[] region, int life = 0)
+            => Plugin.Instance?.Cache?.FromRegion(region, life);
+
+        private static readonly string[] CacheRegionSub     = { "opensubtitles", "sub" };
+        private static readonly string[] CacheRegionSearch  = { "opensubtitles", "search" };
+        private FileCache GetCacheSub()
+            => GetCache(CacheRegionSub, GetOptions().Cache.SubLifeInMinutes);
+
+
+        public class LinkSub
+        {
+            public string Id { get; set; } = string.Empty;
+            public string Lang { get; set; } = string.Empty;
+            public float? Fps { get; set; } = null;
+            public float? FpsVideo { get; set; } = null;
+
+            public string GetId()
+            {
+                return Utils.Base64UrlEncode<LinkSub>(this);
+            }
+
+            public static LinkSub FromId(string id)
+            {
+                if (id.IsNotNullOrWhiteSpace())
+                    return Utils.Base64UrlDecode<LinkSub>(id);
+
+                return default;
+            }
+        }
 
         public OpenSubtitlesCom(
             ILogger logger,
@@ -72,27 +99,26 @@ namespace subbuzz.Providers
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
             RequestHelper.Instance = new RequestHelper(http, version);
-            _cache = Plugin.Instance.Cache?.FromRegion(CacheRegion);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                var (fileId, lang, format, fps) = ParseId(id);
+                LinkSub linkSub = LinkSub.FromId(id);
 
-                SubtitleResponse subResp = GetSubtitlesFromCache(fileId, lang, fps);
+                SubtitleResponse subResp = GetSubtitlesFromCache(linkSub.Id, linkSub.Lang, linkSub.Fps);
                 if (subResp != null) {
-                    _logger.LogDebug($"{NAME}: Subtitles with file id {fileId} loaded from cache");
+                    _logger.LogDebug($"{NAME}: Subtitles with file id {linkSub.Id} loaded from cache");
                     return subResp;
                 }
 
                 var token = GetOptions().OpenSubToken;
-                var link = await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);
+                var link = await GetDownloadLink(linkSub.Id, cancellationToken).ConfigureAwait(false);
 
                 if (link.IsNullOrWhiteSpace())
                 {
-                    _logger.LogInformation($"{NAME}: Can't get download link for file ID {fileId}");
+                    _logger.LogInformation($"{NAME}: Can't get download link for file ID {linkSub.Id}");
                     return new SubtitleResponse();
                 }
 
@@ -108,15 +134,16 @@ namespace subbuzz.Providers
                     res.Data.CopyTo(fileStream);
                     res.Data.Close();
 
+                    string format;
                     Stream outStream = SubtitleConvert.ToSupportedFormat(
-                        fileStream, fps, out format, 
+                        fileStream, linkSub.Fps, out format, 
                         GetOptions().SubEncoding.GetUtf8(), GetOptions().SubPostProcessing);
                     
-                    if (GetOptions().SubtitleCache)
+                    if (GetOptions().Cache.Subtitle)
                     {
                         try
                         {
-                            _cache?.FromRegion("sub").Add(fileId, fileStream);
+                            GetCacheSub().Add(linkSub.Id, fileStream);
                         }
                         catch (Exception e) 
                         {
@@ -127,7 +154,7 @@ namespace subbuzz.Providers
                     return new SubtitleResponse
                     {
                         Format = format,
-                        Language = lang,
+                        Language = linkSub.Lang,
                         IsForced = false,
                         Stream = outStream,
                     };
@@ -141,16 +168,16 @@ namespace subbuzz.Providers
             return new SubtitleResponse();
         }
 
-        protected SubtitleResponse GetSubtitlesFromCache(string fileId, string lang, float fps)
+        protected SubtitleResponse GetSubtitlesFromCache(string fileId, string lang, float? fps)
         {
             try
             {
-                if (!GetOptions().SubtitleCache)
+                if (!GetOptions().Cache.Subtitle)
                 {
                     return null;
                 }
 
-                using (Stream fileStream = _cache?.FromRegion("sub").Get(fileId))
+                using (Stream fileStream = GetCacheSub().Get(fileId))
                 {
                     string format;
                     Stream outStream = SubtitleConvert.ToSupportedFormat(
@@ -166,7 +193,7 @@ namespace subbuzz.Providers
                     };
                 }
             }
-            catch (FileNotFoundException)
+            catch (FileCacheItemNotFoundException)
             {
                 return null;
             }
@@ -321,15 +348,13 @@ namespace subbuzz.Providers
                         continue;
                     }
 
-                    var format = SubtitleConvert.GetExtSupportedByEmby(subItem.Format);
-
                     var item = new SubtitleInfo
                     {
                         ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                        Id = GetId(file.FileId, si.Lang, format, subItem.Fps ?? 25),
+                        Id = GetId(file.FileId, si.Lang, subItem.Fps, si.VideoFps),
                         ProviderName = Name,
                         Name = $"<a href='{subItem.Url}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.FileName ?? "..."}</a>",
-                        Format = format,
+                        Format = SubtitleConvert.GetExtSupportedByEmby(subItem.Format),
                         Author = subItem.Uploader.Name,
                         Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = subItem.UploadDate,
@@ -432,24 +457,16 @@ namespace subbuzz.Providers
             return string.Empty;
         }
 
-        private const string UrlSeparator = "*:*";
-
-        private static string GetId(int fileId, string lang, string format, float fps)
+        private static string GetId(int fileId, string lang, float? fps, float? fpsVide)
         {
-            return Utils.Base64UrlEncode($"{fileId}{UrlSeparator}{lang}{UrlSeparator}{format}{UrlSeparator}{fps}");
-        }
-
-        private static (string, string, string, float) ParseId(string id)
-        {
-            string[] ids = Utils.Base64UrlDecode(id).Split(new[] { UrlSeparator }, StringSplitOptions.None);
-            string fileId = ids[0];
-            string lang = ids[1];
-            string format = ids[2];
-
-            float fps = 25;
-            try { fps = float.Parse(ids[3].Replace(',', '.'), CultureInfo.InvariantCulture); } catch { }
-
-            return (fileId, lang, format, fps);
+            var link = new LinkSub 
+            { 
+                Id = $"{fileId}", 
+                Lang = lang, 
+                Fps = fps, 
+                FpsVideo = fpsVide,
+            };
+            return link.GetId();
         }
 
     }

@@ -35,7 +35,7 @@ namespace subbuzz.Providers
     {
         internal const string NAME = "Subf2m";
         private const string ServerUrl = "https://subf2m.co";
-        private const string CacheRegion = "subf2m";
+        private static readonly string[] CacheRegionSub = { "subf2m", "sub" };
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -43,7 +43,7 @@ namespace subbuzz.Providers
         private readonly ILibraryManager _libraryManager;
         private Download downloader;
 
-        private readonly Dictionary<string, string> _languages = new Dictionary<string, string>
+        private static readonly Dictionary<string, string> _languages = new Dictionary<string, string>
         {
             { "alb", "albanian" }, { "ara", "arabic" }, { "arm", "armenian" }, { "aze", "azerbaijani" },
             { "baq", "basque" }, { "bel", "belarusian" }, { "ben", "bengali" }, { "bos", "bosnian" }, { "bul", "bulgarian" }, { "bur", "burmese" },
@@ -100,7 +100,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, Plugin.Instance.Cache?.FromRegion(CacheRegion), NAME);
+            downloader = new Download(http, logger, NAME);
 
         }
 
@@ -108,7 +108,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await downloader.GetArchiveSubFile(id, ServerUrl, cancellationToken).ConfigureAwait(false);
+                return await downloader.GetSubtitles(id, ServerUrl, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -455,14 +455,6 @@ namespace subbuzz.Providers
             subInfo += subData.Comment.IsNotNullOrWhiteSpace() ? $"<br>{subData.Comment}" : "";
             subInfo += $"<br>{subDate} | {subData.Uploader}";
 
-            string subFps = (si.VideoFps ?? 25).ToString(CultureInfo.InvariantCulture);
-            if (fps > 0)
-            {
-                subFps = fps.ToString(CultureInfo.InvariantCulture);
-                subInfo += $" | {subFps}";
-                si.MatchFps(subFps, ref subScoreBase);
-            }
-
             if (subData.Releases.Count == 1)
                 si.MatchTitle(subData.Releases[0], ref subScoreBase);
 
@@ -470,8 +462,10 @@ namespace subbuzz.Providers
             {
                 Url = downloadLink,
                 CacheKey = urlPage,
-                CacheRegion = "sub",
-                Lang = si.LanguageInfo.TwoLetterISOLanguageName
+                CacheRegion = CacheRegionSub,
+                Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                Fps = fps < 1 ? null : fps,
+                FpsVideo = si.VideoFps,
             };
 
             using (var files = await downloader.GetArchiveFiles(link, ServerUrl, cancellationToken).ConfigureAwait(false))
@@ -482,18 +476,29 @@ namespace subbuzz.Providers
                 {
                     if (!file.IsSubfile()) continue;
 
+                    link.File = file.Name;
+                    link.Fps = file.Sub.FpsRequested;
+
+                    string subFpsInfo = link.Fps == null ? "" : link.Fps?.ToString(CultureInfo.InvariantCulture);
+                    if (file.Sub.FpsRequested != null && file.Sub.FpsDetected != null &&
+                        Math.Abs(file.Sub.FpsRequested ?? 0 - file.Sub.FpsDetected ?? 0) > 0.001)
+                    {
+                        subFpsInfo = $"{file.Sub.FpsRequested?.ToString(CultureInfo.InvariantCulture)} ({file.Sub.FpsDetected?.ToString(CultureInfo.InvariantCulture)})";
+                        link.Fps = file.Sub.FpsDetected;
+                    }
+
+                    SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
+                    si.MatchFps(link.Fps, ref subScore);
+
                     bool scoreVideoFileName = subFilesCount == 1 && subData.Releases.Find(x => x.EqualsIgnoreCase(si.FileName)).IsNotNullOrWhiteSpace();
                     bool ignorMutliDiscSubs = subFilesCount > 1;
 
-                    float score = si.CaclScore(file.Name, subScoreBase, scoreVideoFileName, ignorMutliDiscSubs);
+                    float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
                     if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                     {
                         _logger.LogInformation($"{NAME}: Ignore file: {file.Name} Page: {urlPage} Socre: {score}");
                         continue;
                     }
-
-                    link.File = file.Name;
-                    link.Fps = subFps;
 
                     var subItmem = new SubtitleInfo
                     {
@@ -501,8 +506,8 @@ namespace subbuzz.Providers
                         Id = link.GetId(),
                         ProviderName = Name,
                         Name = $"<a href='{urlPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.Name}</a>",
-                        Format = "srt",
-                        Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                        Format = file.GetExtSupportedByEmby(),
+                        Comment = subInfo + " | " + subFpsInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = dt,
                         DownloadCount = subDownloads,
                         IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,

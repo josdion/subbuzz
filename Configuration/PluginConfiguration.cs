@@ -7,33 +7,22 @@ namespace subbuzz
 {
     public class SubPostProcessingCfg
     {
-        public bool EncodeSubtitlesToUTF8 { get; set; }
-        public bool AdjustDuration { get; set; }
-        public double AdjustDurationCps { get; set; }
-        public bool AdjustDurationExtendOnly { get; set; }
-
-        public SubPostProcessingCfg() 
-        {
-            EncodeSubtitlesToUTF8 = true;
-            AdjustDuration = false;
-            AdjustDurationCps = 15;
-            AdjustDurationExtendOnly = true;
-        }
+        public bool EncodeSubtitlesToUTF8 { get; set; } = true;
+        public bool AdjustDuration { get; set; } = false;
+        public double AdjustDurationCps { get; set; } = 15.0;
+        public bool AdjustDurationExtendOnly { get; set; } = true;
     }
 
     public class SubEncodingCfg
     {
-        public string DefaultEncoding { get; set; }
-        public bool AutoDetectEncoding { get; set; }
+        public string DefaultEncoding { get; set; } = Encoding.Default.WebName;
+        public bool AutoDetectEncoding { get; set; } = true;
 
         [XmlIgnoreAttribute]
         public List<string> Encodings { get;  }
 
         public SubEncodingCfg()
         {
-            DefaultEncoding = Encoding.Default.WebName;
-            AutoDetectEncoding = true;
-
             Encodings = new List<string>();
             foreach (var e in Encoding.GetEncodings()) Encodings.Add(e.Name);
             Encodings.Sort();
@@ -64,51 +53,43 @@ namespace subbuzz
 
     }
 
+    public class CacheCfg
+    {
+        public bool Subtitle { get; set; } = true;
+        public int SubLifeInMinutes { get; set; } = 24 * 60;
+        public bool Search { get; set; } = true;
+        public int SearchLifeOutMinutes { get; set; } = 4 * 60;
+        public string BasePath { get; set; } = string.Empty;
+    }
+
     public class PluginConfiguration : BasePluginConfiguration
     {
-        public bool EnableOpenSubtitles { get; set; }
-        public bool EnablePodnapisiNet { get; set; }
-        public bool EnableSubf2m { get; set; }
-        public bool EnableSubscene { get; set; }
-        public bool EnableSubssabbz { get; set; }
-        public bool EnableSubsunacsNet { get; set; }
-        public bool EnableYavkaNet { get; set; }
-        public bool EnableYifySubtitles { get; set; }
-        public float HashMatchByScore { get; set; }
-        public float MinScore { get; set; }
+        public bool EnableOpenSubtitles { get; set; } = true;
+        public bool EnablePodnapisiNet { get; set; } = true;
+        public bool EnableSubf2m { get; set; } = true;
+        public bool EnableSubscene { get; set; } = true;
+        public bool EnableSubssabbz { get; set; } = true;
+        public bool EnableSubsunacsNet { get; set; } = true;
+        public bool EnableYavkaNet { get; set; } = true;
+        public bool EnableYifySubtitles { get; set; } = true;
+        public float HashMatchByScore { get; set; } = 100;
+        public float MinScore { get; set; } = 50;
 
-        public string OpenSubUserName { get; set; }
-        public string OpenSubPassword { get; set; }
-        public string OpenSubApiKey { get; set; }
-        public string OpenSubToken { get; set; }
-        public bool OpenSubUseHash { get; set; }
-        public bool SubtitleCache { get; set; }
+        public string OpenSubUserName { get; set; } = string.Empty;
+        public string OpenSubPassword { get; set; } = string.Empty;
+        public string OpenSubApiKey { get; set; } = string.Empty;
+        public string OpenSubToken { get; set; } = string.Empty;
+        public bool OpenSubUseHash { get; set; } = true;
+
         public SubEncodingCfg SubEncoding { get; set; }
         public SubPostProcessingCfg SubPostProcessing { get; set; }
+        public CacheCfg Cache { get; set; }
 
         public PluginConfiguration()
         {
-            EnableOpenSubtitles = true;
-            EnablePodnapisiNet = true;
-            EnableSubf2m = true;
-            EnableSubscene = true;
-            EnableSubssabbz = true;
-            EnableSubsunacsNet = true;
-            EnableYavkaNet = true;
-            EnableYifySubtitles = true;
-            HashMatchByScore = 100;
-            MinScore = 50;
-
-            OpenSubUserName = string.Empty;
-            OpenSubPassword = string.Empty;
-            OpenSubApiKey = string.Empty;
-            OpenSubToken = string.Empty;
-            OpenSubUseHash = true;
-
-            SubtitleCache = true;
-
             SubEncoding = new SubEncodingCfg();
             SubPostProcessing = new SubPostProcessingCfg();
+            Cache = new CacheCfg();
         }
     }
 }

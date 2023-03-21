@@ -1,7 +1,7 @@
 ﻿<Project>
   <PropertyGroup>
-    <BaseIntermediateOutputPath>obj/emby-4.7</BaseIntermediateOutputPath>
-    <BaseOutputPath>bin/emby-4.7</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/emby-4.8</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/emby-4.8</BaseOutputPath>
   </PropertyGroup>
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
@@ -12,7 +12,7 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>subbuzz</RootNamespace>
     <AssemblyName>subbuzz</AssemblyName>
-    <DefineConstants>EMBY,EMBY_4_7</DefineConstants>
+    <DefineConstants>EMBY,EMBY_4_8</DefineConstants>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>	
@@ -24,10 +24,10 @@
   </ItemGroup>
 
   <ItemGroup> 
-    <PackageReference Include="mediabrowser.server.core" Version="4.7.*" /> 
-    <PackageReference Include="SharpCompress" Version="0.26.0" /> 
-    <PackageReference Include="System.Memory" Version="4.5.4" />
-    <PackageReference Include="System.Text.Json" Version="4.7.0" />
+    <PackageReference Include="mediabrowser.server.core" Version="4.8.*-*" /> 
+    <PackageReference Include="SharpCompress" Version="0.32.2" /> 
+    <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="System.Text.Json" Version="6.0.7" />
   </ItemGroup>
 
   <ItemGroup>

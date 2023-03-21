@@ -35,8 +35,8 @@ namespace subbuzz.Providers
         internal const string NAME = "yavka.net";
         private const string ServerUrl = "https://yavka.net";
         private const string HttpReferer = "https://yavka.net/subtitles.php";
-        private const string CacheRegion = "yavka.net";
-        private readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
+        private static readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
+        private static readonly string[] CacheRegionSub = { "yavka.net", "sub" };
 
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
@@ -62,6 +62,9 @@ namespace subbuzz.Providers
             public string Downloads;
         }
 
+        private PluginConfiguration GetOptions()
+            => Plugin.Instance.Configuration;
+
         public YavkaNet(
             ILogger logger,
             IFileSystem fileSystem,
@@ -78,14 +81,14 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, Plugin.Instance.Cache?.FromRegion(CacheRegion), NAME);
+            downloader = new Download(http, logger, NAME);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetArchiveSubFile(id, HttpReferer, cancellationToken).ConfigureAwait(false);
+                return await downloader.GetSubtitles(id, HttpReferer, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -103,7 +106,7 @@ namespace subbuzz.Providers
 
             try
             {
-                if (!Plugin.Instance.Configuration.EnableYavkaNet)
+                if (!GetOptions().EnableYavkaNet)
                 {
                     // provider is disabled
                     return res;
@@ -294,15 +297,15 @@ namespace subbuzz.Providers
             string subLink = subPageInfo["action"];
             string subInfo = sritem.Title + (string.IsNullOrWhiteSpace(sritem.Info) ? "" : "<br>" + sritem.Info);
 
-            var subFiles = new List<(string fileName, string fileExt)>();
-            
             Download.LinkSub link = new Download.LinkSub
             {
                 Url = subLink,
                 PostParams = new Dictionary<string, string> { { "id", subPageInfo["id"] }, { "lng", subPageInfo["lng"] } },
                 CacheKey = sritem.Link,
-                CacheRegion = "sub",
-                Lang = si.LanguageInfo.TwoLetterISOLanguageName
+                CacheRegion = CacheRegionSub,
+                Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                Fps = Download.LinkSub.FpsFromStr(sritem.Fps),
+                FpsVideo = si.VideoFps,
             };
 
             using (var files = await downloader.GetArchiveFiles(link, sritem.Link, cancellationToken).ConfigureAwait(false))
@@ -312,7 +315,7 @@ namespace subbuzz.Providers
                 DateTime? dt = null;
                 DateTimeOffset? dtOffset = null;
 
-                foreach (var fitem in files) using (fitem)
+                foreach (var fitem in files)
                 {
                     if (fitem.Name == "YavkA.net.txt")
                     {
@@ -334,11 +337,8 @@ namespace subbuzz.Providers
                             subImdb = match.Groups[1].ToString();
                             imdbId = int.Parse(match.Groups[2].ToString());
                         }
-                    }
-                    else
-                    {
-                        if (!fitem.IsSubfile()) continue;
-                        subFiles.Add((fitem.Name, fitem.GetExtSupportedByEmby()));
+
+                        break;
                     }
                 }
 
@@ -348,34 +348,49 @@ namespace subbuzz.Providers
                     //continue;
                 }
 
-                si.MatchFps(sritem.Fps, ref subScoreBase);
-
                 string subDate = dtOffset != null ? dtOffset?.ToString("g", CultureInfo.CurrentCulture) : "";
-                subInfo += string.Format("<br>{0} | {1} | {2}", subDate, sritem.Uploader, sritem.Fps);
+                subInfo += string.Format("<br>{0} | {1}", subDate, sritem.Uploader);
 
-                foreach (var (fileName, fileExt) in subFiles)
+                var subFilesCount = files.CountSubFiles();
+
+                foreach (var file in files)
                 {
-                    string file = fileName;
-                    float score = si.CaclScore(file, subScoreBase, subFiles.Count == 1 && sritem.InfoBase.ContainsIgnoreCase(si.FileName));
+                    if (!file.IsSubfile()) continue;
 
-                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                    link.File = file.Name;
+                    link.Fps = file.Sub.FpsRequested;
+
+                    string subFpsInfo = sritem.Fps;
+                    if (file.Sub.FpsRequested != null && file.Sub.FpsDetected != null &&
+                        Math.Abs(file.Sub.FpsRequested ?? 0 - file.Sub.FpsDetected ?? 0) > 0.001)
+                    {
+                        subFpsInfo = $"{file.Sub.FpsRequested?.ToString(CultureInfo.InvariantCulture)} ({file.Sub.FpsDetected?.ToString(CultureInfo.InvariantCulture)})";
+                        link.Fps = file.Sub.FpsDetected;
+                    }
+
+                    SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
+                    si.MatchFps(link.Fps, ref subScore);
+
+                    float score = si.CaclScore(file.Name, subScore, subFilesCount == 1 && sritem.InfoBase.ContainsIgnoreCase(si.FileName));
+
+                    if (score == 0 || score < GetOptions().MinScore)
+                    {
+                        _logger.LogInformation($"{NAME}: Ignore file: {file} Score: {score}");
                         continue;
-
-                    link.File = file;
-                    link.Fps = string.Empty;
+                    }
 
                     var item = new SubtitleInfo
                     {
                         ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
                         Id = link.GetId(),
                         ProviderName = Name,
-                        Name = $"<a href='{sritem.Link}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file}</a>",
-                        Format = fileExt,
+                        Name = $"<a href='{sritem.Link}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.Name}</a>",
+                        Format = file.GetExtSupportedByEmby(),
                         Author = sritem.Uploader,
-                        Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                        Comment = subInfo + " | " + subFpsInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         //CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                         DownloadCount = int.Parse(sritem.Downloads),
-                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                        IsHashMatch = score >= GetOptions().HashMatchByScore,
                         IsForced = false,
                         Score = score,
 #if EMBY
@@ -387,6 +402,11 @@ namespace subbuzz.Providers
 
                     res.Add(item);
                 }
+            }
+
+            if (res.Count > 0)
+            {
+                // TODO: Add subtitle info page to cache
             }
 
             return res;

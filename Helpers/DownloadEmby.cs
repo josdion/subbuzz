@@ -18,11 +18,10 @@ namespace subbuzz.Helpers
         private Random _rand = new Random();
         private readonly IHttpClient _httpClient;
 
-        public Download(IHttpClient httpClient, ILogger logger, FileCache cache, string provider)
+        public Download(IHttpClient httpClient, ILogger logger, string provider)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _cache = cache;
             _providerName = provider;
         }
         private Response GetRespInfo(HttpResponseInfo response)

@@ -7,37 +7,6 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build_emby_4_6:
-    name: Build for emby-4.6
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-        
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v2
-        with:
-          dotnet-version: 2.0.x
-      
-      - name: Install OpenSSL 1.0      
-        run: |
-          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb 
-          sudo apt install ./libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb
-          
-      - name: Install dependencies
-        run: dotnet restore subbuzz.emby.4.6.csproj
-        
-      - name: Build for emby-4.6
-        run: dotnet build subbuzz.emby.4.6.csproj --configuration Release --no-restore
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-artifact-emby-4.6
-          if-no-files-found: error
-          path: ./bin/emby-4.6/Release/netstandard2.0/subbuzz.dll
-
   build_emby_4_7:
     name: Build for emby-4.7
     runs-on: ubuntu-latest
@@ -68,6 +37,37 @@ jobs:
           name: build-artifact-emby-4.7
           if-no-files-found: error
           path: ./bin/emby-4.7/Release/netstandard2.0/subbuzz.dll
+          
+  build_emby_4_8:
+    name: Build for emby-4.8
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 2.0.x
+          
+      - name: Install OpenSSL 1.0      
+        run: |
+          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb 
+          sudo apt install ./libssl1.0.0_1.0.2n-1ubuntu5_amd64.deb
+          
+      - name: Install dependencies
+        run: dotnet restore subbuzz.emby.4.8.csproj
+          
+      - name: Build for emby-4.8
+        run: dotnet build subbuzz.emby.4.8.csproj --configuration Release --no-restore
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact-emby-4.8
+          if-no-files-found: error
+          path: ./bin/emby-4.8/Release/netstandard2.0/subbuzz.dll
           
   build_jellyfin_10_7:
     name: Build for jellyfin-10.7
