@@ -37,17 +37,19 @@ namespace subbuzz
             _appPaths = applicationPaths;
         }
 
-        public void InitCache()
+        public void InitCache(PluginConfiguration conf = null, bool save = true)
         {
-            if (Cache != null && Cache.CacheDir == Configuration.Cache.BasePath)
+            if (conf == null) conf = base.Configuration;
+
+            if (Cache != null && Cache.CacheDir == conf.Cache.BasePath)
                 return;
 
-            if (Configuration.Cache.BasePath.IsNotNullOrWhiteSpace())
+            if (conf.Cache.BasePath.IsNotNullOrWhiteSpace())
             {
                 try
                 {
-                    Directory.CreateDirectory(Configuration.Cache.BasePath);
-                    Cache = new FileCache(Configuration.Cache.BasePath);
+                    Directory.CreateDirectory(conf.Cache.BasePath);
+                    Cache = new FileCache(conf.Cache.BasePath);
                     return;
                 }
                 catch
@@ -59,17 +61,20 @@ namespace subbuzz
             {
                 string defaultPath = Path.Combine(_appPaths.CachePath, NAME);
                 Cache = new FileCache(defaultPath);
-                Configuration.Cache.BasePath = Cache.CacheDir;
+                conf.Cache.BasePath = Cache.CacheDir;
             }
             catch 
             {
             }
+
+            if (save == true) 
+                base.SaveConfiguration();
         }
 
-        public override void SaveConfiguration()
+        public override void UpdateConfiguration(BasePluginConfiguration configuration)
         {
-            InitCache();
-            base.SaveConfiguration();
+            InitCache((PluginConfiguration)configuration, false);
+            base.UpdateConfiguration(configuration);
         }
 
         public override string Name => NAME;
