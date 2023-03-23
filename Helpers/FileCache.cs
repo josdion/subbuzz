@@ -1,6 +1,4 @@
-﻿using MediaBrowser.Controller.MediaEncoding;
-using subbuzz.Extensions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -24,6 +22,10 @@ namespace subbuzz.Helpers
         public FileCacheItemLockedException(string message, Exception inner) : base(message, inner) { }
     }
 
+    public class FileCacheItemOpenException : Exception
+    {
+        public FileCacheItemOpenException(string message, Exception inner) : base(message, inner) { }
+    }
 
     public class FileCache
     {
@@ -178,14 +180,15 @@ namespace subbuzz.Helpers
                 }
                 catch (IOException ex)
                 {
-                    if ((ex.HResult & 0x0000FFFF) != 32)
+                    if (ex.HResult != -2147024864 && // Windows ERROR_SHARING_VIOLATION 0x80070020
+                        ex.HResult != 11) // EAGAIN Linux
                     {
-                        throw ex;
+                        throw new FileCacheItemOpenException($"File open error. HResult={ex.HResult}", ex);
                     }
 
                     if (totalTime >= 1000)
                     {
-                        throw new FileCacheItemLockedException("locked", ex);
+                        throw new FileCacheItemLockedException("File locked. HResult={ex.HResult}", ex);
                     }
 
                     Thread.Sleep(50);
