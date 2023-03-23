@@ -358,7 +358,7 @@ namespace subbuzz.Providers
                         float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
                         if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                         {
-                            _logger.LogInformation($"{NAME}: Ignore file: {file} Score: {score}");
+                            _logger.LogInformation($"{NAME}: Ignore file: {file.Name} Score: {score}");
                             continue;
                         }
 
