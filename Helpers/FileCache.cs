@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -43,6 +44,17 @@ namespace subbuzz.Helpers
 
         public string CacheDir { get; protected set; }
         protected TimeSpan Lifespan = TimeSpan.MaxValue;
+
+        protected static readonly int ERROR_SHARING_VIOLATION;
+        static FileCache()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                ERROR_SHARING_VIOLATION = 32; // 0x80070020
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                ERROR_SHARING_VIOLATION = 11;
+            else
+                ERROR_SHARING_VIOLATION = 35; // FreeBSD, OSX
+        }
 
         public FileCache(string cacheDir, TimeSpan? life = null)
         {
@@ -180,8 +192,7 @@ namespace subbuzz.Helpers
                 }
                 catch (IOException ex)
                 {
-                    if (ex.HResult != -2147024864 && // Windows ERROR_SHARING_VIOLATION 0x80070020
-                        ex.HResult != 11) // EAGAIN Linux
+                    if ((ex.HResult & 0xFFFF) != ERROR_SHARING_VIOLATION)
                     {
                         throw new FileCacheItemOpenException($"File open error. HResult={ex.HResult}", ex);
                     }
