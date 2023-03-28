@@ -47,7 +47,7 @@ namespace subbuzz.Providers
         {
             { "alb", "albanian" }, { "ara", "arabic" }, { "arm", "armenian" }, { "aze", "azerbaijani" },
             { "baq", "basque" }, { "bel", "belarusian" }, { "ben", "bengali" }, { "bos", "bosnian" }, { "bul", "bulgarian" }, { "bur", "burmese" },
-            { "cat", "catalan" }, { "chs", "chinese-bg-code" }, { "cht", "chinese-bg-code" }, { "cze", "czech" },
+            { "cat", "catalan" }, { "chs", "chinese-bg-code" }, { "cht", "chinese-bg-code" }, { "chi", "chinese-bg-code" }, { "cze", "czech" },
             { "dan", "danish" }, { "dut", "dutch" },
             { "eng", "english" }, { "epo", "esperanto" }, { "est", "estonian" },
             { "fin", "finnish" }, { "fre", "french" }, { "geo", "georgian" }, { "ger", "german" }, { "gre", "greek" },

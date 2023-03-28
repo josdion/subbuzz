@@ -20,6 +20,10 @@
 
                 <div class="paperList checkboxList checkboxList-paperList">
                     <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableAddic7ed" id="EnableAddic7ed" />
+                        <span>Addic7ed.com</span>
+                    </label>
+                    <label>
                         <input is="emby-checkbox" type="checkbox" class="EnableOpenSubtitles" id="EnableOpenSubtitles" />
                         <span>OpenSubtitles.com</span>
                     </label>
@@ -171,6 +175,7 @@
             var page = this;
 
             ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
+                page.querySelector("#EnableAddic7ed").checked = config.EnableAddic7ed;
                 page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
                 page.querySelector("#EnablePodnapisiNet").checked = config.EnablePodnapisiNet;
                 page.querySelector("#EnableSubf2m").checked = config.EnableSubf2m;
@@ -225,6 +230,7 @@
                 }
 
                 var saveConfig = function () {
+                    config.EnableAddic7ed = form.querySelector("#EnableAddic7ed").checked;
                     config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;
                     config.EnablePodnapisiNet = form.querySelector("#EnablePodnapisiNet").checked;
                     config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;

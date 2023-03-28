@@ -58,12 +58,13 @@ namespace subbuzz
         public bool Subtitle { get; set; } = true;
         public int SubLifeInMinutes { get; set; } = 24 * 60;
         public bool Search { get; set; } = true;
-        public int SearchLifeOutMinutes { get; set; } = 4 * 60;
+        public int SearchLifeInMinutes { get; set; } = 4 * 60;
         public string BasePath { get; set; } = string.Empty;
     }
 
     public class PluginConfiguration : BasePluginConfiguration
     {
+        public bool EnableAddic7ed { get; set; } = true;
         public bool EnableOpenSubtitles { get; set; } = true;
         public bool EnablePodnapisiNet { get; set; } = true;
         public bool EnableSubf2m { get; set; } = true;

@@ -6,8 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Text;
-using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,15 +33,15 @@ namespace subbuzz.Helpers
         private FileCache GetCache(string[] region, int life = 0)
             => Plugin.Instance?.Cache?.FromRegion(region, life);
 
-        private FileCache GetCacheSub(string[] region)
-            => GetCache(region, GetOptions().Cache.SubLifeInMinutes);
-
         public class Link
         {
             public string Url { get; set; } 
             public Dictionary<string, string> PostParams { get; set; }
             public string CacheKey { get; set; } = null;
             public string[] CacheRegion { get; set; }
+
+            [JsonIgnore]
+            public int CacheLifespan { get; set; }
         }
 
         public class LinkSub : Link 
@@ -170,7 +169,7 @@ namespace subbuzz.Helpers
         {
             var res = new ArchiveFileInfoList();
 
-            using (Response resp = await GetFromCache(link, referer, cancellationToken).ConfigureAwait(false))
+            using (Response resp = await GetResponseForSubtitles(link, referer, cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
@@ -197,7 +196,7 @@ namespace subbuzz.Helpers
                 }
 
                 if (res.CountSubFiles() > 0)
-                    AddToCache(link, resp);
+                    AddSubtitlesToCache(link, resp);
             }
 
             return res;
@@ -255,45 +254,90 @@ namespace subbuzz.Helpers
             return res;
         }
 
-        private void AddToCache(Link link, Response resp)
+        private void AddSubtitlesToCache(Link link, Response resp)
         {
-            try
+            Link tmpLink = new Link
             {
-                if (!GetOptions().Cache.Subtitle || resp.Cached) return;
-                GetCacheSub(link.CacheRegion).Add<ResponseInfo>(link.CacheKey ?? link.Url, resp.Content, resp.Info);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, $"{_providerName}: Can't add subtitles to cache: {e}");
-            }
+                Url = link.Url,
+                PostParams = link.PostParams,
+                CacheKey = link.CacheKey,
+                CacheRegion = link.CacheRegion,
+                CacheLifespan = GetOptions().Cache.Subtitle ? link.CacheLifespan : -1,
+            };
+
+            AddResponseToCache(tmpLink, resp);
         }
 
-        private async Task<Response> GetFromCache(Link link, string referer, CancellationToken cancellationToken, int maxRetry = DefaultMaxRetry)
+        private async Task<Response> GetResponseForSubtitles(Link link, string referer, CancellationToken cancellationToken, int maxRetry = DefaultMaxRetry)
         {
+            Link tmpLink = new Link
+            {
+                Url = link.Url,
+                PostParams = link.PostParams,
+                CacheKey = link.CacheKey,
+                CacheRegion = link.CacheRegion,
+                CacheLifespan = GetOptions().Cache.Subtitle ? link.CacheLifespan : -1,
+            };
+
+            return await GetResponse(tmpLink, referer, cancellationToken, maxRetry);
+        }
+
+        public async Task<Response> GetResponse(Link link, string referer, CancellationToken cancellationToken, int maxRetry = DefaultMaxRetry)
+        {
+            bool expiredFound = false;
+
             try
             {
-                if (GetOptions().Cache.Subtitle)
+                if (link.CacheLifespan >= 0 && link.CacheRegion != null)
                 {
-                    Response resp = new Response();
-                    ResponseInfo respInfo = null;
-                    resp.Content = GetCacheSub(link.CacheRegion).Get<ResponseInfo>(link.CacheKey ?? link.Url, out respInfo);
-                    if (resp.Content != null)
-                    {
-                        resp.Info = respInfo;
-                        resp.Cached = true;
-                        return resp;
-                    }
+                    Response resp = new Response { Cached = true };
+                    resp.Content = GetCache(link.CacheRegion, link.CacheLifespan).Get(link.CacheKey ?? link.Url, out ResponseInfo respInfo);
+                    resp.Info = respInfo;
+                    return resp;
                 }
             }
             catch (FileCacheItemNotFoundException)
             {
             }
+            catch (FileCacheItemExpiredException)
+            {
+                expiredFound = true;
+            }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{_providerName}: Unable to load subtitles from cache: {e}");
+                _logger.LogError(e, $"{_providerName}: Unable to get response from cache: {e}");
             }
 
-            return await Get(link.Url, referer, link.PostParams, cancellationToken, maxRetry);
+            try
+            {
+                return await Get(link.Url, referer, link.PostParams, cancellationToken, maxRetry);
+            }
+            catch (Exception e)
+            {
+                if (!expiredFound) throw;
+
+                _logger.LogError(e, $"{_providerName}: Get response from cache, as it's not able to get the response from server: {e}");
+
+                Response resp = new Response { Cached = true };
+                resp.Content = GetCache(link.CacheRegion, 0).Get(link.CacheKey ?? link.Url, out ResponseInfo respInfo);
+                resp.Info = respInfo;
+
+                return resp;
+            }
         }
+
+        public void AddResponseToCache(Link link, Response resp)
+        {
+            try
+            {
+                if (link.CacheLifespan < 0 || link.CacheRegion == null || resp.Cached) return;
+                GetCache(link.CacheRegion, link.CacheLifespan).Add(link.CacheKey ?? link.Url, resp.Content, resp.Info);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"{_providerName}: Can't add to cache: {e}");
+            }
+        }
+
     }
 }

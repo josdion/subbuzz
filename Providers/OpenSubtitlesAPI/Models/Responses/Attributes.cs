@@ -27,6 +27,9 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
         [JsonPropertyName("from_trusted")]
         public bool? FromTrusted { get; set; }
 
+        [JsonPropertyName("foreign_parts_only")]
+        public bool? ForeignPartsOnly { get; set; }
+
         [JsonPropertyName("upload_date")]
         public DateTime UploadDate { get; set; }
 

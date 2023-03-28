@@ -55,7 +55,7 @@
                 </div>
 
                 <div class="selectContainer" style="margin-left: 2.3em;">
-                    <select is="emby-select" id="SearchLifeOutMinutes" name="SearchLifeOutMinutes" label="Lifespan:">
+                    <select is="emby-select" id="SearchLifeInMinutes" name="SearchLifeInMinutes" label="Lifespan:">
                         <option value="60">1 hour</option>
                         <option value="120">2 hours</option>
                         <option value="240">4 hours</option>
@@ -113,7 +113,7 @@
                 page.querySelector("#SubtitleCache").checked = config.Cache.Subtitle;
                 page.querySelector("#SubLifeInMinutes").value = config.Cache.SubLifeInMinutes;
                 page.querySelector("#SearchCache").checked = config.Cache.Search;
-                page.querySelector("#SearchLifeOutMinutes").value = config.Cache.SearchLifeOutMinutes;
+                page.querySelector("#SearchLifeInMinutes").value = config.Cache.SearchLifeInMinutes;
                 page.querySelector('#CachePath').value = config.Cache.BasePath || '';
 
                 Dashboard.hideLoadingMsg();
@@ -132,7 +132,7 @@
                     config.Cache.Subtitle = form.querySelector("#SubtitleCache").checked;
                     config.Cache.SubLifeInMinutes = form.querySelector("#SubLifeInMinutes").value;
                     config.Cache.Search = form.querySelector("#SearchCache").checked;
-                    config.Cache.SearchLifeOutMinutes = form.querySelector("#SearchLifeOutMinutes").value;
+                    config.Cache.SearchLifeInMinutes = form.querySelector("#SearchLifeInMinutes").value;
                     config.Cache.BasePath = form.querySelector('#CachePath').value;
 
                     ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {

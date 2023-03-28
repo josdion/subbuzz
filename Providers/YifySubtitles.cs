@@ -50,6 +50,14 @@ namespace subbuzz.Providers
 
         public int Order => 0;
 
+        private static readonly Dictionary<string, string> LangMap = new Dictionary<string, string>
+        {
+            { "Brazilian Portuguese",   "pob" },
+            { "Chinese BG code",        "chs" },
+            { "Big 5 code",             "cht" },
+            { "Chinese",                "chi" },
+        };
+
         public YifySubtitles(
             ILogger logger,
             IFileSystem fileSystem,
@@ -187,12 +195,11 @@ namespace subbuzz.Providers
                 string subUploader = tds[4].TextContent;
 
                 string lang = tds[1].TextContent;
-                if (!lang.Equals(si.LanguageInfo.DisplayName, StringComparison.CurrentCultureIgnoreCase) &&
-                    !lang.Equals(si.LanguageInfo.Name, StringComparison.CurrentCultureIgnoreCase))
-                {
-                    // Ignore language
-                    continue;
-                }
+                if (LangMap.ContainsKey(lang))
+                    lang = LangMap[lang];
+
+                if (!si.IsRequestedLanguage(lang))
+                    continue; // Ignore language
 
                 var linkTag = tds[2].GetElementsByTagName("a")[0];
                 string subLinkPage = linkTag.GetAttribute("href");

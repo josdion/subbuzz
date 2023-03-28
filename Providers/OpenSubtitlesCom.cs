@@ -65,6 +65,7 @@ namespace subbuzz.Providers
             public string Lang { get; set; } = string.Empty;
             public float? Fps { get; set; } = null;
             public float? FpsVideo { get; set; } = null;
+            public bool? IsForced { get; set; } = null;
 
             public string GetId()
             {
@@ -107,7 +108,7 @@ namespace subbuzz.Providers
             {
                 LinkSub linkSub = LinkSub.FromId(id);
 
-                SubtitleResponse subResp = GetSubtitlesFromCache(linkSub.Id, linkSub.Lang, linkSub.Fps);
+                SubtitleResponse subResp = GetSubtitlesFromCache(linkSub.Id, linkSub.Lang, linkSub.Fps, linkSub.IsForced);
                 if (subResp != null) {
                     _logger.LogDebug($"{NAME}: Subtitles with file id {linkSub.Id} loaded from cache");
                     return subResp;
@@ -155,7 +156,7 @@ namespace subbuzz.Providers
                     {
                         Format = format,
                         Language = linkSub.Lang,
-                        IsForced = false,
+                        IsForced = linkSub.IsForced ?? false,
                         Stream = outStream,
                     };
                 }
@@ -168,7 +169,7 @@ namespace subbuzz.Providers
             return new SubtitleResponse();
         }
 
-        protected SubtitleResponse GetSubtitlesFromCache(string fileId, string lang, float? fps)
+        protected SubtitleResponse GetSubtitlesFromCache(string fileId, string lang, float? fps, bool? isForced)
         {
             try
             {
@@ -188,7 +189,7 @@ namespace subbuzz.Providers
                     {
                         Format = format,
                         Language = lang,
-                        IsForced = false,
+                        IsForced = isForced ?? false,
                         Stream = outStream,
                     };
                 }
@@ -351,7 +352,7 @@ namespace subbuzz.Providers
                     var item = new SubtitleInfo
                     {
                         ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                        Id = GetId(file.FileId, si.Lang, subItem.Fps, si.VideoFps),
+                        Id = GetId(file.FileId, si.Lang, subItem.Fps, si.VideoFps, subItem.ForeignPartsOnly),
                         ProviderName = Name,
                         Name = $"<a href='{subItem.Url}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.FileName ?? "..."}</a>",
                         Format = SubtitleConvert.GetExtSupportedByEmby(subItem.Format),
@@ -361,7 +362,7 @@ namespace subbuzz.Providers
                         CommunityRating = subItem.Ratings,
                         DownloadCount = subItem.DownloadCount,
                         IsHashMatch = (score >= Plugin.Instance.Configuration.HashMatchByScore) || (subItem.MovieHashMatch ?? false),
-                        IsForced = false,
+                        IsForced = subItem.ForeignPartsOnly ?? false,
                         Score = score,
                     };
 
@@ -457,7 +458,7 @@ namespace subbuzz.Providers
             return string.Empty;
         }
 
-        private static string GetId(int fileId, string lang, float? fps, float? fpsVide)
+        private static string GetId(int fileId, string lang, float? fps, float? fpsVide, bool? isForced)
         {
             var link = new LinkSub 
             { 
@@ -465,6 +466,7 @@ namespace subbuzz.Providers
                 Lang = lang, 
                 Fps = fps, 
                 FpsVideo = fpsVide,
+                IsForced = isForced,
             };
             return link.GetId();
         }

@@ -61,6 +61,7 @@ namespace subbuzz.Providers
                 { Subf2m.NAME,              new Subf2m(logger, fileSystem, localizationManager, libraryManager, http) },
                 { Subscene.NAME,            new Subscene(logger, fileSystem, localizationManager, libraryManager, http) },
                 { YifySubtitles.NAME,       new YifySubtitles(logger, fileSystem, localizationManager, libraryManager, http) },
+                { Addic7ed.NAME,            new Addic7ed(logger, fileSystem, localizationManager, libraryManager, http) },
             };
         }
 

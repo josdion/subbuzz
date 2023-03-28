@@ -60,7 +60,7 @@ namespace subbuzz.Helpers
             res.LanguageInfo = localize.FindLanguageInfo(request.Language.AsSpan());
             res.IsForced = request.IsForced ?? false;
 #else
-            res.LanguageInfo = localize.FindLanguageInfo(request.Language);
+            res.LanguageInfo = LoadLanguageInfo(localize, request.Language);
 #endif
             res.Lang = res.LanguageInfo.TwoLetterISOLanguageName.ToLower();
 
@@ -160,6 +160,48 @@ namespace subbuzz.Helpers
             res.Year = request.ProductionYear;
 
             return res;
+        }
+
+#if JELLYFIN
+        private static CultureDto LoadLanguageInfo(ILocalizationManager localize, string reqLanguage)
+        {
+            CultureDto languageInfo = localize.FindLanguageInfo(reqLanguage);
+            var threeLetterISOLanguageNames = languageInfo.ThreeLetterISOLanguageNames.ToList();
+            switch (languageInfo.TwoLetterISOLanguageName)
+            {
+                case "zh": // Chinese Simplified
+                    threeLetterISOLanguageNames.Add("chs");
+                    break;
+                case "zh-tw": // Chinese Traditional
+                    threeLetterISOLanguageNames.Add("cht");
+                    break;
+            }
+
+#if JELLYFIN_10_7
+            return new CultureDto { 
+                Name = languageInfo.Name, DisplayName = languageInfo.DisplayName, 
+                TwoLetterISOLanguageName = languageInfo.TwoLetterISOLanguageName, 
+                ThreeLetterISOLanguageNames = threeLetterISOLanguageNames.ToArray() };
+#else
+            return new CultureDto(languageInfo.Name, languageInfo.DisplayName, languageInfo.TwoLetterISOLanguageName, threeLetterISOLanguageNames);
+#endif
+        }
+#endif
+
+        public bool IsRequestedLanguage(string language)
+        {
+            if (!language.EqualsIgnoreCase(LanguageInfo.DisplayName) && 
+                !language.EqualsIgnoreCase(LanguageInfo.Name) && 
+                !LanguageInfo.ThreeLetterISOLanguageNames.Any((string e) => e.EqualsIgnoreCase(language)))
+            {
+#if EMBY
+                return LanguageInfo.TwoLetterISOLanguageNames.Any((string e) => e.EqualsIgnoreCase(language));
+#else
+                return language.EqualsIgnoreCase(LanguageInfo.TwoLetterISOLanguageName);
+#endif
+            }
+
+            return true;
         }
 
         public float CaclScore(string subFileName, SubtitleScore baseScore, bool scoreVideoFileName, bool ignorMutliDiscSubs = false)
