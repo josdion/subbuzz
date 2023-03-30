@@ -19,7 +19,6 @@
 
   <ItemGroup>
     <Compile Remove="API\ControllerEmby.cs" />
-    <Compile Remove="Extensions/ILoggerExtensions.cs" />
     <Compile Remove="Helpers\DownloadEmby.cs" />
   </ItemGroup>
 

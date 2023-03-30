@@ -13,20 +13,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Security.Authentication;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 
 #if EMBY
 using MediaBrowser.Common.Net;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -37,7 +30,7 @@ namespace subbuzz.Providers
         internal const string NAME = "opensubtitles.com";
         private const string ServerUrl = "https://www.opensubtitles.com";
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
@@ -82,7 +75,7 @@ namespace subbuzz.Providers
         }
 
         public OpenSubtitlesCom(
-            ILogger logger,
+            Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
@@ -110,7 +103,7 @@ namespace subbuzz.Providers
 
                 SubtitleResponse subResp = GetSubtitlesFromCache(linkSub.Id, linkSub.Lang, linkSub.Fps, linkSub.IsForced);
                 if (subResp != null) {
-                    _logger.LogDebug($"{NAME}: Subtitles with file id {linkSub.Id} loaded from cache");
+                    _logger.LogDebug($"Subtitles with file id {linkSub.Id} loaded from cache");
                     return subResp;
                 }
 
@@ -119,14 +112,14 @@ namespace subbuzz.Providers
 
                 if (link.IsNullOrWhiteSpace())
                 {
-                    _logger.LogInformation($"{NAME}: Can't get download link for file ID {linkSub.Id}");
+                    _logger.LogInformation($"Can't get download link for file ID {linkSub.Id}");
                     return new SubtitleResponse();
                 }
 
                 var res = await OpenSubtitles.DownloadSubtitleAsync(link, cancellationToken).ConfigureAwait(false);
                 if (!res.Ok)
                 {
-                    _logger.LogInformation($"{NAME}: Subtitle {link} could not be downloaded: {res.Code}");
+                    _logger.LogInformation($"Subtitle {link} could not be downloaded: {res.Code}");
                     return new SubtitleResponse();
                 }
 
@@ -148,7 +141,7 @@ namespace subbuzz.Providers
                         }
                         catch (Exception e) 
                         {
-                            _logger.LogError(e, $"{NAME}: Can't add subtitles to cache: {e}");
+                            _logger.LogError(e, $"Can't add subtitles to cache: {e}");
                         }
                     }
 
@@ -163,7 +156,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -200,7 +193,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Unable to load subtitles from cache: {e}");
+                _logger.LogError(e, $"Unable to load subtitles from cache: {e}");
             }
 
             return null;
@@ -225,7 +218,7 @@ namespace subbuzz.Providers
                 if (si.Lang == "zh") si.Lang = "zh-CN";
                 else if (si.Lang == "pt") si.Lang = "pt-PT";
 
-                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
 
                 string hash = GetOptions().OpenSubUseHash ? CalcHash(request.MediaPath) : string.Empty;
 
@@ -233,11 +226,11 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Search error: {e}");
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             watch.Stop();
-            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
@@ -305,13 +298,13 @@ namespace subbuzz.Providers
                 }
             }
 
-            _logger.LogDebug("{NAME}: Search options: {options}", NAME, options);
+            _logger.LogDebug("Search options: {options}", NAME, options);
 
             var searchResponse = await OpenSubtitles.SearchSubtitlesAsync(options, apiKey, cancellationToken).ConfigureAwait(false);
 
             if (!searchResponse.Ok)
             {
-                _logger.LogInformation("{NAME}: Invalid response: {Code} - {Body}", NAME, searchResponse.Code, searchResponse.Body);
+                _logger.LogInformation("Invalid response: {Code} - {Body}", NAME, searchResponse.Code, searchResponse.Body);
                 return res;
             }
 
@@ -345,7 +338,7 @@ namespace subbuzz.Providers
                     float score = si.CaclScore(file.FileName, subScoreBase, false, ignorMutliDiscSubs);
                     if ((score == 0 || score < Plugin.Instance.Configuration.MinScore) && ((subItem.MovieHashMatch ?? false) == false))
                     {
-                        _logger.LogInformation($"{NAME}: Ignore file: {file.FileName ?? ""} ID: {file.FileId} Score: {score}");
+                        _logger.LogInformation($"Ignore file: {file.FileName ?? ""} ID: {file.FileId} Score: {score}");
                         continue;
                     }
 
@@ -424,18 +417,18 @@ namespace subbuzz.Providers
                 switch (link.Code)
                 {
                     case HttpStatusCode.NotAcceptable:
-                        _logger.LogInformation($"{NAME}: OpenSubtitles.com download limit reached.");
+                        _logger.LogInformation($"OpenSubtitles.com download limit reached.");
                         break;
 
                     case HttpStatusCode.Unauthorized:
-                        _logger.LogInformation($"{NAME}: JWT token expired, obtain a new one and try again");
+                        _logger.LogInformation($"JWT token expired, obtain a new one and try again");
 
                         GetOptions().OpenSubToken = string.Empty;
                         Plugin.Instance.SaveConfiguration();
                         return await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);
                 }
 
-                _logger.LogInformation($"{NAME}: Invalid response for file {fid}: {link.Code}\n\n{link.Body}");
+                _logger.LogInformation($"Invalid response for file {fid}: {link.Code}\n\n{link.Body}");
             }
 
             return string.Empty;
@@ -452,7 +445,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Exception while computing hash for {path}");
+                _logger.LogError(e, $"Exception while computing hash for {path}");
             }
 
             return string.Empty;

@@ -9,7 +9,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 
 namespace subbuzz.Helpers
 {
@@ -18,11 +17,10 @@ namespace subbuzz.Helpers
         private Random _rand = new Random();
         private readonly IHttpClient _httpClient;
 
-        public Download(IHttpClient httpClient, ILogger logger, string provider)
+        public Download(IHttpClient httpClient, Logger logger)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _providerName = provider;
         }
         private Response GetRespInfo(HttpResponseInfo response)
         {

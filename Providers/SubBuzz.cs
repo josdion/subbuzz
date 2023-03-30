@@ -12,15 +12,15 @@ using System.Threading.Tasks;
 using System.Linq;
 
 #if EMBY
-using MediaBrowser.Common.Net;
+using MediaBrowser.Model.Logging;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
+using MediaBrowser.Common.Net;
+using IHttpClient = MediaBrowser.Common.Net.IHttpClient;
 #else
 using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
+using ILogger = Microsoft.Extensions.Logging.ILoggerFactory;
 using System.Net.Http;
+using IHttpClient = System.Net.Http.IHttpClientFactory;
 #endif
 
 namespace subbuzz.Providers
@@ -34,7 +34,7 @@ namespace subbuzz.Providers
 
         public int Order => 0;
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly Dictionary<string, ISubBuzzProvider> Providers;
 
         public SubBuzz(
@@ -42,26 +42,22 @@ namespace subbuzz.Providers
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
             IHttpClient http
-#endif
             )
         {
-            _logger = logger;
+            _logger = new Logger(logger, typeof(SubBuzz).FullName);
             Plugin.Instance.InitCache();
             Providers = new Dictionary<string, ISubBuzzProvider>
             {
-                { SubsSabBz.NAME,           new SubsSabBz(logger, fileSystem, localizationManager, libraryManager, http) },
-                { SubsUnacsNet.NAME,        new SubsUnacsNet(logger, fileSystem, localizationManager, libraryManager, http) },
-                { YavkaNet.NAME,            new YavkaNet(logger, fileSystem, localizationManager, libraryManager, http) },
-                { OpenSubtitlesCom.NAME,    new OpenSubtitlesCom(logger, fileSystem, localizationManager, libraryManager, http) },
-                { PodnapisiNet.NAME,        new PodnapisiNet(logger, fileSystem, localizationManager, libraryManager, http) },
-                { Subf2m.NAME,              new Subf2m(logger, fileSystem, localizationManager, libraryManager, http) },
-                { Subscene.NAME,            new Subscene(logger, fileSystem, localizationManager, libraryManager, http) },
-                { YifySubtitles.NAME,       new YifySubtitles(logger, fileSystem, localizationManager, libraryManager, http) },
-                { Addic7ed.NAME,            new Addic7ed(logger, fileSystem, localizationManager, libraryManager, http) },
+                { SubsSabBz.NAME,           new SubsSabBz(_logger.GetLogger<SubsSabBz>(), fileSystem, localizationManager, libraryManager, http) },
+                { SubsUnacsNet.NAME,        new SubsUnacsNet(_logger.GetLogger<SubsUnacsNet>(), fileSystem, localizationManager, libraryManager, http) },
+                { YavkaNet.NAME,            new YavkaNet(_logger.GetLogger<YavkaNet>(), fileSystem, localizationManager, libraryManager, http) },
+                { OpenSubtitlesCom.NAME,    new OpenSubtitlesCom(_logger.GetLogger<OpenSubtitlesCom>(), fileSystem, localizationManager, libraryManager, http) },
+                { PodnapisiNet.NAME,        new PodnapisiNet(_logger.GetLogger<PodnapisiNet>(), fileSystem, localizationManager, libraryManager, http) },
+                { Subf2m.NAME,              new Subf2m(_logger.GetLogger<Subf2m>(), fileSystem, localizationManager, libraryManager, http) },
+                { Subscene.NAME,            new Subscene(_logger.GetLogger<Subscene>(), fileSystem, localizationManager, libraryManager, http) },
+                { YifySubtitles.NAME,       new YifySubtitles(_logger.GetLogger<YifySubtitles>(), fileSystem, localizationManager, libraryManager, http) },
+                { Addic7ed.NAME,            new Addic7ed(_logger.GetLogger<Addic7ed>(), fileSystem, localizationManager, libraryManager, http) },
             };
         }
 
@@ -84,7 +80,7 @@ namespace subbuzz.Providers
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var tasks = new Dictionary<string, Task<IEnumerable<RemoteSubtitleInfo>>>();
 
-            _logger.LogInformation($"{Name}: Start subtitle search for {request.Name}.");
+            _logger.LogInformation($"Start subtitle search for {request.Name}.");
 
             foreach (var p in Providers)
             {
@@ -101,7 +97,7 @@ namespace subbuzz.Providers
                 var elapsedTime = watch.ElapsedMilliseconds;
                 if (!task.Value.Wait((int)(elapsedTime >= 29000 ? 1 : 29000 - elapsedTime)))
                 {
-                    _logger.LogInformation($"{Name}: The response from {task.Key} is ignored because it did not complete in time.");
+                    _logger.LogInformation($"The response from {task.Key} is ignored because it did not complete in time.");
                     continue;
                 }
 #endif
@@ -140,7 +136,7 @@ namespace subbuzz.Providers
             res.Sort((x, y) => y.Score.CompareTo(x.Score));
 
             watch.Stop();
-            _logger.LogInformation($"{Name}: Search duration: {watch.ElapsedMilliseconds/1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds/1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }

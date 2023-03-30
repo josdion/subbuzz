@@ -19,13 +19,7 @@ using System.Web;
 
 #if EMBY
 using MediaBrowser.Common.Net;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -39,7 +33,7 @@ namespace subbuzz.Providers
         private static readonly string[] CacheRegionSearch = { "addic7ed.com", "search" };
         private static readonly string[] CacheRegionData = { "addic7ed.com", "data" };
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
@@ -68,7 +62,7 @@ namespace subbuzz.Providers
         };
 
         public Addic7ed(
-            ILogger logger,
+            Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
@@ -83,7 +77,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            _downloader = new Download(http, logger, NAME);
+            _downloader = new Download(http, logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -94,7 +88,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -121,7 +115,7 @@ namespace subbuzz.Providers
                     "{0} {1:D2}x{2:D2}",
                     "{0} Season {1}");
 
-                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
 
                 if (request.ContentType.Equals(VideoContentType.Episode) && si.SeasonNumber != null && si.EpisodeNumber != 0)
                     res = await SearchEpisode(si, cancellationToken).ConfigureAwait(false);
@@ -132,11 +126,11 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Search error: {e}");
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             watch.Stop();
-            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }

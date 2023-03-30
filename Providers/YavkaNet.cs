@@ -18,13 +18,7 @@ using System.Globalization;
 
 #if EMBY
 using MediaBrowser.Common.Net;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -38,7 +32,7 @@ namespace subbuzz.Providers
         private static readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
         private static readonly string[] CacheRegionSub = { "yavka.net", "sub" };
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
@@ -66,7 +60,7 @@ namespace subbuzz.Providers
             => Plugin.Instance.Configuration;
 
         public YavkaNet(
-            ILogger logger,
+            Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
@@ -81,7 +75,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, NAME);
+            downloader = new Download(http, logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -92,7 +86,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -113,7 +107,7 @@ namespace subbuzz.Providers
                 }
 
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} s{1:D2}e{2:D2}", "{0} s{1:D2}");
-                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
@@ -188,11 +182,11 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Search error: {e}");
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             watch.Stop();
-            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
@@ -201,7 +195,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: GET: {url}");
+                _logger.LogInformation($"GET: {url}");
 
                 using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
                 {
@@ -210,7 +204,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: Search error: {e}");
                 return new List<SearchResultItem>();
             }
         }
@@ -287,7 +281,7 @@ namespace subbuzz.Providers
                 !subPageInfo.ContainsKey("id") ||
                 !subPageInfo.ContainsKey("lng"))
             {
-                _logger.LogInformation($"{NAME}: Invalid information from subtitle page: {sritem.Link}");
+                _logger.LogInformation($"Invalid information from subtitle page: {sritem.Link}");
                 return res;
             }
 
@@ -344,7 +338,7 @@ namespace subbuzz.Providers
 
                 if (!si.MatchImdbId(imdbId, ref subScoreBase))
                 {
-                    //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                    //_logger.LogInformation($"Ignore result {subImdb} {subTitle} not matching IMDB ID");
                     //continue;
                 }
 
@@ -375,7 +369,7 @@ namespace subbuzz.Providers
 
                     if (score == 0 || score < GetOptions().MinScore)
                     {
-                        _logger.LogInformation($"{NAME}: Ignore file: {file} Score: {score}");
+                        _logger.LogInformation($"Ignore file: {file} Score: {score}");
                         continue;
                     }
 

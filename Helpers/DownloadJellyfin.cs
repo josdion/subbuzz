@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
 
 namespace subbuzz.Helpers
 {
@@ -15,7 +14,7 @@ namespace subbuzz.Helpers
         private Random _rand = new Random();
         private readonly HttpClient _httpClient;
 
-        public Download(IHttpClientFactory http, ILogger logger, string provder)
+        public Download(IHttpClientFactory http, Logger logger)
         {
             _httpClient = http.CreateClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", UserAgent);
@@ -27,7 +26,6 @@ namespace subbuzz.Helpers
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
             
             _logger = logger;
-            _providerName = provder;
         }
 
         private async Task<Response> GetRespInfo(HttpResponseMessage response, CancellationToken cancellationToken)

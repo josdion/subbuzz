@@ -19,13 +19,7 @@ using subbuzz.Helpers;
 
 #if EMBY
 using MediaBrowser.Common.Net;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -38,7 +32,7 @@ namespace subbuzz.Providers
         private const string HttpReferer = "https://yifysubtitles.org/";
         private static readonly string[] CacheRegionSub = { "yifysubtitles", "sub" };
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
@@ -59,7 +53,7 @@ namespace subbuzz.Providers
         };
 
         public YifySubtitles(
-            ILogger logger,
+            Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
@@ -74,7 +68,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, NAME);
+            downloader = new Download(http, logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -85,7 +79,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -106,7 +100,7 @@ namespace subbuzz.Providers
                 }
 
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager);
-                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 var tasks = new List<Task<List<SubtitleInfo>>>();
 
@@ -119,7 +113,7 @@ namespace subbuzz.Providers
                 else
                 {
                     // TODO: url = $"{ServerUrl}/search?q={HttpUtility.UrlEncode(si.SearchText)};
-                    _logger.LogInformation($"{NAME}: IMDB ID missing");
+                    _logger.LogInformation($"IMDB ID missing");
                     return res;
                 }
 
@@ -133,11 +127,11 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Search error: {e}");
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             watch.Stop();
-            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
@@ -146,7 +140,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: GET: {url}");
+                _logger.LogInformation($"GET: {url}");
 
                 using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
                 {
@@ -155,7 +149,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: Search error: {e}");
                 return new List<SubtitleInfo>();
             }
         }
@@ -172,7 +166,7 @@ namespace subbuzz.Providers
             var tagTitle = htmlDoc.GetElementsByClassName("movie-main-title").FirstOrDefault();
             if (tagTitle == null)
             {
-                _logger.LogInformation($"{NAME}: Invalid HTML. Can't find element with class=movie-main-title");
+                _logger.LogInformation($"Invalid HTML. Can't find element with class=movie-main-title");
                 return res;
             }
 
@@ -182,7 +176,7 @@ namespace subbuzz.Providers
             var trs = tbl?.GetElementsByTagName("tr");
             if (trs == null)
             {
-                _logger.LogInformation($"{NAME}: Invalid HTML");
+                _logger.LogInformation($"Invalid HTML");
                 return res;
             }
 

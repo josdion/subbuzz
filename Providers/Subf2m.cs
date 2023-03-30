@@ -3,7 +3,6 @@ using AngleSharp.Html.Parser;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,13 +18,7 @@ using MediaBrowser.Model.Providers;
 
 #if EMBY
 using MediaBrowser.Common.Net;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -37,7 +30,7 @@ namespace subbuzz.Providers
         private const string ServerUrl = "https://subf2m.co";
         private static readonly string[] CacheRegionSub = { "subf2m", "sub" };
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
@@ -85,7 +78,7 @@ namespace subbuzz.Providers
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
         public Subf2m(
-            ILogger logger,
+            Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
@@ -100,7 +93,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, NAME);
+            downloader = new Download(http, logger);
 
         }
 
@@ -112,7 +105,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -140,18 +133,18 @@ namespace subbuzz.Providers
                 }
 
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, seasonFormat);
-                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 string langPage;
                 if (!_languages.TryGetValue(si.LanguageInfo.ThreeLetterISOLanguageName, out langPage))
                 {
-                    _logger.LogInformation($"{NAME}: Language not supported: {si.LanguageInfo.ThreeLetterISOLanguageName}");
+                    _logger.LogInformation($"Language not supported: {si.LanguageInfo.ThreeLetterISOLanguageName}");
                     return res;
                 }
 
                 if (si.SearchText.IsNullOrWhiteSpace() || si.ImdbIdInt <= 0)
                 {
-                    _logger.LogInformation($"{NAME}: Search info or IMDB ID missing");
+                    _logger.LogInformation($"Search info or IMDB ID missing");
                     return res;
                 }
 
@@ -161,11 +154,11 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Search error: {e}");
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             watch.Stop();
-            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds/1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds/1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
@@ -174,7 +167,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: GET: {url}");
+                _logger.LogInformation($"GET: {url}");
 
                 using (var html = await downloader.GetStream(url, ServerUrl, null, cancellationToken).ConfigureAwait(false))
                 {
@@ -183,7 +176,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: Search error: {e}");
                 return new List<SubtitleInfo>();
             }
         }
@@ -233,7 +226,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: GET: {url}");
+                _logger.LogInformation($"GET: {url}");
 
                 using (var html = await downloader.GetStream(url, ServerUrl, null, cancellationToken))
                 {
@@ -242,7 +235,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: Search error: {e}");
                 return new List<SubtitleInfo>();
             }
         }
@@ -316,7 +309,7 @@ namespace subbuzz.Providers
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, $"{NAME}: Parsing subtitles list error: {e}");
+                    _logger.LogError(e, $"Parsing subtitles list error: {e}");
                 }
             }
 
@@ -349,7 +342,7 @@ namespace subbuzz.Providers
 
                         if (skip)
                         {
-                            _logger.LogInformation($"{NAME}: Skipping: {link.Key} - {link.Value.Releases[0]}");
+                            _logger.LogInformation($"Skipping: {link.Key} - {link.Value.Releases[0]}");
                             continue;
                         }
                     }
@@ -358,7 +351,7 @@ namespace subbuzz.Providers
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, $"{NAME}: Parsing subtitles {link.Key} error: {e}");
+                    _logger.LogError(e, $"Parsing subtitles {link.Key} error: {e}");
                 }
             }
 
@@ -369,7 +362,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: GET: {url}");
+                _logger.LogInformation($"GET: {url}");
 
                 using (var html = await downloader.GetStream(url, ServerUrl, null, cancellationToken).ConfigureAwait(false))
                 {
@@ -378,7 +371,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GET: {url}: subtitle page error: {e}");
+                _logger.LogError(e, $"GET: {url}: subtitle page error: {e}");
                 return new List<SubtitleInfo>();
             }
         }
@@ -496,7 +489,7 @@ namespace subbuzz.Providers
                     float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
                     if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                     {
-                        _logger.LogInformation($"{NAME}: Ignore file: {file.Name} Page: {urlPage} Socre: {score}");
+                        _logger.LogInformation($"Ignore file: {file.Name} Page: {urlPage} Socre: {score}");
                         continue;
                     }
 

@@ -19,13 +19,7 @@ using System.Globalization;
 
 #if EMBY
 using MediaBrowser.Common.Net;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -37,7 +31,7 @@ namespace subbuzz.Providers
         private const string ServerUrl = "https://www.podnapisi.net";
         private static readonly string[] CacheRegionSub = { "podnapisi", "sub" };
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
@@ -49,7 +43,7 @@ namespace subbuzz.Providers
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
         public PodnapisiNet(
-            ILogger logger,
+            Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
@@ -64,7 +58,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, NAME);
+            downloader = new Download(http, logger);
 
         }
 
@@ -76,7 +70,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -97,7 +91,7 @@ namespace subbuzz.Providers
                 }
 
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} S{1:D2}E{2:D2}");
-                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 if (si.SearchText.IsNullOrWhiteSpace())
                 {
@@ -124,11 +118,11 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Search error: {e}");
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             watch.Stop();
-            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
@@ -148,7 +142,7 @@ namespace subbuzz.Providers
                     if (nextPage > 1)
                         urlWithPage += $"&page={nextPage}";
 
-                    _logger.LogInformation($"{NAME}: GET: {urlWithPage}");
+                    _logger.LogInformation($"GET: {urlWithPage}");
 
                     using (var xmlStream = await downloader.GetStream(urlWithPage, ServerUrl, null, cancellationToken))
                     {
@@ -177,7 +171,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: Search error: {e}");
             }
 
             return res;
@@ -197,7 +191,7 @@ namespace subbuzz.Providers
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, $"{NAME}: GET: {sub.pid}: Search error: {e}");
+                    _logger.LogError(e, $"GET: {sub.pid}: Search error: {e}");
                 }
             }
 
@@ -285,7 +279,7 @@ namespace subbuzz.Providers
                 {
                     if (!file.IsSubfile())
                     {
-                        _logger.LogInformation($"{NAME}: Ignore invalid subtitle file: {file.Name}");
+                        _logger.LogInformation($"Ignore invalid subtitle file: {file.Name}");
                         continue;
                     }
 
@@ -309,7 +303,7 @@ namespace subbuzz.Providers
                     float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
                     if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                     {
-                        _logger.LogInformation($"{NAME}: Ignore file: {file.Name} PID: {sub.pid} Score: {score}");
+                        _logger.LogInformation($"Ignore file: {file.Name} PID: {sub.pid} Score: {score}");
                         continue;
                     }
 

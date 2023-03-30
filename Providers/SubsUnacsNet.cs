@@ -17,13 +17,7 @@ using System.Text;
 
 #if EMBY
 using MediaBrowser.Common.Net;
-using ILogger = MediaBrowser.Model.Logging.ILogger;
 #else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
-#if JELLYFIN
 using System.Net.Http;
 #endif
 
@@ -37,7 +31,7 @@ namespace subbuzz.Providers
         private static readonly List<string> Languages = new List<string> { "bg", "en" };
         private static readonly string[] CacheRegionSub = { "subsunacs.net", "sub" };
 
-        private readonly ILogger _logger;
+        private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
@@ -72,7 +66,7 @@ namespace subbuzz.Providers
         public int Order => 0;
 
         public SubsUnacsNet(
-            ILogger logger,
+            Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager,
@@ -87,7 +81,7 @@ namespace subbuzz.Providers
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger, NAME);
+            downloader = new Download(http, logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -98,7 +92,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GetSubtitles error: {e}");
+                _logger.LogError(e, $"GetSubtitles error: {e}");
             }
 
             return new SubtitleResponse();
@@ -127,7 +121,7 @@ namespace subbuzz.Providers
                     InconsistentTvs,
                     InconsistentMovies);
 
-                _logger.LogInformation($"{NAME}: Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
+                _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
                 if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
                 {
@@ -174,11 +168,11 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: Search error: {e}");
+                _logger.LogError(e, $"Search error: {e}");
             }
 
             watch.Stop();
-            _logger.LogInformation($"{NAME}: Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
+            _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds / 1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
         }
@@ -205,7 +199,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"{NAME}: " + (post_params != null ? $"POST: {url} -> " + post_params["m"] : $"GET: {url}"));
+                _logger.LogInformation(post_params != null ? $"POST: {url} -> " + post_params["m"] : $"GET: {url}");
 
                 using (var html = await downloader.GetStream(url, HttpReferer, post_params, cancellationToken))
                 {
@@ -214,7 +208,7 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{NAME}: GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: Search error: {e}");
                 return new List<SubtitleInfo>();
             }
         }
@@ -328,7 +322,7 @@ namespace subbuzz.Providers
 
                     if (!si.MatchImdbId(imdbId, ref subScoreBase))
                     {
-                        //_logger.LogInformation($"{NAME}: Ignore result {subImdb} {subTitle} not matching IMDB ID");
+                        //_logger.LogInformation($"Ignore result {subImdb} {subTitle} not matching IMDB ID");
                         //continue;
                     }
 
@@ -358,7 +352,7 @@ namespace subbuzz.Providers
                         float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
                         if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
                         {
-                            _logger.LogInformation($"{NAME}: Ignore file: {file.Name} Score: {score}");
+                            _logger.LogInformation($"Ignore file: {file.Name} Score: {score}");
                             continue;
                         }
 

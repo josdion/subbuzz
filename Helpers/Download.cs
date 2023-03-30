@@ -10,13 +10,6 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
-#if EMBY
-using ILogger = MediaBrowser.Model.Logging.ILogger;
-#else
-using Microsoft.Extensions.Logging;
-using ILogger = Microsoft.Extensions.Logging.ILogger<subbuzz.Providers.SubBuzz>;
-#endif
-
 namespace subbuzz.Helpers
 {
     public partial class Download
@@ -24,8 +17,7 @@ namespace subbuzz.Helpers
         private const int DefaultMaxRetry = 5;
         private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0";
 
-        private readonly ILogger _logger;
-        private string _providerName = "";
+        private readonly Logger _logger;
 
         private PluginConfiguration GetOptions()
             => Plugin.Instance?.Configuration;
@@ -305,7 +297,7 @@ namespace subbuzz.Helpers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{_providerName}: Unable to get response from cache: {e}");
+                _logger.LogError(e, $"Unable to get response from cache: {e}");
             }
 
             try
@@ -316,7 +308,7 @@ namespace subbuzz.Helpers
             {
                 if (!expiredFound) throw;
 
-                _logger.LogError(e, $"{_providerName}: Get response from cache, as it's not able to get the response from server: {e}");
+                _logger.LogError(e, $"Get response from cache, as it's not able to get the response from server: {e}");
 
                 Response resp = new Response { Cached = true };
                 resp.Content = GetCache(link.CacheRegion, 0).Get(link.CacheKey ?? link.Url, out ResponseInfo respInfo);
@@ -335,7 +327,7 @@ namespace subbuzz.Helpers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"{_providerName}: Can't add to cache: {e}");
+                _logger.LogError(e, $"Can't add to cache: {e}");
             }
         }
 
