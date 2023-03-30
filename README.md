@@ -2,14 +2,14 @@
 Subtitles plugin for emby and jellyfin
 
 ## Supported subtitles providers:
-* Opensubtitles.com
-* Podnapisi.NET
-* Subf2m.co
-* Subscene
-* Subs.sab.bz
-* Subsunacs.net
-* Yavka.net
-* YIFY Subtitles
+* [Opensubtitles.com](https://www.opensubtitles.com/)
+* [Podnapisi.NET](https://www.podnapisi.net/)
+* [Subf2m.co](https://subf2m.co/)
+* [Subscene.com](https://subscene.com/)
+* [Subs.sab.bz](http://subs.sab.bz/)
+* [Subsunacs.net](https://subsunacs.net/)
+* [Yavka.net](https://yavka.net/)
+* [YIFY Subtitles](https://yifysubtitles.ch/)
 
 ## Installation
 - Repository (Jellyfin only):

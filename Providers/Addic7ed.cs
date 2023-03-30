@@ -249,6 +249,13 @@ namespace subbuzz.Providers
         private async Task<(string, string)> GetShowId(SearchInfo si, CancellationToken cancellationToken)
         {
             var shows = await GetShows(cancellationToken).ConfigureAwait(false);
+
+            if ((si.Year ?? 0) > 0)
+            {
+                string key = $"{si.TitleSeries} ({si.Year})";
+                if (shows.ContainsKey(key)) return (shows[key], key);
+            }
+
             if (shows.ContainsKey(si.TitleSeries)) return (shows[si.TitleSeries], si.TitleSeries);
 
             return (null, null);
