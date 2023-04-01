@@ -72,7 +72,7 @@ namespace subbuzz.Helpers
 
         public FileCache FromRegion(string[] region, int lifeMinutes)
         {
-            TimeSpan life = lifeMinutes < 1 ? TimeSpan.MaxValue : TimeSpan.FromMinutes(lifeMinutes);
+            TimeSpan life = lifeMinutes < 0 || lifeMinutes > 1000000 ? TimeSpan.MaxValue : TimeSpan.FromMinutes(lifeMinutes);
             return FromRegion(region, life);
         }
 

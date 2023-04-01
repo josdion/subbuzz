@@ -60,6 +60,9 @@ namespace subbuzz
         public bool Search { get; set; } = true;
         public int SearchLifeInMinutes { get; set; } = 4 * 60;
         public string BasePath { get; set; } = string.Empty;
+
+        public int GetSubLife() => Subtitle ? SubLifeInMinutes : -1;
+        public int GetSearchLife() => Search ? SearchLifeInMinutes : -1;
     }
 
     public class PluginConfiguration : BasePluginConfiguration

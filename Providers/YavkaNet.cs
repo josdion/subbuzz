@@ -8,19 +8,13 @@ using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using System.Text;
-using System.Globalization;
-
-#if EMBY
-using MediaBrowser.Common.Net;
-#else
-using System.Net.Http;
-#endif
 
 namespace subbuzz.Providers
 {
@@ -31,12 +25,14 @@ namespace subbuzz.Providers
         private const string HttpReferer = "https://yavka.net/subtitles.php";
         private static readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
         private static readonly string[] CacheRegionSub = { "yavka.net", "sub" };
+        private static readonly string[] CacheRegionSearch = { "yavka.net", "search" };
 
         private readonly Logger _logger;
+        private readonly Http.Download _downloader;
+
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
-        private Download downloader;
         public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
@@ -63,26 +59,20 @@ namespace subbuzz.Providers
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
-            IHttpClient http
-#endif
-            )
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger);
+            _downloader = new Http.Download(logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetSubtitles(id, HttpReferer, cancellationToken).ConfigureAwait(false);
+                return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -109,21 +99,21 @@ namespace subbuzz.Providers
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0} s{1:D2}e{2:D2}", "{0} s{1:D2}");
                 _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
-                if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
+                if (!Languages.Contains(si.Lang) || si.SearchText.IsNullOrWhiteSpace())
                 {
                     return res;
                 }
 
                 var searchTasks = new List<Task<List<SearchResultItem>>>();
 
-                if (!String.IsNullOrWhiteSpace(si.ImdbId))
+                if (si.ImdbId.IsNotNullOrWhiteSpace())
                 {
                     // search by IMDB Id
-                    string urlImdb = String.Format(
+                    string urlImdb = string.Format(
                         "{0}/subtitles.php?s={1}&y=&c=&u=&l={2}&g=&i={3}",
                         ServerUrl,
                         request.ContentType == VideoContentType.Episode ?
-                            String.Format("s{0:D2}e{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
+                            string.Format("s{0:D2}e{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
                         si.Lang.ToUpper(),
                         si.ImdbId
                         );
@@ -131,10 +121,10 @@ namespace subbuzz.Providers
                     searchTasks.Add(SearchUrl(urlImdb, cancellationToken));
                 }
 
-                if (!String.IsNullOrWhiteSpace(si.SearchText))
+                if (si.SearchText.IsNotNullOrWhiteSpace())
                 {
                     // search for movies/series by title
-                    string url = String.Format(
+                    string url = string.Format(
                             "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
                             ServerUrl,
                             HttpUtility.UrlEncode(si.SearchText),
@@ -145,10 +135,10 @@ namespace subbuzz.Providers
                     searchTasks.Add(SearchUrl(url, cancellationToken));
                 }
 
-                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason) && (si.SeasonNumber ?? 0) > 0)
+                if (request.ContentType == VideoContentType.Episode && si.SearchSeason.IsNotNullOrWhiteSpace() && (si.SeasonNumber ?? 0) > 0)
                 {
                     // search for episodes in season packs
-                    string urlSeason = String.Format(
+                    string urlSeason = string.Format(
                             "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
                             ServerUrl,
                             HttpUtility.UrlEncode(si.SearchSeason),
@@ -197,9 +187,20 @@ namespace subbuzz.Providers
             {
                 _logger.LogInformation($"GET: {url}");
 
-                using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
+                var link = new Http.RequestCached
                 {
-                    return ParseSearchResult(html);
+                    Url = url,
+                    Referer = HttpReferer,
+                    Type = Http.Request.RequestType.GET,
+                    CacheRegion = CacheRegionSearch,
+                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                };
+
+                using (var resp = await _downloader.GetResponse(link, cancellationToken))
+                {
+                    var res = ParseSearchResult(resp.Content);
+                    _downloader.AddResponseToCache(link, resp);
+                    return res;
                 }
             }
             catch (Exception e)
@@ -241,7 +242,7 @@ namespace subbuzz.Providers
                 if (link.NextSibling != null)
                     sritem.Year = link.NextElementSibling.TextContent.Trim(new[] { ' ', '(', ')' });
 
-                if (!String.IsNullOrWhiteSpace(sritem.Year))
+                if (sritem.Year.IsNotNullOrWhiteSpace())
                     sritem.Title += $" ({sritem.Year})";
 
                 string subNotes = link.GetAttribute("content");
@@ -291,23 +292,25 @@ namespace subbuzz.Providers
             string subLink = subPageInfo["action"];
             string subInfo = sritem.Title + (string.IsNullOrWhiteSpace(sritem.Info) ? "" : "<br>" + sritem.Info);
 
-            Download.LinkSub link = new Download.LinkSub
+            var link = new Http.RequestSub
             {
                 Url = subLink,
+                Referer = sritem.Link,
+                Type = Http.Request.RequestType.POST,
                 PostParams = new Dictionary<string, string> { { "id", subPageInfo["id"] }, { "lng", subPageInfo["lng"] } },
                 CacheKey = sritem.Link,
                 CacheRegion = CacheRegionSub,
+                CacheLifespan = GetOptions().Cache.GetSubLife(),
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,
                 Fps = Download.LinkSub.FpsFromStr(sritem.Fps),
                 FpsVideo = si.VideoFps,
             };
 
-            using (var files = await downloader.GetArchiveFiles(link, sritem.Link, cancellationToken).ConfigureAwait(false))
+            using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
             {
                 int imdbId = 0;
                 string subImdb = "";
                 DateTime? dt = null;
-                DateTimeOffset? dtOffset = null;
 
                 foreach (var fitem in files)
                 {
@@ -319,10 +322,7 @@ namespace subbuzz.Providers
                         var regexDate = new Regex(@"Качени на: (\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)");
                         var match = regexDate.Match(info_text);
                         if (match.Success && match.Groups.Count > 0)
-                        {
                             dt = DateTime.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
-                            dtOffset = DateTimeOffset.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
-                        }
 
                         var regexImdbId = new Regex(@"iMDB ID: (tt(\d+))");
                         match = regexImdbId.Match(info_text);
@@ -342,10 +342,10 @@ namespace subbuzz.Providers
                     //continue;
                 }
 
-                string subDate = dtOffset != null ? dtOffset?.ToString("g", CultureInfo.CurrentCulture) : "";
+                string subDate = dt != null ? dt?.ToString("g", CultureInfo.CurrentCulture) : "";
                 subInfo += string.Format("<br>{0} | {1}", subDate, sritem.Uploader);
 
-                var subFilesCount = files.CountSubFiles();
+                var subFilesCount = files.SubCount;
 
                 foreach (var file in files)
                 {
@@ -369,7 +369,7 @@ namespace subbuzz.Providers
 
                     if (score == 0 || score < GetOptions().MinScore)
                     {
-                        _logger.LogInformation($"Ignore file: {file} Score: {score}");
+                        _logger.LogInformation($"Ignore file: {file.Name} Score: {score}");
                         continue;
                     }
 
@@ -387,20 +387,11 @@ namespace subbuzz.Providers
                         IsHashMatch = score >= GetOptions().HashMatchByScore,
                         IsForced = false,
                         Score = score,
-#if EMBY
-                    DateCreated = dtOffset,
-#else
                         DateCreated = dt,
-#endif
                     };
 
                     res.Add(item);
                 }
-            }
-
-            if (res.Count > 0)
-            {
-                // TODO: Add subtitle info page to cache
             }
 
             return res;
@@ -410,12 +401,23 @@ namespace subbuzz.Providers
         {
             var res = new Dictionary<string, string>();
 
-            using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
+            _logger.LogInformation($"GET: {url}");
+
+            var link = new Http.RequestCached
+            {
+                Url = url,
+                Referer = HttpReferer,
+                Type = Http.Request.RequestType.GET,
+                CacheRegion = CacheRegionSearch,
+                CacheLifespan = GetOptions().Cache.GetSearchLife(),
+            };
+
+            using (var resp = await _downloader.GetResponse(link, cancellationToken))
             {
                 var config = AngleSharp.Configuration.Default;
                 var context = AngleSharp.BrowsingContext.New(config);
                 var parser = new AngleSharp.Html.Parser.HtmlParser(context);
-                var htmlDoc = parser.ParseDocument(html);
+                var htmlDoc = parser.ParseDocument(resp.Content);
 
                 var formNodes = htmlDoc.GetElementsByTagName("form");
                 foreach (var form in formNodes)
@@ -429,9 +431,11 @@ namespace subbuzz.Providers
                     res["action"] = form.GetAttribute("action");
                     res["id"] = id.GetAttribute("value");
                     res["lng"] = lng.GetAttribute("value");
+
+                    _downloader.AddResponseToCache(link, resp);
                     return res;
                 }
-
+                
                 return res;
             }
         }
