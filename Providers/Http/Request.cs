@@ -33,8 +33,19 @@ namespace subbuzz.Providers.Http
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.Append("PostParams: ");
-            sb.Append(PostParams == null ? "null" : string.Join(",", PostParams));
+            sb.Append(Type == RequestType.POST ? "POST" : "GET");
+
+            sb.Append(", Uri: ");
+            sb.Append(Url);
+
+            sb.Append(", Referer: ");
+            sb.Append(Referer);
+
+            sb.Append(", PostParams: ");
+            sb.Append(PostParams == null ? "<null>" : $"{{ {string.Join(",", PostParams)} }}");
+
+            sb.Append(", Cookies: ");
+            sb.Append(Cookies == null ? "<null>" : $"{{ {string.Join(",", Cookies)} }}");
 
             return sb.ToString();
         }
@@ -48,6 +59,10 @@ namespace subbuzz.Providers.Http
         [JsonIgnore]
         public int CacheLifespan { get; set; }
 
+        public override string ToString()
+        {
+            return base.ToString();
+        }
     }
 
     public class RequestSub : RequestCached
@@ -81,6 +96,11 @@ namespace subbuzz.Providers.Http
             {
                 return null;
             }
+        }
+
+        public override string ToString()
+        {
+            return base.ToString();
         }
     }
 

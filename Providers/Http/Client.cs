@@ -71,7 +71,7 @@ namespace subbuzz.Providers.Http
             while (true)
             {
                 using var reqMsg = GetRequestMessage(req, redirectUrl, redirectMethod);
-                _logger.LogDebug($"{reqMsg},\nDefault Headers:\n{{\n{_httpClient.DefaultRequestHeaders}}},\n{req}");
+                _logger.LogDebug($"{reqMsg},\nDefault Headers:\n{{\n{_httpClient.DefaultRequestHeaders}}}");
 
                 using (HttpResponseMessage response = await _httpClient.SendAsync(reqMsg, cancellationToken).ConfigureAwait(false))
                 {

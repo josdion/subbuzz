@@ -100,6 +100,7 @@ namespace subbuzz.Providers.Http
 
             try
             {
+                _logger.LogInformation($"{link}");
                 if (link.CacheLifespan >= 0 && link.CacheRegion != null)
                 {
                     Response resp = new Response { Cached = true };

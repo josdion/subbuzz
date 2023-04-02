@@ -17,11 +17,6 @@ using System.Globalization;
 using System.Linq;
 using System.Web;
 
-#if EMBY
-using MediaBrowser.Common.Net;
-#else
-using System.Net.Http;
-#endif
 
 namespace subbuzz.Providers
 {
@@ -34,10 +29,10 @@ namespace subbuzz.Providers
         private static readonly string[] CacheRegionData = { "addic7ed.com", "data" };
 
         private readonly Logger _logger;
+        private readonly Http.Download _downloader;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
-        private readonly Download _downloader;
 
         private PluginConfiguration GetOptions()
             => Plugin.Instance.Configuration;
@@ -65,26 +60,20 @@ namespace subbuzz.Providers
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
-            IHttpClient http
-#endif
-            )
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            _downloader = new Download(http, logger);
+            _downloader = new Http.Download(logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await _downloader.GetSubtitles(id, ServerUrl, cancellationToken).ConfigureAwait(false);
+                return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -178,9 +167,11 @@ namespace subbuzz.Providers
             SubtitleScore subScore = new SubtitleScore();
             float score = si.CaclScore(resItem.FileTitle, subScore, false);
 
-            Download.LinkSub link = new Download.LinkSub
+            var link = new Http.RequestSub
             {
                 Url = resItem.Download,
+                Referer = ServerUrl,
+                Type = Http.Request.RequestType.GET,
                 CacheRegion = CacheRegionSub,
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,
             };
@@ -219,14 +210,16 @@ namespace subbuzz.Providers
         {
             Dictionary<string, string> shows = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            Download.Link link = new Download.Link
+            var link = new Http.RequestCached
             {
                 Url = ServerUrl + "/",
+                Referer = ServerUrl,
+                Type = Http.Request.RequestType.GET,
                 CacheRegion = CacheRegionData,
                 CacheLifespan = 7 * 24 * 60, // one week
             };
 
-            using var resp = await _downloader.GetResponse(link, ServerUrl, cancellationToken).ConfigureAwait(false);
+            using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
             var config = Configuration.Default;
             var context = BrowsingContext.New(config);
@@ -265,14 +258,16 @@ namespace subbuzz.Providers
         {
             var res = new List<SearchResultItem>();
 
-            Download.Link link = new Download.Link
+            var link = new Http.RequestCached
             {
                 Url = ServerUrl + $"/ajax_loadShow.php?show={showId}&season={si.SeasonNumber}",
+                Referer = ServerUrl,
+                Type = Http.Request.RequestType.GET,
                 CacheRegion = CacheRegionSearch,
-                CacheLifespan = GetOptions().Cache.Search ? GetOptions().Cache.SearchLifeInMinutes : -1,
+                CacheLifespan = GetOptions().Cache.GetSearchLife(),
             };
 
-            using var resp = await _downloader.GetResponse(link, ServerUrl, cancellationToken).ConfigureAwait(false);
+            using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
             var config = Configuration.Default;
             var context = BrowsingContext.New(config);
@@ -329,14 +324,16 @@ namespace subbuzz.Providers
 
             foreach (var pageLink in pageLinks)
             {
-                Download.Link link = new Download.Link
+                var link = new Http.RequestCached
                 {
                     Url = pageLink,
+                    Referer = ServerUrl,
+                    Type = Http.Request.RequestType.GET,
                     CacheRegion = CacheRegionSearch,
-                    CacheLifespan = GetOptions().Cache.Search ? GetOptions().Cache.SearchLifeInMinutes : -1,
+                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
 
-                using var resp = await _downloader.GetResponse(link, ServerUrl, cancellationToken).ConfigureAwait(false);
+                using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
                 var config = Configuration.Default;
                 var context = BrowsingContext.New(config);
@@ -442,14 +439,16 @@ namespace subbuzz.Providers
         {
             var res = new List<SearchResultItem>();
 
-            Download.Link link = new Download.Link
+            var link = new Http.RequestCached
             {
                 Url = ServerUrl + $"/srch.php?search={HttpUtility.UrlEncode(searchText)}&Submit=Search",
+                Referer = ServerUrl,
+                Type = Http.Request.RequestType.GET,
                 CacheRegion = CacheRegionSearch,
-                CacheLifespan = GetOptions().Cache.Search ? GetOptions().Cache.SearchLifeInMinutes : -1,
+                CacheLifespan = GetOptions().Cache.GetSearchLife(),
             };
 
-            using var resp = await _downloader.GetResponse(link, ServerUrl, cancellationToken).ConfigureAwait(false);
+            using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
             var config = Configuration.Default;
             var context = BrowsingContext.New(config);

@@ -185,8 +185,6 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"GET: {url}");
-
                 var link = new Http.RequestCached
                 {
                     Url = url,
@@ -298,7 +296,6 @@ namespace subbuzz.Providers
                 Referer = sritem.Link,
                 Type = Http.Request.RequestType.POST,
                 PostParams = new Dictionary<string, string> { { "id", subPageInfo["id"] }, { "lng", subPageInfo["lng"] } },
-                CacheKey = sritem.Link,
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,
@@ -400,8 +397,6 @@ namespace subbuzz.Providers
         protected async Task<Dictionary<string, string>> GetSubInfoPage(string url, CancellationToken cancellationToken)
         {
             var res = new Dictionary<string, string>();
-
-            _logger.LogInformation($"GET: {url}");
 
             var link = new Http.RequestCached
             {

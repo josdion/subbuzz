@@ -3,7 +3,6 @@ using AngleSharp.Html.Parser;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,11 +16,6 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 
-#if EMBY
-using MediaBrowser.Common.Net;
-#else
-using System.Net.Http;
-#endif
 
 namespace subbuzz.Providers
 {
@@ -30,12 +24,13 @@ namespace subbuzz.Providers
         internal const string NAME = "Subscene";
         private const string ServerUrl = "https://subscene.com";
         private static readonly string[] CacheRegionSub = { "subscene", "sub" };
+        private static readonly string[] CacheRegionSearch = { "subscene", "search" };
 
         private readonly Logger _logger;
+        private readonly Http.Download _downloader;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
-        private Download downloader;
 
         private static readonly Dictionary<string, string> _languages = new Dictionary<string, string>
         {
@@ -78,23 +73,21 @@ namespace subbuzz.Providers
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
+        private PluginConfiguration GetOptions()
+            => Plugin.Instance.Configuration;
+
+
         public Subscene(
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
-            IHttpClient http
-#endif
-            )
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger);
+            _downloader = new Http.Download(logger);
 
         }
 
@@ -102,7 +95,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await downloader.GetSubtitles(id, ServerUrl, cancellationToken).ConfigureAwait(false);
+                return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -168,11 +161,20 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"GET: {url}");
-
-                using (var html = await downloader.GetStream(url, ServerUrl, null, cancellationToken).ConfigureAwait(false))
+                var link = new Http.RequestCached
                 {
-                    return await ParseSearchResult(html, si, langPage, cancellationToken);
+                    Url = url,
+                    Referer = ServerUrl,
+                    Type = Http.Request.RequestType.GET,
+                    CacheRegion = CacheRegionSearch,
+                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                };
+
+                using (var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false))
+                {
+                    var res = await ParseSearchResult(resp.Content, si, langPage, cancellationToken);
+                    _downloader.AddResponseToCache(link, resp);
+                    return res;
                 }
             }
             catch (Exception e)
@@ -192,7 +194,8 @@ namespace subbuzz.Providers
             var htmlDoc = parser.ParseDocument(html);
 
             var resDiv = htmlDoc.QuerySelector("div.search-result");
-            if (resDiv == null) return res;
+            if (resDiv == null) 
+                throw new Exception("Invalid HTML, div.search-result not found");
 
             var resUl = resDiv.QuerySelector("h2.exact")?.NextElementSibling;
 
@@ -208,7 +211,7 @@ namespace subbuzz.Providers
             }
 
             if (resUl == null)
-                return res;
+                throw new Exception("Invalid HTML, tag not found");
 
             var listItems = resUl.QuerySelectorAll("li");
             foreach (var li in listItems)
@@ -227,11 +230,20 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"GET: {url}");
-
-                using (var html = await downloader.GetStream(url, ServerUrl, null, cancellationToken))
+                var link = new Http.RequestCached
                 {
-                    return await ParseSubtitlesList(html, si, cancellationToken).ConfigureAwait(false);
+                    Url = url,
+                    Referer = ServerUrl,
+                    Type = Http.Request.RequestType.GET,
+                    CacheRegion = CacheRegionSearch,
+                    CacheLifespan = GetOptions().Cache.GetSearchLife() 
+                };
+
+                using (var resp = await _downloader.GetResponse(link, cancellationToken))
+                {
+                    var res = await ParseSubtitlesList(resp.Content, si, cancellationToken).ConfigureAwait(false);
+                    _downloader.AddResponseToCache(link, resp);
+                    return res;
                 }
             }
             catch (Exception e)
@@ -261,12 +273,13 @@ namespace subbuzz.Providers
             var htmlDoc = parser.ParseDocument(html);
 
             var imdbTag = htmlDoc.QuerySelector("a.imdb");
-            if (imdbTag == null) return res;
+            if (imdbTag == null) 
+                throw new Exception("Invalid HTML, a.imdb not found");
 
             var imdbLink = imdbTag.GetAttribute("href");
             var imdbMatch = ImdbUrlRegex.Match(imdbLink);
             if (imdbMatch == null || !imdbMatch.Success)
-                return res;
+                throw new Exception("Invalid HTML, a.imdb[href] not found");
 
             _ = int.TryParse(imdbMatch.Groups["imdbid"].Value, out int imdbId);
             if (imdbId <= 0 || (si.ImdbIdInt != imdbId && si.ImdbIdEpisodeInt != imdbId))
@@ -363,11 +376,20 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"GET: {url}");
-
-                using (var html = await downloader.GetStream(url, ServerUrl, null, cancellationToken).ConfigureAwait(false))
+                var link = new Http.RequestCached
                 {
-                    return await ParseSubtitlePage(html, url, subData, si, cancellationToken);
+                    Url = url,
+                    Referer = ServerUrl,
+                    Type = Http.Request.RequestType.GET,
+                    CacheRegion = CacheRegionSearch,
+                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                };
+
+                using (var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false))
+                {
+                    var res = await ParseSubtitlePage(resp.Content, url, subData, si, cancellationToken);
+                    _downloader.AddResponseToCache(link, resp);
+                    return res;
                 }
             }
             catch (Exception e)
@@ -394,7 +416,9 @@ namespace subbuzz.Providers
             var tagDetails = tagSubs?.QuerySelectorAll("div.details ul > li");
 
             var downloadLink = tagHeader?.QuerySelector("div.download")?.QuerySelector("a")?.GetAttribute("href");
-            if (downloadLink.IsNullOrWhiteSpace()) return res;
+            if (downloadLink.IsNullOrWhiteSpace()) 
+                throw new Exception("Invalid HTML, download link not found");
+
             downloadLink = ServerUrl + downloadLink;
 
             string title = tagHeader?.QuerySelector("span[itemprop='name']")?.TextContent.Trim();
@@ -452,19 +476,22 @@ namespace subbuzz.Providers
             if (subData.Releases.Count == 1)
                 si.MatchTitle(subData.Releases[0], ref subScoreBase);
 
-            Download.LinkSub link = new Download.LinkSub
+            var link = new Http.RequestSub
             {
                 Url = downloadLink,
+                Referer = ServerUrl,
+                Type = Http.Request.RequestType.GET,
                 CacheKey = urlPage,
                 CacheRegion = CacheRegionSub,
+                CacheLifespan = GetOptions().Cache.GetSubLife(),
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,
                 Fps = fps < 1 ? null : fps,
                 FpsVideo = si.VideoFps,
             };
 
-            using (var files = await downloader.GetArchiveFiles(link, ServerUrl, cancellationToken).ConfigureAwait(false))
+            using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
             {
-                int subFilesCount = files.CountSubFiles();
+                int subFilesCount = files.SubCount;
 
                 foreach (var file in files)
                 {
@@ -480,6 +507,10 @@ namespace subbuzz.Providers
                         subFpsInfo = $"{file.Sub.FpsRequested?.ToString(CultureInfo.InvariantCulture)} ({file.Sub.FpsDetected?.ToString(CultureInfo.InvariantCulture)})";
                         link.Fps = file.Sub.FpsDetected;
                     }
+
+                    var subFileInfo = subInfo;
+                    if (subFpsInfo.IsNotNullOrWhiteSpace())
+                        subFileInfo += $" | {subFpsInfo}"; 
 
                     SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
                     si.MatchFps(link.Fps, ref subScore);
@@ -501,7 +532,7 @@ namespace subbuzz.Providers
                         ProviderName = Name,
                         Name = $"<a href='{urlPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.Name}</a>",
                         Format = file.GetExtSupportedByEmby(),
-                        Comment = subInfo + " | " + subFpsInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                        Comment = subFileInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = dt,
                         DownloadCount = subDownloads,
                         IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
