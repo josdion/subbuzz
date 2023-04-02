@@ -379,7 +379,11 @@ namespace subbuzz.Parser
 
                 // Episodes without a title, Single episode numbers (S1E1, 1x1)
                 new Regex(@"^(?:S?(?<season>(?<!\d+)(?:\d{1,2}|\d{4})(?!\d+))(?:(?:[-_ ]?[ex])(?<episode>\d{1}(?!\d+))))",
-                    RegexOptions.IgnoreCase | RegexOptions.Compiled)
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled),
+
+                // reward-leverage201
+                new Regex(@"^(?:(?<subgroup>.+?)[-_. ])?(?<title>.+?)?(?<season>(?<!\d+)[1-9])(?<episode>[1-9][0-9]|[0][1-9])(?![a-z]|\d+)+(?:[_.]?|$)", 
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled),
             };
 
         private static readonly Regex[] SpecialEpisodeTitleRegex = new Regex[]
