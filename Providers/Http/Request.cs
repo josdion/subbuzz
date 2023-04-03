@@ -15,7 +15,6 @@ namespace subbuzz.Providers.Http
         public string Referer { get; set; } = string.Empty;
         public RequestType Type { get; set; } = RequestType.GET;
         public Dictionary<string, string> PostParams { get; set; } = null;
-        public Dictionary<string, string> Cookies { get; set; } = null;
 
         public enum RequestType
         {
@@ -44,9 +43,6 @@ namespace subbuzz.Providers.Http
             sb.Append(", PostParams: ");
             sb.Append(PostParams == null ? "<null>" : $"{{ {string.Join(",", PostParams)} }}");
 
-            sb.Append(", Cookies: ");
-            sb.Append(Cookies == null ? "<null>" : $"{{ {string.Join(",", Cookies)} }}");
-
             return sb.ToString();
         }
     }
@@ -72,6 +68,20 @@ namespace subbuzz.Providers.Http
         public float? Fps { get; set; } = null;
         public float? FpsVideo { get; set; } = null;
 
+        [JsonIgnore]
+        public string FpsAsString 
+        { 
+            get
+            {
+                if (Fps == null) return string.Empty;
+                return Fps?.ToString(CultureInfo.InvariantCulture);
+            }
+            set
+            {
+                Fps = FpsFromStr(value);
+            }
+        }
+
         public string GetId()
         {
             return Utils.Base64UrlEncode<RequestSub>(this);
@@ -85,7 +95,12 @@ namespace subbuzz.Providers.Http
             return default;
         }
 
-        public static float? FpsFromStr(string fps)
+        public override string ToString()
+        {
+            return base.ToString();
+        }
+
+        private static float? FpsFromStr(string fps)
         {
             try
             {
@@ -96,11 +111,6 @@ namespace subbuzz.Providers.Http
             {
                 return null;
             }
-        }
-
-        public override string ToString()
-        {
-            return base.ToString();
         }
     }
 

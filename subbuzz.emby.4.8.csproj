@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <Compile Remove="API\ControllerJellyfin.cs" />
-    <Compile Remove="Helpers\DownloadJellyfin.cs" />
   </ItemGroup>
 
   <ItemGroup> 

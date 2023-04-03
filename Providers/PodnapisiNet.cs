@@ -17,11 +17,6 @@ using System.Xml;
 using System.Xml.Serialization;
 using System.Globalization;
 
-#if EMBY
-using MediaBrowser.Common.Net;
-#else
-using System.Net.Http;
-#endif
 
 namespace subbuzz.Providers
 {
@@ -30,35 +25,33 @@ namespace subbuzz.Providers
         internal const string NAME = "Podnapisi.NET";
         private const string ServerUrl = "https://www.podnapisi.net";
         private static readonly string[] CacheRegionSub = { "podnapisi", "sub" };
+        private static readonly string[] CacheRegionSearch = { "podnapisi", "search" };
 
         private readonly Logger _logger;
+        private Http.Download _downloader;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
-        private Download downloader;
 
         public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
+        private PluginConfiguration GetOptions()
+            => Plugin.Instance.Configuration;
+
         public PodnapisiNet(
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
-            IHttpClient http
-#endif
-            )
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger);
+            _downloader = new Http.Download(logger);
 
         }
 
@@ -66,7 +59,7 @@ namespace subbuzz.Providers
         {
             try
             {
-                return await downloader.GetSubtitles(id, ServerUrl, cancellationToken).ConfigureAwait(false);
+                return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -84,7 +77,7 @@ namespace subbuzz.Providers
 
             try
             {
-                if (!Plugin.Instance.Configuration.EnablePodnapisiNet)
+                if (!GetOptions().EnablePodnapisiNet)
                 {
                     // provider is disabled
                     return res;
@@ -142,10 +135,18 @@ namespace subbuzz.Providers
                     if (nextPage > 1)
                         urlWithPage += $"&page={nextPage}";
 
-                    _logger.LogInformation($"GET: {urlWithPage}");
-
-                    using (var xmlStream = await downloader.GetStream(urlWithPage, ServerUrl, null, cancellationToken))
+                    var link = new Http.RequestCached
                     {
+                        Url = urlWithPage,
+                        Referer = ServerUrl,
+                        Type = Http.Request.RequestType.GET,
+                        CacheRegion = CacheRegionSearch,
+                        CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                    };
+
+                    using (var resp = await _downloader.GetResponse(link, cancellationToken))
+                    {
+                        var xmlStream = resp.Content;
                         var settings = new XmlReaderSettings
                         {
                             ValidationType = ValidationType.None,
@@ -165,6 +166,8 @@ namespace subbuzz.Providers
                             nextPage = results.pages.current + 1;
                             maxPages = results.pages.count;
                         }
+
+                        _downloader.AddResponseToCache(link, resp);
                     }
                 }
                 while (nextPage <= maxPages);
@@ -262,19 +265,21 @@ namespace subbuzz.Providers
 
             subInfo += string.Format("<br>{0} | {1}", subDate, sub.uploaderName);
 
-            Download.LinkSub link = new Download.LinkSub
+            var link = new Http.RequestSub
             {
                 Url = subLink,
-                CacheKey = subLink,
+                Referer = ServerUrl,
+                Type = Http.Request.RequestType.GET,
                 CacheRegion = CacheRegionSub,
+                CacheLifespan = GetOptions().Cache.GetSubLife(),
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,
-                Fps = Download.LinkSub.FpsFromStr(sub.fps),
+                FpsAsString = sub.fps,
                 FpsVideo = si.VideoFps,
             };
 
-            using (var files = await downloader.GetArchiveFiles(link, ServerUrl, cancellationToken).ConfigureAwait(false))
+            using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
             {
-                int subFilesCount = files.CountSubFiles();
+                int subFilesCount = files.SubCount;
                 foreach (var file in files)
                 {
                     if (!file.IsSubfile())

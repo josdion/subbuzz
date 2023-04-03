@@ -299,7 +299,7 @@ namespace subbuzz.Providers
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,
-                Fps = Download.LinkSub.FpsFromStr(sritem.Fps),
+                FpsAsString = sritem.Fps,
                 FpsVideo = si.VideoFps,
             };
 

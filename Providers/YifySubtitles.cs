@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,12 +16,6 @@ using MediaBrowser.Model.Providers;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 
-#if EMBY
-using MediaBrowser.Common.Net;
-#else
-using System.Net.Http;
-#endif
-
 namespace subbuzz.Providers
 {
     class YifySubtitles : ISubBuzzProvider, IHasOrder
@@ -31,12 +24,13 @@ namespace subbuzz.Providers
         private const string ServerUrl = "https://yifysubtitles.org";
         private const string HttpReferer = "https://yifysubtitles.org/";
         private static readonly string[] CacheRegionSub = { "yifysubtitles", "sub" };
+        private static readonly string[] CacheRegionSearch = { "yifysubtitles", "search" };
 
         private readonly Logger _logger;
+        private Http.Download _downloader;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
-        private Download downloader;
         public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
 
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
@@ -52,30 +46,27 @@ namespace subbuzz.Providers
             { "Chinese",                "chi" },
         };
 
+        private PluginConfiguration GetOptions()
+            => Plugin.Instance.Configuration;
+
         public YifySubtitles(
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
-            IHttpClient http
-#endif
-            )
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger);
+            _downloader = new Http.Download(logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetSubtitles(id, HttpReferer, cancellationToken).ConfigureAwait(false);
+                return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -93,7 +84,7 @@ namespace subbuzz.Providers
 
             try
             {
-                if (!Plugin.Instance.Configuration.EnableYifySubtitles)
+                if (!GetOptions().EnableYifySubtitles)
                 {
                     // provider is disabled
                     return res;
@@ -104,10 +95,10 @@ namespace subbuzz.Providers
 
                 var tasks = new List<Task<List<SubtitleInfo>>>();
 
-                if (!String.IsNullOrWhiteSpace(si.ImdbId))
+                if (si.ImdbId.IsNotNullOrWhiteSpace())
                 {
                     // search by IMDB Id
-                    string urlImdb = String.Format($"{ServerUrl}/movie-imdb/{si.ImdbId}");
+                    string urlImdb = string.Format($"{ServerUrl}/movie-imdb/{si.ImdbId}");
                     tasks.Add(SearchUrl(urlImdb, si, true, cancellationToken));
                 }
                 else
@@ -140,11 +131,20 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation($"GET: {url}");
-
-                using (var html = await downloader.GetStream(url, HttpReferer, null, cancellationToken))
+                var link = new Http.RequestCached
                 {
-                    return await ParseHtml(html, si, byImdb, cancellationToken);
+                    Url = url,
+                    Referer = HttpReferer,
+                    Type = Http.Request.RequestType.GET,
+                    CacheRegion = CacheRegionSearch,
+                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                };
+
+                using (var resp = await _downloader.GetResponse(link, cancellationToken))
+                {
+                    var res = await ParseHtml(resp.Content, si, byImdb, cancellationToken);
+                    _downloader.AddResponseToCache(link, resp);
+                    return res;
                 }
             }
             catch (Exception e)
@@ -163,14 +163,13 @@ namespace subbuzz.Providers
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(html);
 
-            var tagTitle = htmlDoc.GetElementsByClassName("movie-main-title").FirstOrDefault();
-            if (tagTitle == null)
+            var tagTitles = htmlDoc.GetElementsByClassName("movie-main-title");
+            if (tagTitles == null || tagTitles.Length != 1)
             {
-                _logger.LogInformation($"Invalid HTML. Can't find element with class=movie-main-title");
-                return res;
+                throw new Exception($"Invalid HTML. Can't find element with class=movie-main-title");
             }
 
-            string subTitle = tagTitle.TextContent;
+            string subTitle = tagTitles[0].TextContent;
 
             var tbl = htmlDoc.QuerySelector("table.other-subs > tbody");
             var trs = tbl?.GetElementsByTagName("tr");
@@ -187,6 +186,8 @@ namespace subbuzz.Providers
 
                 string subRating = tds[0].TextContent;
                 string subUploader = tds[4].TextContent;
+
+                bool sdh = tds[3].QuerySelector("span.hi-subtitle") != null;
 
                 string lang = tds[1].TextContent;
                 if (LangMap.ContainsKey(lang))
@@ -207,21 +208,23 @@ namespace subbuzz.Providers
                 string subInfoBase = linkTag.InnerHtml;
                 var regexInfo = new Regex(@"<span.*/span>");
                 subInfoBase = regexInfo.Replace(subInfoBase, "").Trim();
-                string subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfoBase) ? "" : "<br>" + subInfoBase);
+                string subInfo = subTitle + (subInfoBase.IsNullOrWhiteSpace() ? "" : "<br>" + subInfoBase);
                 subInfo += string.Format("<br>{0}", subUploader);
 
-                Download.LinkSub link = new Download.LinkSub
+                var link = new Http.RequestSub
                 {
                     Url = subLink,
-                    CacheKey = subLink,
+                    Referer = HttpReferer,
+                    Type = Http.Request.RequestType.GET,
                     CacheRegion = CacheRegionSub,
+                    CacheLifespan = GetOptions().Cache.GetSubLife(),
                     Lang = si.LanguageInfo.TwoLetterISOLanguageName,
                     FpsVideo = si.VideoFps,
                 };
 
-                using (var files = await downloader.GetArchiveFiles(link, HttpReferer, cancellationToken).ConfigureAwait(false))
+                using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
                 {
-                    int subFilesCount = files.CountSubFiles();
+                    int subFilesCount = files.SubCount;
 
                     foreach (var file in files)
                     {
@@ -248,6 +251,7 @@ namespace subbuzz.Providers
                             //DownloadCount = int.Parse(subDownloads),
                             IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                             IsForced = false,
+                            Sdh = sdh,
                             Score = score,
                         };
 
