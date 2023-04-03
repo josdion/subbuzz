@@ -15,11 +15,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
 
-#if EMBY
-using MediaBrowser.Common.Net;
-#else
-using System.Net.Http;
-#endif
 
 namespace subbuzz.Providers
 {
@@ -30,12 +25,13 @@ namespace subbuzz.Providers
         private const string HttpReferer = "https://subsunacs.net/search.php";
         private static readonly List<string> Languages = new List<string> { "bg", "en" };
         private static readonly string[] CacheRegionSub = { "subsunacs.net", "sub" };
+        private static readonly string[] CacheRegionSearch = { "subsunacs.net", "search" };
 
         private readonly Logger _logger;
+        private readonly Http.Download _downloader;
         private readonly IFileSystem _fileSystem;
         private readonly ILocalizationManager _localizationManager;
         private readonly ILibraryManager _libraryManager;
-        private Download downloader;
 
         private static Dictionary<string, string> InconsistentTvs = new Dictionary<string, string>
         {
@@ -65,30 +61,27 @@ namespace subbuzz.Providers
 
         public int Order => 0;
 
+        private PluginConfiguration GetOptions()
+            => Plugin.Instance.Configuration;
+
         public SubsUnacsNet(
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
-            IHttpClient http
-#endif
-            )
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _fileSystem = fileSystem;
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
-            downloader = new Download(http, logger);
+            _downloader = new Http.Download(logger);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
             try
             {
-                return await downloader.GetSubtitles(id, HttpReferer, cancellationToken).ConfigureAwait(false);
+                return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -106,7 +99,7 @@ namespace subbuzz.Providers
 
             try
             {
-                if (!Plugin.Instance.Configuration.EnableSubsunacsNet)
+                if (!GetOptions().EnableSubsunacsNet)
                 {
                     // provider is disabled
                     return res;
@@ -123,7 +116,7 @@ namespace subbuzz.Providers
 
                 _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}");
 
-                if (!Languages.Contains(si.Lang) || String.IsNullOrEmpty(si.SearchText))
+                if (!Languages.Contains(si.Lang) || si.SearchText.IsNullOrWhiteSpace())
                 {
                     return res;
                 }
@@ -133,7 +126,7 @@ namespace subbuzz.Providers
 
                 var tasks = new List<Task<List<SubtitleInfo>>>();
 
-                if (!String.IsNullOrEmpty(si.SearchText))
+                if (si.SearchText.IsNotNullOrWhiteSpace())
                 {
                     // search for movies/series by title
                     var post_params = GetPostParams(
@@ -144,14 +137,14 @@ namespace subbuzz.Providers
                     tasks.Add(SearchUrl($"{ServerUrl}/search.php", post_params, si, cancellationToken));
                 }
 
-                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrEmpty(si.SearchEpByName) && (si.SeasonNumber ?? 0) == 0)
+                if (request.ContentType == VideoContentType.Episode && si.SearchEpByName.IsNotNullOrWhiteSpace() && (si.SeasonNumber ?? 0) == 0)
                 {
                     // Search for special episodes by name
                     var post_params = GetPostParams(si.SearchEpByName, si.Lang != "en" ? "0" : "1", "");
                     tasks.Add(SearchUrl($"{ServerUrl}/search.php", post_params, si, cancellationToken));
                 }
 
-                if (request.ContentType == VideoContentType.Episode && !String.IsNullOrWhiteSpace(si.SearchSeason) && (si.SeasonNumber ?? 0) > 0)
+                if (request.ContentType == VideoContentType.Episode && si.SearchSeason.IsNotNullOrWhiteSpace() && (si.SeasonNumber ?? 0) > 0)
                 {
                     // search for episodes in season packs
                     var post_params = GetPostParams(si.SearchSeason, si.Lang != "en" ? "0" : "1", "");
@@ -199,11 +192,22 @@ namespace subbuzz.Providers
         {
             try
             {
-                _logger.LogInformation(post_params != null ? $"POST: {url} -> " + post_params["m"] : $"GET: {url}");
-
-                using (var html = await downloader.GetStream(url, HttpReferer, post_params, cancellationToken))
+                var link = new Http.RequestCached
                 {
-                    return await ParseHtml(html, si, cancellationToken);
+                    Url = url,
+                    Referer = HttpReferer,
+                    Type = post_params == null ? Http.Request.RequestType.GET : Http.Request.RequestType.POST,
+                    PostParams = post_params,
+                    CacheKey = url + ((post_params == null) ? string.Empty : $"post={{{string.Join(",", post_params)}}}"),
+                    CacheRegion = CacheRegionSearch,
+                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                };
+
+                using (var resp = await _downloader.GetResponse(link, cancellationToken))
+                {
+                    var res = await ParseHtml(resp.Content, si, cancellationToken);
+                    _downloader.AddResponseToCache(link, resp);
+                    return res;
                 }
             }
             catch (Exception e)
@@ -286,17 +290,20 @@ namespace subbuzz.Providers
 
                 subInfo += string.Format("<br>{0} | {1}", subDate, subUploader);
 
-                Download.LinkSub link = new Download.LinkSub
+                var link = new Http.RequestSub
                 {
                     Url = subLink,
+                    Referer = HttpReferer,
+                    Type = Http.Request.RequestType.GET,
                     CacheKey = subLink,
                     CacheRegion = CacheRegionSub,
+                    CacheLifespan = GetOptions().Cache.GetSubLife(),
                     Lang = si.LanguageInfo.TwoLetterISOLanguageName,
                     Fps = Download.LinkSub.FpsFromStr(subFps),
                     FpsVideo = si.VideoFps,
                 };
 
-                using (var files = await downloader.GetArchiveFiles(link, HttpReferer, cancellationToken).ConfigureAwait(false))
+                using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
                 {
                     int imdbId = 0;
                     string subImdb = "";
@@ -326,7 +333,7 @@ namespace subbuzz.Providers
                         //continue;
                     }
 
-                    var subFilesCount = files.CountSubFiles();
+                    var subFilesCount = files.SubCount;
 
                     foreach (var file in files)
                     {
@@ -350,7 +357,7 @@ namespace subbuzz.Providers
                         bool ignorMutliDiscSubs = subFilesCount > 1;
 
                         float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
-                        if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                        if (score == 0 || score < GetOptions().MinScore)
                         {
                             _logger.LogInformation($"Ignore file: {file.Name} Score: {score}");
                             continue;
@@ -368,7 +375,7 @@ namespace subbuzz.Providers
                             DateCreated = dt,
                             CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                             DownloadCount = int.Parse(subDownloads),
-                            IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                            IsHashMatch = score >= GetOptions().HashMatchByScore,
                             IsForced = false,
                             Score = score,
                         };

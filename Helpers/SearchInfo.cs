@@ -423,7 +423,7 @@ namespace subbuzz.Helpers
             return season && episode;
         }
 
-        public bool MatchMovie(Parser.MovieInfo mvInfo, ref SubtitleScore score, bool addEmptyMatches = false)
+        private bool MatchMovie(Parser.MovieInfo mvInfo, ref SubtitleScore score, bool addEmptyMatches = false)
         {
             if (mvInfo == null)
             {
@@ -449,7 +449,7 @@ namespace subbuzz.Helpers
             return true;
         }
 
-        protected void MatchQuality(Parser.Qualities.QualityModel qm1, Parser.Qualities.QualityModel qm2,
+        protected static void MatchQuality(Parser.Qualities.QualityModel qm1, Parser.Qualities.QualityModel qm2,
                                     ref SubtitleScore score, bool addEmptyMatches = false)
         {
             if (qm1 != null && qm2 != null)
@@ -482,7 +482,7 @@ namespace subbuzz.Helpers
 
         }
 
-        protected void MatchEdition(string ed1, string ed2, ref SubtitleScore score, bool addEmptyMatches = false)
+        protected static void MatchEdition(string ed1, string ed2, ref SubtitleScore score, bool addEmptyMatches = false)
         {
             if (ed1.IsNullOrWhiteSpace() &&
                 ed2.IsNullOrWhiteSpace())

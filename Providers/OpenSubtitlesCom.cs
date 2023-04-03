@@ -356,6 +356,7 @@ namespace subbuzz.Providers
                         DownloadCount = subItem.DownloadCount,
                         IsHashMatch = (score >= Plugin.Instance.Configuration.HashMatchByScore) || (subItem.MovieHashMatch ?? false),
                         IsForced = subItem.ForeignPartsOnly ?? false,
+                        Sdh = subItem.HearingImpaired,
                         Score = score,
                     };
 

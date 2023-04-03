@@ -113,7 +113,7 @@ namespace subbuzz.Providers
 
             try
             {
-                if (!Plugin.Instance.Configuration.EnableSubscene)
+                if (!GetOptions().EnableSubscene)
                 {
                     // provider is disabled
                     return res;
@@ -425,6 +425,8 @@ namespace subbuzz.Providers
             string subInfo = title.IsNotNullOrWhiteSpace() ? title : string.Empty;
             subInfo += "<br>" + string.Join("<br>", subData.Releases.ToArray());
 
+            bool? isForced = null;
+            bool? sdh = null;
             int numFiles = 0;
             int subDownloads = 0;
             float fps = 0;
@@ -449,6 +451,11 @@ namespace subbuzz.Providers
                             break;
 
                         case "Hearing Impaired":
+                            sdh = match.Groups["val"].Value.EqualsIgnoreCase("yes");
+                            break;
+
+                        case "Foreign parts":
+                            isForced = match.Groups["val"].Value.EqualsIgnoreCase("yes");
                             break;
 
                         case "Framerate":
@@ -519,7 +526,7 @@ namespace subbuzz.Providers
                     bool ignorMutliDiscSubs = subFilesCount > 1;
 
                     float score = si.CaclScore(file.Name, subScore, scoreVideoFileName, ignorMutliDiscSubs);
-                    if (score == 0 || score < Plugin.Instance.Configuration.MinScore)
+                    if (score == 0 || score < GetOptions().MinScore)
                     {
                         _logger.LogInformation($"Ignore file: {file.Name} Page: {urlPage} Socre: {score}");
                         continue;
@@ -535,8 +542,9 @@ namespace subbuzz.Providers
                         Comment = subFileInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = dt,
                         DownloadCount = subDownloads,
-                        IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
-                        IsForced = false,
+                        IsHashMatch = score >= GetOptions().HashMatchByScore,
+                        IsForced = isForced,
+                        Sdh = sdh,
                         Score = score,
                     };
 
