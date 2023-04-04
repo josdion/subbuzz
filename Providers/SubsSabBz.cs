@@ -207,7 +207,7 @@ namespace subbuzz.Providers
                     Referer = HttpReferer,
                     Type = post_params == null ? Http.Request.RequestType.GET : Http.Request.RequestType.POST,
                     PostParams = post_params,
-                    CacheKey = url + ((post_params == null) ? string.Empty : $"post={{{string.Join(",", post_params)}}}"),
+                    CacheKey = post_params == null ? null : url + $"post={{{string.Join(",", post_params)}}}",
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
@@ -247,7 +247,7 @@ namespace subbuzz.Providers
                 if (linkNode == null) continue;
 
                 string subLink = linkNode.GetAttribute("href");
-                var regexLink = new Regex(@"(?<g1>.*index.php\?)(?<g2>s=.*&amp;)?(?<g3>.*)");
+                var regexLink = new Regex(@"(?<g1>.*index.php\?)(?<g2>s=.*?&)(?<g3>.*)");
                 subLink = regexLink.Replace(subLink, "${g1}${g3}");
 
                 string subTitle = linkNode.TextContent;
@@ -326,7 +326,6 @@ namespace subbuzz.Providers
                     Url = subLink,
                     Referer = HttpReferer,
                     Type = Http.Request.RequestType.GET,
-                    CacheKey = subLink,
                     CacheRegion = CacheRegionSub,
                     CacheLifespan = GetOptions().Cache.GetSubLife(),
                     Lang = si.LanguageInfo.TwoLetterISOLanguageName,

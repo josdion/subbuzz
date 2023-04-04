@@ -198,7 +198,7 @@ namespace subbuzz.Providers
                     Referer = HttpReferer,
                     Type = post_params == null ? Http.Request.RequestType.GET : Http.Request.RequestType.POST,
                     PostParams = post_params,
-                    CacheKey = url + ((post_params == null) ? string.Empty : $"post={{{string.Join(",", post_params)}}}"),
+                    CacheKey = post_params == null ? null : url + $"post={{{string.Join(",", post_params)}}}",
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
