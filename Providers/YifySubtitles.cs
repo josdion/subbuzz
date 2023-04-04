@@ -250,7 +250,7 @@ namespace subbuzz.Providers
                             CommunityRating = float.Parse(subRating, CultureInfo.InvariantCulture),
                             //DownloadCount = int.Parse(subDownloads),
                             IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
-                            IsForced = false,
+                            IsForced = null,
                             Sdh = sdh,
                             Score = score,
                         };

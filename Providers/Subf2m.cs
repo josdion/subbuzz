@@ -455,7 +455,7 @@ namespace subbuzz.Providers
                             break;
 
                         case "Foreign parts":
-                            isForced = match.Groups["val"].Value.EqualsIgnoreCase("yes");
+                            isForced = match.Groups["val"].Value.EqualsIgnoreCase("Foreign parts only");
                             break;
 
                         case "Framerate":

@@ -329,7 +329,8 @@ namespace subbuzz.Providers
                         CommunityRating = sub.rating,
                         DateCreated = dt,
                         IsHashMatch = false,
-                        IsForced = false,
+                        IsForced = sub.new_flags?.flag?.ContainsIgnoreCase("foreign_only"),
+                        Sdh = sub.new_flags?.flag?.ContainsIgnoreCase("hearing_impaired"),
                         Score = score,
                     };
 

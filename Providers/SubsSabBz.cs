@@ -378,7 +378,8 @@ namespace subbuzz.Providers
                             CommunityRating = Convert.ToInt32(subRating),
                             DownloadCount = Convert.ToInt32(subDownloads),
                             IsHashMatch = score >= GetOptions().HashMatchByScore,
-                            IsForced = false,
+                            IsForced = null,
+                            Sdh = null,
                             Score = score,
                         };
 

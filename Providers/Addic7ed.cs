@@ -199,7 +199,8 @@ namespace subbuzz.Providers
                 CommunityRating = null,
                 DownloadCount = resItem.DownloadCount,
                 IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
-                IsForced = false,
+                IsForced = null,
+                Sdh = resItem.HearingImpaired,
                 Score = score,
             };
 
@@ -410,6 +411,12 @@ namespace subbuzz.Providers
                             resItem.Comment = comment;
 
                             var row2td = rows[rowIndex + 1].QuerySelectorAll("td");
+
+                            if (row2td[0].QuerySelector("img[title='Corrected']") != null)
+                                resItem.Corrected = true;
+
+                            if (row2td[0].QuerySelector("img[title='Hearing Impaired']") != null)
+                                resItem.HearingImpaired = true;
 
                             resItem.DownloadInfo = row2td[0]?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
                             resItem.EditedInfo = row2td[1]?.QuerySelector("a")?.NextSibling?.TextContent?.Trim(new char[] { ' ', '\t', '\n' });

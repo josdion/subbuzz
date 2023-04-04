@@ -83,6 +83,7 @@ namespace subbuzz.Providers.Http
                             redirectMethod = HttpMethod.Get;
 
                         retry = 0;
+                        _logger.LogDebug($"Redirect: {redirectUrl}, Method: {redirectMethod ?? req.GetHttpMethod()}");
                         continue;
                     }
 

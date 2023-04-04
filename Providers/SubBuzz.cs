@@ -113,6 +113,9 @@ namespace subbuzz.Providers
                     var parser = new AngleSharp.Html.Parser.HtmlParser();
                     var nodeList = parser.ParseFragment(s.Name, null);
                     s.Name = string.Concat(nodeList.Select(x => x.TextContent));
+                    
+                    if (s.IsForced ?? false) s.Name = "[Forced] " + s.Name;
+                    if (s.Sdh ?? false) s.Name = "[SDH] " + s.Name;
 
                     var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -122,6 +125,12 @@ namespace subbuzz.Providers
                     s.Comment = $"[{task.Key}] " + string.Concat(nodeList.Select(x => x.TextContent));
 #else
                     s.Comment = $"<b>[{task.Key}]</b> " + s.Comment;
+                    if (s.Sdh ?? false) 
+                        s.Name =
+                            "<div class=\"inline-flex align-items-center justify-content-center mediaInfoItem\">" +
+                            "<i class=\"md-icon button-icon button-icon-left secondaryText\" style=\"font-size:1.4em;\">hearing_disabled</i>" +
+                            s.Name +
+                            "</div>";
 #endif
                 }
 
@@ -132,6 +141,13 @@ namespace subbuzz.Providers
             {
                 res.RemoveAll(i => (i.IsHashMatch ?? false) == false);
             }
+
+#if EMBY
+            if (request.IsForced ?? false)
+            {
+                res.RemoveAll(i => (i.IsForced ?? false) == false);
+            }
+#endif
 
             res.Sort((x, y) => y.Score.CompareTo(x.Score));
 
