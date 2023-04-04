@@ -263,6 +263,7 @@ namespace subbuzz.Providers
                 }
             }
 
+            if (sub.uploaderName.IsNullOrWhiteSpace()) sub.uploaderName = "Anonymous";
             subInfo += string.Format("<br>{0} | {1}", subDate, sub.uploaderName);
 
             var link = new Http.RequestSub

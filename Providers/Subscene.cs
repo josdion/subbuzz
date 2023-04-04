@@ -468,6 +468,10 @@ namespace subbuzz.Providers
                                 _ = int.TryParse(parts[0], NumberStyles.Number, CultureInfo.InvariantCulture, out numFiles);
                             break;
 
+                        case "Production type":
+                            //"Machine translated"
+                            break;
+
                         case "Rated":
                             break;
 
