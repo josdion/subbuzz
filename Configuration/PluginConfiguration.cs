@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Xml.Serialization;
 
-namespace subbuzz
+namespace subbuzz.Configuration
 {
     public class SubPostProcessingCfg
     {
@@ -95,5 +95,11 @@ namespace subbuzz
             SubPostProcessing = new SubPostProcessingCfg();
             Cache = new CacheCfg();
         }
+
+#if NO_HTML
+        public bool SubtitleInfoWithHtml { get; set; } = false;
+#else
+        public bool SubtitleInfoWithHtml { get; set; } = true;
+#endif
     }
 }

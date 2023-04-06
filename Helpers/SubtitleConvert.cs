@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
+﻿using subbuzz.Configuration;
 using subbuzz.Extensions;
 using SubtitlesParser.Classes;
 using SubtitlesParser.Classes.Parsers;
 using SubtitlesParser.Classes.Writers;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace subbuzz.Helpers
 {

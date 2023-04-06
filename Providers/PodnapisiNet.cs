@@ -4,19 +4,19 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
-using subbuzz.Helpers;
+using subbuzz.Configuration;
 using subbuzz.Extensions;
+using subbuzz.Helpers;
 using subbuzz.Providers.PodnapisiAPI.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
-using System.Globalization;
-
 
 namespace subbuzz.Providers
 {
@@ -139,7 +139,7 @@ namespace subbuzz.Providers
                     {
                         Url = urlWithPage,
                         Referer = ServerUrl,
-                        Type = Http.Request.RequestType.GET,
+                        Type = Http.RequestType.GET,
                         CacheRegion = CacheRegionSearch,
                         CacheLifespan = GetOptions().Cache.GetSearchLife(),
                     };
@@ -270,7 +270,7 @@ namespace subbuzz.Providers
             {
                 Url = subLink,
                 Referer = ServerUrl,
-                Type = Http.Request.RequestType.GET,
+                Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,

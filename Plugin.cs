@@ -2,11 +2,12 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using subbuzz.Configuration;
+using subbuzz.Extensions;
+using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using subbuzz.Helpers;
-using subbuzz.Extensions;
 
 #if EMBY
 using MediaBrowser.Model.Drawing;
@@ -26,6 +27,11 @@ namespace subbuzz
         public const string NAME = "subbuzz";
         public FileCache Cache = null;
         private readonly IApplicationPaths _appPaths;
+
+        public override string Name => NAME;
+        public override string Description => "Download subtitles from various sites";
+        public override Guid Id => Guid.Parse("5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4");
+        public static Plugin Instance { get; private set; }
 
         public Plugin(
 			IApplicationPaths applicationPaths, 
@@ -77,11 +83,6 @@ namespace subbuzz
             base.UpdateConfiguration(configuration);
         }
 
-        public override string Name => NAME;
-        public override string Description => "Download subtitles from various sites";
-        public override Guid Id => Guid.Parse("5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4");
-        public static Plugin Instance { get; private set; }
-
 #if EMBY
         public Stream GetThumbImage()
         {
@@ -108,7 +109,8 @@ namespace subbuzz
                     Name = "SubbuzzConfigPage",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html",
                     EnableInMainMenu = true,
-                    MenuIcon = "closed_caption"
+                    MenuSection = "server",
+                    MenuIcon = "subtitles",
                 },
                 new PluginPageInfo
                 {

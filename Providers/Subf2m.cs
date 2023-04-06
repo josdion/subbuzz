@@ -1,5 +1,14 @@
 ﻿using AngleSharp;
 using AngleSharp.Html.Parser;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Controller.Subtitles;
+using MediaBrowser.Model.Globalization;
+using MediaBrowser.Model.IO;
+using MediaBrowser.Model.Providers;
+using subbuzz.Configuration;
+using subbuzz.Extensions;
+using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -7,15 +16,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using MediaBrowser.Controller.Subtitles;
-using subbuzz.Helpers;
-using subbuzz.Extensions;
-using MediaBrowser.Model.IO;
-using MediaBrowser.Model.Globalization;
-using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.Providers;
-
 
 namespace subbuzz.Providers
 {
@@ -165,7 +165,7 @@ namespace subbuzz.Providers
                 {
                     Url = url,
                     Referer = ServerUrl,
-                    Type = Http.Request.RequestType.GET,
+                    Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
@@ -188,7 +188,7 @@ namespace subbuzz.Providers
         {
             var res = new List<SubtitleInfo>();
 
-            var config = Configuration.Default;
+            var config = AngleSharp.Configuration.Default;
             var context = BrowsingContext.New(config);
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(html);
@@ -234,7 +234,7 @@ namespace subbuzz.Providers
                 {
                     Url = url,
                     Referer = ServerUrl,
-                    Type = Http.Request.RequestType.GET,
+                    Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife() 
                 };
@@ -265,7 +265,7 @@ namespace subbuzz.Providers
             var res = new List<SubtitleInfo>();
             var links = new Dictionary<string, SubData>();
 
-            var config = Configuration.Default;
+            var config = AngleSharp.Configuration.Default;
             var context = BrowsingContext.New(config);
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(html);
@@ -380,7 +380,7 @@ namespace subbuzz.Providers
                 {
                     Url = url,
                     Referer = ServerUrl,
-                    Type = Http.Request.RequestType.GET,
+                    Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
@@ -406,7 +406,7 @@ namespace subbuzz.Providers
             var subScoreBase = new SubtitleScore();
             subScoreBase.AddMatch("imdb");
 
-            var config = Configuration.Default;
+            var config = AngleSharp.Configuration.Default;
             var context = BrowsingContext.New(config);
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(html);
@@ -487,7 +487,7 @@ namespace subbuzz.Providers
             {
                 Url = downloadLink,
                 Referer = ServerUrl,
-                Type = Http.Request.RequestType.GET,
+                Type = Http.RequestType.GET,
                 CacheKey = urlPage,
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),

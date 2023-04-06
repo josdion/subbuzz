@@ -1,22 +1,22 @@
 ﻿using AngleSharp;
 using AngleSharp.Html.Parser;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
-using subbuzz.Helpers;
-using MediaBrowser.Controller.Providers;
-using System.Collections.Generic;
-using MediaBrowser.Controller.Subtitles;
-using subbuzz.Extensions;
-using System.Threading.Tasks;
-using System.Threading;
-using System;
 using MediaBrowser.Model.Providers;
-using System.Text.RegularExpressions;
+using subbuzz.Configuration;
+using subbuzz.Extensions;
+using subbuzz.Helpers;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
-
 
 namespace subbuzz.Providers
 {
@@ -171,7 +171,7 @@ namespace subbuzz.Providers
             {
                 Url = resItem.Download,
                 Referer = ServerUrl,
-                Type = Http.Request.RequestType.GET,
+                Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSub,
                 Lang = si.LanguageInfo.TwoLetterISOLanguageName,
             };
@@ -215,14 +215,14 @@ namespace subbuzz.Providers
             {
                 Url = ServerUrl + "/",
                 Referer = ServerUrl,
-                Type = Http.Request.RequestType.GET,
+                Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionData,
                 CacheLifespan = 7 * 24 * 60, // one week
             };
 
             using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
-            var config = Configuration.Default;
+            var config = AngleSharp.Configuration.Default;
             var context = BrowsingContext.New(config);
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(resp.Content);
@@ -263,14 +263,14 @@ namespace subbuzz.Providers
             {
                 Url = ServerUrl + $"/ajax_loadShow.php?show={showId}&season={si.SeasonNumber}",
                 Referer = ServerUrl,
-                Type = Http.Request.RequestType.GET,
+                Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSearch,
                 CacheLifespan = GetOptions().Cache.GetSearchLife(),
             };
 
             using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
-            var config = Configuration.Default;
+            var config = AngleSharp.Configuration.Default;
             var context = BrowsingContext.New(config);
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(resp.Content);
@@ -329,14 +329,14 @@ namespace subbuzz.Providers
                 {
                     Url = pageLink,
                     Referer = ServerUrl,
-                    Type = Http.Request.RequestType.GET,
+                    Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
 
                 using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
-                var config = Configuration.Default;
+                var config = AngleSharp.Configuration.Default;
                 var context = BrowsingContext.New(config);
                 var parser = new HtmlParser(context);
                 var htmlDoc = parser.ParseDocument(resp.Content);
@@ -450,14 +450,14 @@ namespace subbuzz.Providers
             {
                 Url = ServerUrl + $"/srch.php?search={HttpUtility.UrlEncode(searchText)}&Submit=Search",
                 Referer = ServerUrl,
-                Type = Http.Request.RequestType.GET,
+                Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSearch,
                 CacheLifespan = GetOptions().Cache.GetSearchLife(),
             };
 
             using var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false);
 
-            var config = Configuration.Default;
+            var config = AngleSharp.Configuration.Default;
             var context = BrowsingContext.New(config);
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(resp.Content);

@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using AngleSharp;
+﻿using AngleSharp;
 using AngleSharp.Html.Parser;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -13,16 +6,23 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace subbuzz.Providers
 {
     class YifySubtitles : ISubBuzzProvider, IHasOrder
     {
         internal const string NAME = "YIFY Subtitles";
-        private const string ServerUrl = "https://yifysubtitles.org";
-        private const string HttpReferer = "https://yifysubtitles.org/";
+        private const string ServerUrl = "https://yifysubtitles.ch";
         private static readonly string[] CacheRegionSub = { "yifysubtitles", "sub" };
         private static readonly string[] CacheRegionSearch = { "yifysubtitles", "search" };
 
@@ -134,8 +134,8 @@ namespace subbuzz.Providers
                 var link = new Http.RequestCached
                 {
                     Url = url,
-                    Referer = HttpReferer,
-                    Type = Http.Request.RequestType.GET,
+                    Referer = ServerUrl,
+                    Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
@@ -158,7 +158,7 @@ namespace subbuzz.Providers
         {
             var res = new List<SubtitleInfo>();
 
-            var config = Configuration.Default;
+            var config = AngleSharp.Configuration.Default;
             var context = BrowsingContext.New(config);
             var parser = new HtmlParser(context);
             var htmlDoc = parser.ParseDocument(html);
@@ -214,8 +214,8 @@ namespace subbuzz.Providers
                 var link = new Http.RequestSub
                 {
                     Url = subLink,
-                    Referer = HttpReferer,
-                    Type = Http.Request.RequestType.GET,
+                    Referer = ServerUrl,
+                    Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSub,
                     CacheLifespan = GetOptions().Cache.GetSubLife(),
                     Lang = si.LanguageInfo.TwoLetterISOLanguageName,

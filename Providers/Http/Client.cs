@@ -1,5 +1,4 @@
-﻿using SharpCompress.Common;
-using subbuzz.Extensions;
+﻿using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
 using System.IO;
@@ -7,7 +6,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,9 +18,9 @@ namespace subbuzz.Providers.Http
     public class Client
     {
         private int _maxRetries = 5;
-        private int _maxRedirects = 3;
-        private SocketsHttpHandler _handler;
-        private HttpClient _httpClient;
+        private int _maxRedirects = 5;
+        private readonly SocketsHttpHandler _handler;
+        private readonly HttpClient _httpClient;
         protected readonly Logger _logger;
 
         public Client(Logger logger)
@@ -61,35 +59,40 @@ namespace subbuzz.Providers.Http
 
         public void AddDefaultRequestHeader(string name, string value) => _httpClient.DefaultRequestHeaders.Add(name, value);
 
-        public async Task<Response> Send(Request req, CancellationToken cancellationToken)
+        public async Task<Response> SendFormAsync(FormRequest req, CancellationToken cancellationToken)
         {
             int retry = 0;
             int redirect = 0;
-            string redirectUrl = null;
+
+            Uri redirectUri = null;
             HttpMethod redirectMethod = null;
 
             while (true)
             {
-                using var reqMsg = GetRequestMessage(req, redirectUrl, redirectMethod);
-                _logger.LogDebug($"{reqMsg},\nDefault Headers:\n{{\n{_httpClient.DefaultRequestHeaders}}}");
-
+                using var reqMsg = req.GetHttpRequestMessage(redirectUri?.AbsoluteUri, redirectMethod);
+                //_logger.LogDebug($"{reqMsg},\nDefault Headers:\n{{\n{_httpClient.DefaultRequestHeaders}}}");
                 using (HttpResponseMessage response = await _httpClient.SendAsync(reqMsg, cancellationToken).ConfigureAwait(false))
                 {
-                    _logger.LogDebug($"Response for {reqMsg.RequestUri}, {response}");
+                    //_logger.LogDebug($"Response for {reqMsg.RequestUri}, {response}");
                     if (IsRedirect(response.StatusCode) && response.Headers.Location.AbsoluteUri.IsNotNullOrWhiteSpace() && redirect++ < _maxRedirects)
                     {
-                        redirectUrl = response.Headers.Location.AbsoluteUri;
+                        redirectMethod = reqMsg.Method;
+                        redirectUri = response.Headers.Location;
+
+                        if (!redirectUri.IsAbsoluteUri)
+                            redirectUri = new Uri(reqMsg.RequestUri, redirectUri);
+
                         if (response.StatusCode == HttpStatusCode.RedirectMethod)
                             redirectMethod = HttpMethod.Get;
 
-                        retry = 0;
-                        _logger.LogDebug($"Redirect: {redirectUrl}, Method: {redirectMethod ?? req.GetHttpMethod()}");
+                        _logger.LogInformation($"Redirect: {response.StatusCode} from: {reqMsg.RequestUri} to: {redirectUri}, method: {redirectMethod}");
                         continue;
                     }
 
                     if (IsRetriable(response.StatusCode) && retry++ < _maxRetries)
                     {
                         var waitTime = (response.StatusCode == (HttpStatusCode)429) ? 5000 : 1000;
+                        _logger.LogInformation($"Response code: {response.StatusCode}, Retry: {reqMsg.RequestUri} after {waitTime/1000} seconds");
                         await Task.Delay(retry * waitTime, cancellationToken).ConfigureAwait(false);
                         continue;
                     }
@@ -100,17 +103,8 @@ namespace subbuzz.Providers.Http
             }
         }
 
-        private HttpRequestMessage GetRequestMessage(Request req, string redirectUrl = null, HttpMethod redirectMethod = null)
-        {
-            var reqMsg = new HttpRequestMessage(redirectMethod ?? req.GetHttpMethod(), redirectUrl ?? req.Url);
-            reqMsg.Headers.Host = reqMsg.RequestUri.Host;
-
-            if (req.PostParams != null && req.PostParams.Count > 0)
-                reqMsg.Content = new FormUrlEncodedContent(req.PostParams);
-
-            reqMsg.Headers.Add("Referer", req.Referer);
-            return reqMsg;
-        }
+        protected Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            _httpClient.SendAsync(request, cancellationToken);
 
         private async Task<Response> GetRespInfo(HttpResponseMessage response, CancellationToken cancellationToken)
         {
@@ -119,13 +113,14 @@ namespace subbuzz.Providers.Http
                 Info = new ResponseInfo
                 {
                     ContentType = response.Content.Headers.ContentType?.MediaType ?? "",
-                    FileName = response.Content.Headers.ContentDisposition?.FileName ?? ""
+                    FileName = response.Content.Headers.ContentDisposition?.FileName ?? "",
                 }
             };
 
             if (response.Content.Headers.ContentEncoding.Count > 0)
             {
-                switch (response.Content.Headers.ContentEncoding.Last())
+                var encoding = response.Content.Headers.ContentEncoding.Last();
+                switch (encoding)
                 {
                     case "gzip":
                         using (var gz = new GZipStream(await response.Content.ReadAsStreamAsync(), CompressionMode.Decompress))
@@ -154,6 +149,8 @@ namespace subbuzz.Providers.Http
                     default:
                         throw new NotSupportedException($"Unsupported HTTP Content Encoding: {response.Content.Headers.ContentEncoding.Last()}");
                 }
+
+                response.Content.Headers.ContentEncoding.Remove(encoding);
             }
             else
             {

@@ -4,6 +4,7 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using subbuzz.Providers.OpenSubtitlesAPI;
@@ -11,17 +12,11 @@ using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
-using System.IO;
-
-#if EMBY
-using MediaBrowser.Common.Net;
-#else
-using System.Net.Http;
-#endif
 
 namespace subbuzz.Providers
 {
@@ -78,13 +73,7 @@ namespace subbuzz.Providers
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-#if JELLYFIN
-            IHttpClientFactory http
-#else
-            IHttpClient http
-#endif
-            )
+            ILibraryManager libraryManager)
         {
             _logger = logger;
             _fileSystem = fileSystem;
@@ -92,7 +81,7 @@ namespace subbuzz.Providers
             _libraryManager = libraryManager;
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            RequestHelper.Instance = new RequestHelper(http, version);
+            RequestHelper.Instance = new RequestHelper(logger, version);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)

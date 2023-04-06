@@ -1,5 +1,6 @@
 ﻿using MediaBrowser.Controller.Subtitles;
 using SharpCompress.Archives;
+using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
@@ -12,10 +13,10 @@ namespace subbuzz.Providers.Http
     public class Download : Client
     {
         private const string _defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0";
-        private PluginConfiguration GetOptions()
+        private static PluginConfiguration GetOptions()
             => Plugin.Instance?.Configuration;
 
-        private FileCache GetCache(string[] region, int life)
+        private static FileCache GetCache(string[] region, int life)
             => Plugin.Instance?.Cache?.FromRegion(region, life);
 
         public Download(Logger logger) : base(logger)
@@ -100,14 +101,14 @@ namespace subbuzz.Providers.Http
 
             try
             {
-                _logger.LogInformation($"{link}");
+                _logger.LogDebug($"{link}");
                 if (link.CacheLifespan >= 0 && link.CacheRegion != null)
                 {
                     Response resp = new Response { Cached = true };
                     resp.Content = GetCache(link.CacheRegion, link.CacheLifespan).Get(link.CacheKey ?? link.Url, out ResponseInfo respInfo);
                     resp.Info = respInfo;
 
-                    _logger.LogInformation($"Response loaded from cache [{string.Join("/", link.CacheRegion)}], Url: {link.Url}, Key: {link.CacheKey ?? "<null>"}");
+                    _logger.LogDebug($"Response loaded from cache [{string.Join("/", link.CacheRegion)}], Url: {link.Url}, Key: {link.CacheKey ?? "<null>"}");
                     return resp;
                 }
             }
@@ -125,7 +126,7 @@ namespace subbuzz.Providers.Http
 
             try
             {
-                return await Send(link, cancellationToken);
+                return await SendFormAsync(link, cancellationToken);
             }
             catch (Exception e)
             {
@@ -148,7 +149,7 @@ namespace subbuzz.Providers.Http
             {
                 if (link.CacheLifespan < 0 || link.CacheRegion == null || resp.Cached) return;
                 GetCache(link.CacheRegion, link.CacheLifespan).Add(link.CacheKey ?? link.Url, resp.Content, resp.Info);
-                _logger.LogInformation($"Add response to cache [{string.Join("/", link.CacheRegion)}], Url: {link.Url}, Key: {link.CacheKey ?? "<null>"}");
+                _logger.LogDebug($"Add response to cache [{string.Join("/", link.CacheRegion)}], Url: {link.Url}, Key: {link.CacheKey ?? "<null>"}");
             }
             catch (Exception e)
             {

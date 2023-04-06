@@ -4,17 +4,17 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text;
-
 
 namespace subbuzz.Providers
 {
@@ -196,9 +196,9 @@ namespace subbuzz.Providers
                 {
                     Url = url,
                     Referer = HttpReferer,
-                    Type = post_params == null ? Http.Request.RequestType.GET : Http.Request.RequestType.POST,
-                    PostParams = post_params,
-                    CacheKey = post_params == null ? null : url + $"post={{{string.Join(",", post_params)}}}",
+                    Type = post_params == null ? Http.RequestType.GET : Http.RequestType.POST,
+                    Params = post_params,
+                    CacheKey = post_params == null ? null : url + $":post={{{string.Join(",", post_params)}}}",
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
@@ -264,7 +264,7 @@ namespace subbuzz.Providers
                     subInfo = Utils.TrimString(subInfoBase, "<br>");
                     subInfo = subInfo.Replace("<br><br>", "<br>").Replace("<br><br>", "<br>");
                     subInfo = subInfo.Replace("&nbsp;", " ");
-                    subInfo = subTitle + (String.IsNullOrWhiteSpace(subInfo) ? "" : "<br>" + subInfo);
+                    subInfo = subTitle + (subInfo.IsNullOrWhiteSpace() ? "" : "<br>" + subInfo);
                 }
 
                 string subNumCd = tdNodes[1].InnerHtml;
@@ -294,7 +294,7 @@ namespace subbuzz.Providers
                 {
                     Url = subLink,
                     Referer = HttpReferer,
-                    Type = Http.Request.RequestType.GET,
+                    Type = Http.RequestType.GET,
                     CacheKey = subLink,
                     CacheRegion = CacheRegionSub,
                     CacheLifespan = GetOptions().Cache.GetSubLife(),

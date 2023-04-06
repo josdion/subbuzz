@@ -1,5 +1,3 @@
-using MediaBrowser.Common.Net;
-using MediaBrowser.Model.Net;
 using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
@@ -8,7 +6,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -16,26 +13,15 @@ using System.Threading.Tasks;
 
 namespace subbuzz.Providers.OpenSubtitlesAPI
 {
-    public class RequestHelper
+    public class RequestHelper : Http.Client
     {
         private const string _userAgent = "subbuzz";
-        private readonly string _version;
 
-#if JELLYFIN
-        private readonly IHttpClientFactory _clientFactory;
-        public RequestHelper(IHttpClientFactory factory, string version)
+        public RequestHelper(Logger logger, string version) : base(logger) 
         {
-            _clientFactory = factory;
-            _version = version;
+            AddDefaultRequestHeader("User-Agent", $"{_userAgent}/{version}");
+            AddDefaultRequestHeader("Accept", "*/*");
         }
-#else
-        private readonly IHttpClient _httpClient;
-        public RequestHelper(IHttpClient httpClient, string version)
-        {
-            _httpClient = httpClient;
-            _version = version;
-        }
-#endif
 
         public static RequestHelper Instance { get; set; }
 
@@ -72,8 +58,6 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             }
         }
 
-#if JELLYFIN
-
         internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
             string url,
             HttpMethod method,
@@ -82,13 +66,10 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
             CancellationToken cancellationToken
             )
         {
-            var client = _clientFactory.CreateClient("Default");
-            client.Timeout = TimeSpan.FromSeconds(30);
-
             HttpContent content = null;
             if (method != HttpMethod.Get && body != null)
             {
-                content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, MediaTypeNames.Application.Json);
+                content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
             }
 
             using var request = new HttpRequestMessage
@@ -96,83 +77,27 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                 Method = method,
                 RequestUri = new Uri(url),
                 Content = content,
-                Headers =
-                {
-                    UserAgent = { new ProductInfoHeaderValue(_userAgent, _version) },
-                    Accept = { new MediaTypeWithQualityHeaderValue("*/*") }
-                }
             };
 
             headers ??= new Dictionary<string, string>();
-            foreach (var (key, value) in headers)
+            foreach (var hdr in headers)
             {
-                if (string.Equals(key, "authorization", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(hdr.Key, "authorization", StringComparison.OrdinalIgnoreCase))
                 {
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", value);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", hdr.Value);
                 }
                 else
                 {
-                    request.Headers.Add(key, value);
+                    request.Headers.Add(hdr.Key, hdr.Value);
                 }
             }
 
-            var result = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            var result = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
             var resHeaders = result.Headers.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value.First());
 
-            return (await result.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false), resHeaders, result.StatusCode);
+            return (await result.Content.ReadAsStreamAsync().ConfigureAwait(false), resHeaders, result.StatusCode);
         }
-#else
 
-        internal async Task<(Stream, Dictionary<string, string>, HttpStatusCode)> SendRequestAsyncStream(
-            string url,
-            HttpMethod method,
-            object body,
-            Dictionary<string, string> headers,
-            CancellationToken cancellationToken
-            )
-        {
-            var request = new HttpRequestOptions
-            {
-                Url = url,
-                UserAgent = $"{_userAgent}/{_version}",
-                AcceptHeader = new MediaTypeWithQualityHeaderValue("*/*").ToString(),
-                TimeoutMs = 30000, // in milliseconds
-                CancellationToken = cancellationToken,
-            };
-
-            if (method != HttpMethod.Get && body != null)
-            {
-                request.RequestContentType = "application/json";
-                request.RequestContent = JsonSerializer.Serialize(body).AsMemory();
-            }
-
-            if (headers == null)
-                headers = new Dictionary<string, string>();
-
-            foreach (var h in headers)
-            {
-                if (string.Equals(h.Key, "authorization", StringComparison.OrdinalIgnoreCase))
-                {
-                    request.RequestHeaders.Add("authorization", new AuthenticationHeaderValue("Bearer", h.Value).ToString());
-                }
-                else
-                {
-                    request.RequestHeaders.Add(h.Key, h.Value);
-                }
-            }
-
-            try
-            {
-                var result = await _httpClient.SendAsync(request, method.ToString()).ConfigureAwait(false);
-
-                return (result.Content, result.Headers, result.StatusCode);
-            }
-            catch (HttpException e)
-            {
-                return (new MemoryStream(), new Dictionary<string, string>(), e.StatusCode ?? HttpStatusCode.Forbidden);
-            }
-        }
-#endif
         internal async Task<(string, Dictionary<string, string>, HttpStatusCode)> SendRequestAsync(
             string url,
             HttpMethod method,

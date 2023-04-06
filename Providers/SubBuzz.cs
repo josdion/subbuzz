@@ -4,23 +4,21 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
+using System;
 
 #if EMBY
 using MediaBrowser.Model.Logging;
 using ILogger = MediaBrowser.Model.Logging.ILogger;
-using MediaBrowser.Common.Net;
-using IHttpClient = MediaBrowser.Common.Net.IHttpClient;
 #else
 using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILoggerFactory;
-using System.Net.Http;
-using IHttpClient = System.Net.Http.IHttpClientFactory;
 #endif
 
 namespace subbuzz.Providers
@@ -37,13 +35,14 @@ namespace subbuzz.Providers
         private readonly Logger _logger;
         private readonly Dictionary<string, ISubBuzzProvider> Providers;
 
+        private static PluginConfiguration Configuration
+            => Plugin.Instance.Configuration;
+
         public SubBuzz(
             ILogger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
-            ILibraryManager libraryManager,
-            IHttpClient http
-            )
+            ILibraryManager libraryManager)
         {
             _logger = new Logger(logger, typeof(SubBuzz).FullName);
             Plugin.Instance.InitCache();
@@ -52,7 +51,7 @@ namespace subbuzz.Providers
                 { SubsSabBz.NAME,           new SubsSabBz(_logger.GetLogger<SubsSabBz>(), fileSystem, localizationManager, libraryManager) },
                 { SubsUnacsNet.NAME,        new SubsUnacsNet(_logger.GetLogger<SubsUnacsNet>(), fileSystem, localizationManager, libraryManager) },
                 { YavkaNet.NAME,            new YavkaNet(_logger.GetLogger<YavkaNet>(), fileSystem, localizationManager, libraryManager) },
-                { OpenSubtitlesCom.NAME,    new OpenSubtitlesCom(_logger.GetLogger<OpenSubtitlesCom>(), fileSystem, localizationManager, libraryManager, http) },
+                { OpenSubtitlesCom.NAME,    new OpenSubtitlesCom(_logger.GetLogger<OpenSubtitlesCom>(), fileSystem, localizationManager, libraryManager) },
                 { PodnapisiNet.NAME,        new PodnapisiNet(_logger.GetLogger<PodnapisiNet>(), fileSystem, localizationManager, libraryManager) },
                 { Subf2m.NAME,              new Subf2m(_logger.GetLogger<Subf2m>(), fileSystem, localizationManager, libraryManager) },
                 { Subscene.NAME,            new Subscene(_logger.GetLogger<Subscene>(), fileSystem, localizationManager, libraryManager) },
@@ -109,29 +108,19 @@ namespace subbuzz.Providers
                     s.Id = task.Key + s.Id;
                     s.SubBuzzProviderName = task.Key;
                     s.ProviderName = Name;
-#if NO_HTML
-                    var parser = new AngleSharp.Html.Parser.HtmlParser();
-                    var nodeList = parser.ParseFragment(s.Name, null);
-                    s.Name = string.Concat(nodeList.Select(x => x.TextContent));
-                    
-                    if (s.IsForced ?? false) s.Name = "[Forced] " + s.Name;
-                    if (s.Sdh ?? false) s.Name = "[SDH] " + s.Name;
 
-                    var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
-                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    s.Comment = regex.Replace(s.Comment, " &#9734; ");
-
-                    nodeList = parser.ParseFragment(s.Comment, null);
-                    s.Comment = $"[{task.Key}] " + string.Concat(nodeList.Select(x => x.TextContent));
+                    if (!Configuration.SubtitleInfoWithHtml)
+                    {
+                        FormatInfoNoHtml(s, task.Key);
+                    }
+                    else
+                    {
+#if EMBY
+                        FormatInfoWithHtmlEmby(s, task.Key);
 #else
-                    s.Comment = $"<b>[{task.Key}]</b> " + s.Comment;
-                    if (s.Sdh ?? false) 
-                        s.Name =
-                            "<div class=\"inline-flex align-items-center justify-content-center mediaInfoItem\">" +
-                            "<i class=\"md-icon button-icon button-icon-left secondaryText\" style=\"font-size:1.4em;\">hearing_disabled</i>" +
-                            s.Name +
-                            "</div>";
+                        FormatInfoWithHtmlJellyfin(s, task.Key);
 #endif
+                    }
                 }
 
                 Utils.MergeSubtitleInfo(res, subs);
@@ -155,6 +144,61 @@ namespace subbuzz.Providers
             _logger.LogInformation($"Search duration: {watch.ElapsedMilliseconds/1000.0} sec. Subtitles found: {res.Count}");
 
             return res;
+        }
+
+        private static void FormatInfoNoHtml(SubtitleInfo s, string provider)
+        {
+            var parser = new AngleSharp.Html.Parser.HtmlParser();
+            var nodeList = parser.ParseFragment(s.Name, null);
+            s.Name = string.Concat(nodeList.Select(x => x.TextContent));
+
+            if (s.IsForced ?? false) s.Name = "[Forced] " + s.Name;
+            if (s.Sdh ?? false) s.Name = "[SDH] " + s.Name;
+
+            var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            s.Comment = regex.Replace(s.Comment, " &#9734; ");
+
+            nodeList = parser.ParseFragment(s.Comment, null);
+            s.Comment = $"[{provider}] " + string.Concat(nodeList.Select(x => x.TextContent));
+        }
+
+        private static void FormatInfoWithHtmlEmby(SubtitleInfo s, string provider)
+        {
+            s.Comment = $"<b>[{provider}]</b> " + s.Comment;
+            if (s.Sdh ?? false)
+            {
+                s.Name =
+                    "<div class=\"inline-flex align-items-center justify-content-center mediaInfoItem\">" +
+                    "<i class=\"md-icon button-icon button-icon-left secondaryText\" style=\"font-size:1.4em;\">hearing_disabled</i>" +
+                    s.Name +
+                    "</div>";
+            }
+        }
+
+        private static void FormatInfoWithHtmlJellyfin(SubtitleInfo s, string provider)
+        {
+            s.Comment = $"<b>[{provider}]</b> " + s.Comment;
+
+            var tagIcons = string.Empty;
+
+            if (s.IsForced ?? false)
+            {
+                tagIcons += "<span class=\"material-icons language secondaryText\" aria-hidden=\"true\" style=\"font-size:1.4em;\"></span>&nbsp;";
+            }
+
+            if (s.Sdh ?? false)
+            {
+                tagIcons += "<span class=\"material-icons hearing_disabled secondaryText\" aria-hidden=\"true\" style=\"font-size:1.4em;\"></span>&nbsp;";
+            }
+
+            if (tagIcons.IsNotNullOrWhiteSpace())
+            {
+                s.Name =
+                    "<div class=\"inline-flex align-items-center justify-content-center mediaInfoItem\">" +
+                    tagIcons + s.Name +
+                    "</div>";
+            }
         }
     }
 }

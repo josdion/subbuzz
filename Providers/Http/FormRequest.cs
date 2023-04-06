@@ -3,29 +3,63 @@ using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Web;
 
 namespace subbuzz.Providers.Http
 {
-    public class Request
+    public enum RequestType
+    {
+        GET = 1,
+        POST = 2,
+    }
+
+    public class FormRequest
     {
         public string Url { get; set; } = string.Empty;
         public string Referer { get; set; } = string.Empty;
         public RequestType Type { get; set; } = RequestType.GET;
-        public Dictionary<string, string> PostParams { get; set; } = null;
-
-        public enum RequestType
-        {
-            GET = 1,
-            POST = 2,
-        }
+        public Dictionary<string, string> Params { get; set; } = null;
 
         public HttpMethod GetHttpMethod()
         {
             if (Type == RequestType.POST) return HttpMethod.Post;
             return HttpMethod.Get;
+        }
+
+        public string BuildUrl()
+        {
+            if (Type != RequestType.GET || Params.IsNullOrEmpty())
+            {
+                return Url;
+            }
+
+            var url = new StringBuilder(Url.TrimEnd('?')).Append('?');
+            foreach (var op in Params.OrderBy(x => x.Key))
+            {
+                url.Append(HttpUtility.UrlEncode(op.Key)).Append('=').Append(HttpUtility.UrlEncode(op.Value)).Append('&');
+            }
+
+            url.Length -= 1; // Remove last &
+            return url.ToString();
+        }
+
+        public HttpRequestMessage GetHttpRequestMessage(string redirectUri = null, HttpMethod redirectMethod = null)
+        {
+            HttpMethod method = redirectMethod ?? GetHttpMethod();
+            var reqMsg = new HttpRequestMessage(method, redirectUri ?? BuildUrl());
+            reqMsg.Headers.Host = reqMsg.RequestUri.Host;
+
+            if (method == HttpMethod.Post && Params.IsNotNullOrEmpty())
+                reqMsg.Content = new FormUrlEncodedContent(Params);
+
+            if (Referer.IsNotNullOrWhiteSpace()) 
+                reqMsg.Headers.Add("Referer", Referer);
+            
+            return reqMsg;
         }
 
         public override string ToString()
@@ -41,13 +75,13 @@ namespace subbuzz.Providers.Http
             sb.Append(Referer);
 
             sb.Append(", PostParams: ");
-            sb.Append(PostParams == null ? "<null>" : $"{{ {string.Join(",", PostParams)} }}");
+            sb.Append(Params == null ? "<null>" : $"{{ {string.Join(",", Params)} }}");
 
             return sb.ToString();
         }
     }
 
-    public class RequestCached : Request
+    public class RequestCached : FormRequest
     {
         public string CacheKey { get; set; } = null;
         public string[] CacheRegion { get; set; }

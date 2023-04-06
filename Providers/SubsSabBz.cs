@@ -4,14 +4,15 @@ using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
+using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Globalization;
 
 namespace subbuzz.Providers
 {
@@ -205,9 +206,9 @@ namespace subbuzz.Providers
                 {
                     Url = url,
                     Referer = HttpReferer,
-                    Type = post_params == null ? Http.Request.RequestType.GET : Http.Request.RequestType.POST,
-                    PostParams = post_params,
-                    CacheKey = post_params == null ? null : url + $"post={{{string.Join(",", post_params)}}}",
+                    Type = post_params == null ? Http.RequestType.GET : Http.RequestType.POST,
+                    Params = post_params,
+                    CacheKey = post_params == null ? null : url + $":post={{{string.Join(",", post_params)}}}",
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
@@ -325,7 +326,7 @@ namespace subbuzz.Providers
                 {
                     Url = subLink,
                     Referer = HttpReferer,
-                    Type = Http.Request.RequestType.GET,
+                    Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSub,
                     CacheLifespan = GetOptions().Cache.GetSubLife(),
                     Lang = si.LanguageInfo.TwoLetterISOLanguageName,
