@@ -62,7 +62,7 @@ namespace subbuzz.Providers
             "First",        "Second",       "Third",        "Fourth",       "Fifth",
             "Sixth",        "Seventh",      "Eighth",       "Ninth",        "Tenth",
             "Eleventh",     "Twelfth",      "Thirteenth",   "Fourteenth",   "Fifteenth",
-            "Sixteenth",    "Seventeenth",  "Eightheenth",  "Nineteenth",   "Tweentieth",
+            "Sixteenth",    "Seventeenth",  "Eighteenth",   "Nineteenth",   "Twentieth",
         };
 
         private static readonly Regex ImdbUrlRegex = new Regex(@"imdb.com/title/tt(?<imdbid>\d{7,8})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
