@@ -21,6 +21,7 @@ namespace subbuzz.Providers
             }
         }
 #endif 
+        public string PageLink { get; set; } = string.Empty;
 
         /// <summary>
         /// Subtitles for the deaf and hard of hearing (SDH) 

@@ -62,7 +62,7 @@ namespace subbuzz.Providers
             "First",        "Second",       "Third",        "Fourth",       "Fifth",
             "Sixth",        "Seventh",      "Eighth",       "Ninth",        "Tenth",
             "Eleventh",     "Twelfth",      "Thirteenth",   "Fourteenth",   "Fifteenth",
-            "Sixteenth",    "Seventeenth",  "Eightheenth",  "Nineteenth",   "Tweentieth",
+            "Sixteenth",    "Seventeenth",  "Eighteenth",   "Nineteenth",   "Twentieth",
         };
 
         private static readonly Regex ImdbUrlRegex = new Regex(@"imdb.com/title/tt(?<imdbid>\d{7,8})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -537,7 +537,8 @@ namespace subbuzz.Providers
                         ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
                         Id = link.GetId(),
                         ProviderName = Name,
-                        Name = $"<a href='{urlPage}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{file.Name}</a>",
+                        Name = file.Name,
+                        PageLink = urlPage,
                         Format = file.GetExtSupportedByEmby(),
                         Comment = subFileInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                         DateCreated = dt,

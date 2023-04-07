@@ -94,7 +94,7 @@ namespace subbuzz.Providers
 #if JELLYFIN
                 // Jellyfin search request times out after 30 seconds, so ignore searches not completed in time.
                 var elapsedTime = watch.ElapsedMilliseconds;
-                if (!task.Value.Wait((int)(elapsedTime >= 29000 ? 1 : 29000 - elapsedTime)))
+                if (!task.Value.Wait((int)(elapsedTime >= 29000 ? 1 : 29000 - elapsedTime), cancellationToken))
                 {
                     _logger.LogInformation($"The response from {task.Key} is ignored because it did not complete in time.");
                     continue;
@@ -148,10 +148,6 @@ namespace subbuzz.Providers
 
         private static void FormatInfoNoHtml(SubtitleInfo s, string provider)
         {
-            var parser = new AngleSharp.Html.Parser.HtmlParser();
-            var nodeList = parser.ParseFragment(s.Name, null);
-            s.Name = string.Concat(nodeList.Select(x => x.TextContent));
-
             if (s.IsForced ?? false) s.Name = "[Forced] " + s.Name;
             if (s.Sdh ?? false) s.Name = "[SDH] " + s.Name;
 
@@ -159,12 +155,14 @@ namespace subbuzz.Providers
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             s.Comment = regex.Replace(s.Comment, " &#9734; ");
 
-            nodeList = parser.ParseFragment(s.Comment, null);
+            var parser = new AngleSharp.Html.Parser.HtmlParser();
+            var nodeList = parser.ParseFragment(s.Comment, null);
             s.Comment = $"[{provider}] " + string.Concat(nodeList.Select(x => x.TextContent));
         }
 
         private static void FormatInfoWithHtmlEmby(SubtitleInfo s, string provider)
         {
+            s.Name = $"<a href='{s.PageLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{s.Name}</a>";
             s.Comment = $"<b>[{provider}]</b> " + s.Comment;
             if (s.Sdh ?? false)
             {
@@ -178,6 +176,7 @@ namespace subbuzz.Providers
 
         private static void FormatInfoWithHtmlJellyfin(SubtitleInfo s, string provider)
         {
+            s.Name = $"<a href='{s.PageLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;text-align:start;'>{s.Name}</a>";
             s.Comment = $"<b>[{provider}]</b> " + s.Comment;
 
             var tagIcons = string.Empty;
