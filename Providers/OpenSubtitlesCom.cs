@@ -8,6 +8,7 @@ using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using subbuzz.Providers.OpenSubtitlesAPI;
+using subbuzz.Providers.OpenSubtitlesAPI.Models;
 using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Security.Authentication;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,6 +26,8 @@ namespace subbuzz.Providers
     {
         internal const string NAME = "opensubtitles.com";
         private const string ServerUrl = "https://www.opensubtitles.com";
+        private static readonly string[] CacheRegionSub = { "opensubtitles", "sub" };
+        private static readonly string[] CacheRegionSearch = { "opensubtitles", "search" };
 
         private readonly Logger _logger;
         private readonly IFileSystem _fileSystem;
@@ -35,16 +39,20 @@ namespace subbuzz.Providers
         public IEnumerable<VideoContentType> SupportedMediaTypes =>
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
-        private PluginConfiguration GetOptions()
+        private static PluginConfiguration GetOptions()
             => Plugin.Instance?.Configuration;
 
-        private FileCache GetCache(string[] region, int life = 0)
+        private static FileCache GetCache(string[] region, int life = 0)
             => Plugin.Instance?.Cache?.FromRegion(region, life);
 
-        private static readonly string[] CacheRegionSub     = { "opensubtitles", "sub" };
-        private static readonly string[] CacheRegionSearch  = { "opensubtitles", "search" };
-        private FileCache GetCacheSub()
+        private static FileCache GetCacheSub()
             => GetCache(CacheRegionSub, GetOptions().Cache.SubLifeInMinutes);
+        private static FileCache GetCacheSub(int life)
+            => GetCache(CacheRegionSub, life);
+        private static FileCache GetCacheSearch()
+            => GetCache(CacheRegionSearch, GetOptions().Cache.SearchLifeInMinutes);
+        private static FileCache GetCacheSearch(int life)
+            => GetCache(CacheRegionSearch, life);
 
 
         public class LinkSub
@@ -90,8 +98,8 @@ namespace subbuzz.Providers
             {
                 LinkSub linkSub = LinkSub.FromId(id);
 
-                SubtitleResponse subResp = GetSubtitlesFromCache(linkSub.Id, linkSub.Lang, linkSub.Fps, linkSub.IsForced);
-                if (subResp != null) {
+                SubtitleResponse subResp = GetSubtitlesFromCache(linkSub, GetOptions().Cache.GetSubLife(), out var expired);
+                if (subResp != null && !expired) {
                     _logger.LogDebug($"Subtitles with file id {linkSub.Id} loaded from cache");
                     return subResp;
                 }
@@ -102,14 +110,14 @@ namespace subbuzz.Providers
                 if (link.IsNullOrWhiteSpace())
                 {
                     _logger.LogInformation($"Can't get download link for file ID {linkSub.Id}");
-                    return new SubtitleResponse();
+                    return subResp ?? new SubtitleResponse();
                 }
 
                 var res = await OpenSubtitles.DownloadSubtitleAsync(link, cancellationToken).ConfigureAwait(false);
                 if (!res.Ok)
                 {
                     _logger.LogInformation($"Subtitle {link} could not be downloaded: {res.Code}");
-                    return new SubtitleResponse();
+                    return subResp ?? new SubtitleResponse();
                 }
 
                 using (Stream fileStream = new MemoryStream())
@@ -151,8 +159,9 @@ namespace subbuzz.Providers
             return new SubtitleResponse();
         }
 
-        protected SubtitleResponse GetSubtitlesFromCache(string fileId, string lang, float? fps, bool? isForced)
+        protected SubtitleResponse GetSubtitlesFromCache(LinkSub linkSub, int life, out bool expired)
         {
+            expired = false;
             try
             {
                 if (!GetOptions().Cache.Subtitle)
@@ -160,18 +169,18 @@ namespace subbuzz.Providers
                     return null;
                 }
 
-                using (Stream fileStream = GetCacheSub().Get(fileId))
+                using (Stream fileStream = GetCacheSub(life).Get(linkSub.Id))
                 {
                     string format;
                     Stream outStream = SubtitleConvert.ToSupportedFormat(
-                        fileStream, fps, out format, 
+                        fileStream, linkSub.Fps, out format, 
                         GetOptions().SubEncoding.GetUtf8(), GetOptions().SubPostProcessing);
 
                     return new SubtitleResponse
                     {
                         Format = format,
-                        Language = lang,
-                        IsForced = isForced ?? false,
+                        Language = linkSub.Lang,
+                        IsForced = linkSub.IsForced ?? false,
                         Stream = outStream,
                     };
                 }
@@ -179,6 +188,11 @@ namespace subbuzz.Providers
             catch (FileCacheItemNotFoundException)
             {
                 return null;
+            }
+            catch (FileCacheItemExpiredException)
+            {
+                expired = true;
+                return GetSubtitlesFromCache(linkSub, -1, out var _);
             }
             catch (Exception e)
             {
@@ -204,8 +218,9 @@ namespace subbuzz.Providers
 
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0}");
 
-                if (si.Lang == "zh") si.Lang = "zh-CN";
-                else if (si.Lang == "pt") si.Lang = "pt-PT";
+                if (si.Lang == "zh") si.Lang = "zh-cn";
+                else if (si.Lang == "pt") si.Lang = "pt-pt";
+                else if (si.LanguageInfo.ThreeLetterISOLanguageName == "spa") si.Lang = "es";
 
                 _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
 
@@ -289,7 +304,7 @@ namespace subbuzz.Providers
 
             _logger.LogDebug("Search options: {options}", NAME, options);
 
-            var searchResponse = await OpenSubtitles.SearchSubtitlesAsync(options, apiKey, cancellationToken).ConfigureAwait(false);
+            var searchResponse = await SearchCachedAsync(options, apiKey, cancellationToken).ConfigureAwait(false);
 
             if (!searchResponse.Ok)
             {
@@ -355,6 +370,56 @@ namespace subbuzz.Providers
             }
 
             return res;
+        }
+
+        public async Task<ApiResponse<IReadOnlyList<ResponseData>>> SearchCachedAsync(Dictionary<string, string> options, string apiKey, CancellationToken cancellationToken)
+        {
+            string cacheKey = string.Join(",", options);
+            bool expiredFound = false;
+
+            if (GetOptions().Cache.Search)
+            {
+                try
+                {
+                    using var stream = GetCacheSearch().Get(cacheKey);
+                    return JsonSerializer.Deserialize<ApiResponse<IReadOnlyList<ResponseData>>>(stream);
+                }
+                catch (FileCacheItemNotFoundException)
+                {
+                }
+                catch (FileCacheItemExpiredException)
+                {
+                    expiredFound = true;
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, $"Unable to load subtitles from cache: {e}");
+                }
+            }
+
+            var resp = await OpenSubtitles.SearchSubtitlesAsync(options, apiKey, cancellationToken).ConfigureAwait(false);
+
+            if (resp.Ok && GetOptions().Cache.Search)
+            {
+                try
+                {
+                    using var stream = new MemoryStream();
+                    JsonSerializer.Serialize(stream, resp);
+                    GetCacheSearch().Add(cacheKey, stream);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, $"Unable to add search response to cache: {e}");
+                }
+            }
+            else
+            if (expiredFound)
+            {
+                using var stream = GetCacheSearch(-1).Get(cacheKey);
+                return JsonSerializer.Deserialize<ApiResponse<IReadOnlyList<ResponseData>>>(stream);
+            }
+
+            return resp;
         }
 
         private async Task Login(CancellationToken cancellationToken)

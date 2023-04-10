@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace subbuzz.Providers.OpenSubtitlesAPI.Models
 {
@@ -58,5 +59,9 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models
                 throw new JsonException($"Failed to parse response, code: {Code}, context: {string.Join(", ", context)}, body: \n{(string.IsNullOrWhiteSpace(Body) ? "\"\"" : Body)}", e);
             }
         }
+
+        [JsonConstructor]
+        public ApiResponse(HttpStatusCode code, string body, T data) =>
+            (Code, Body, Data) = (code, body, data);
     }
 }

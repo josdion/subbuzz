@@ -44,6 +44,7 @@ namespace subbuzz.Providers
             { "Chinese BG code",        "chs" },
             { "Big 5 code",             "cht" },
             { "Chinese",                "chi" },
+            { "Spanish",                "spa" },
         };
 
         private PluginConfiguration GetOptions()

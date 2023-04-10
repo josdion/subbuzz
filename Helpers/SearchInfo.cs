@@ -177,14 +177,7 @@ namespace subbuzz.Helpers
                     break;
             }
 
-#if JELLYFIN_10_7
-            return new CultureDto { 
-                Name = languageInfo.Name, DisplayName = languageInfo.DisplayName, 
-                TwoLetterISOLanguageName = languageInfo.TwoLetterISOLanguageName, 
-                ThreeLetterISOLanguageNames = threeLetterISOLanguageNames.ToArray() };
-#else
             return new CultureDto(languageInfo.Name, languageInfo.DisplayName, languageInfo.TwoLetterISOLanguageName, threeLetterISOLanguageNames);
-#endif
         }
 #endif
 
