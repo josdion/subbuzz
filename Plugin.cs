@@ -25,13 +25,21 @@ namespace subbuzz
         public const string SERVER = "Jellyfin";
 #endif
         public const string NAME = "subbuzz";
-        public FileCache Cache = null;
+        private FileCache? _cache = null;
         private readonly IApplicationPaths _appPaths;
 
         public override string Name => NAME;
         public override string Description => "Download subtitles from various sites";
         public override Guid Id => Guid.Parse("5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4");
-        public static Plugin Instance { get; private set; }
+        public static Plugin? Instance { get; private set; } = null;
+        public FileCache? Cache
+        {
+            get {
+                if (_cache == null)
+                    InitCache();
+                return _cache;
+            }
+        }
 
         public Plugin(
 			IApplicationPaths applicationPaths, 
@@ -39,15 +47,15 @@ namespace subbuzz
             : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            Cache = null;
             _appPaths = applicationPaths;
         }
 
-        public void InitCache(PluginConfiguration conf = null, bool save = true)
+        public void InitCache(PluginConfiguration? conf = null, bool save = true)
         {
-            if (conf == null) conf = base.Configuration;
+            if (conf == null) 
+                conf = base.Configuration;
 
-            if (Cache != null && Cache.CacheDir == conf.Cache.BasePath)
+            if (_cache != null && _cache.CacheDir == conf.Cache.BasePath)
                 return;
 
             if (conf.Cache.BasePath.IsNotNullOrWhiteSpace())
@@ -55,7 +63,7 @@ namespace subbuzz
                 try
                 {
                     Directory.CreateDirectory(conf.Cache.BasePath);
-                    Cache = new FileCache(conf.Cache.BasePath);
+                    _cache = new FileCache(conf.Cache.BasePath);
                     return;
                 }
                 catch
@@ -66,15 +74,14 @@ namespace subbuzz
             try
             {
                 string defaultPath = Path.Combine(_appPaths.CachePath, NAME);
-                Cache = new FileCache(defaultPath);
-                conf.Cache.BasePath = Cache.CacheDir;
+                _cache = new FileCache(defaultPath);
+                conf.Cache.BasePath = _cache.CacheDir;
+                if (save == true)
+                    base.SaveConfiguration();
             }
             catch 
             {
             }
-
-            if (save == true) 
-                base.SaveConfiguration();
         }
 
         public override void UpdateConfiguration(BasePluginConfiguration configuration)

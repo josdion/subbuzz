@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "subbuzz.emby.4.7", "subbuzz
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "subbuzz.emby.4.8", "subbuzz.emby.4.8.csproj", "{A87D553A-8004-4A44-A527-519A8FFC80CB}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "subbuzz.jellyfin.10.9", "subbuzz.jellyfin.10.9.csproj", "{AEA78E87-44CA-4DC3-B83E-EDBB3A68B434}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{A87D553A-8004-4A44-A527-519A8FFC80CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A87D553A-8004-4A44-A527-519A8FFC80CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A87D553A-8004-4A44-A527-519A8FFC80CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEA78E87-44CA-4DC3-B83E-EDBB3A68B434}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEA78E87-44CA-4DC3-B83E-EDBB3A68B434}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEA78E87-44CA-4DC3-B83E-EDBB3A68B434}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEA78E87-44CA-4DC3-B83E-EDBB3A68B434}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

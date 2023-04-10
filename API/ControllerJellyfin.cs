@@ -13,7 +13,7 @@ namespace subbuzz.API
 {
     [ApiController]
     [Produces(MediaTypeNames.Application.Json)]
-    [Authorize(Policy = "DefaultAuthorization")]
+    [Authorize]
     public class ControllerJellyfin : ControllerBase
     {
         [HttpPost("subbuzz/ValidateOpenSubtitlesLoginInfo")]

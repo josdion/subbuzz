@@ -36,7 +36,7 @@ namespace subbuzz.Providers
         private readonly Dictionary<string, ISubBuzzProvider> Providers;
 
         private static PluginConfiguration Configuration
-            => Plugin.Instance.Configuration;
+            => Plugin.Instance!.Configuration;
 
         public SubBuzz(
             ILogger logger,
@@ -44,8 +44,7 @@ namespace subbuzz.Providers
             ILocalizationManager localizationManager,
             ILibraryManager libraryManager)
         {
-            _logger = new Logger(logger, typeof(SubBuzz).FullName);
-            Plugin.Instance.InitCache();
+            _logger = new Logger(logger, typeof(SubBuzz).FullName ?? "SubBuzz");
             Providers = new Dictionary<string, ISubBuzzProvider>
             {
                 { SubsSabBz.NAME,           new SubsSabBz(_logger.GetLogger<SubsSabBz>(), fileSystem, localizationManager, libraryManager) },

@@ -15,11 +15,13 @@
     <DefineConstants>EMBY</DefineConstants>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>	
+    <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
+    <Nullable>annotations</Nullable>	
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="API\ControllerJellyfin.cs" />
+    <Compile Remove="PluginServiceRegistrator.cs" />
   </ItemGroup>
 
   <ItemGroup> 

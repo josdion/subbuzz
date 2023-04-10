@@ -15,10 +15,12 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="API\ControllerEmby.cs" />
+    <Compile Remove="PluginServiceRegistrator.cs" />
   </ItemGroup>
 
   <ItemGroup>

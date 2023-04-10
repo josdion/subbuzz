@@ -1,45 +1,41 @@
 ﻿<Project>
   <PropertyGroup>
-    <BaseIntermediateOutputPath>obj/emby-4.8</BaseIntermediateOutputPath>
-    <BaseOutputPath>bin/emby-4.8</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/jellyfin-10.9</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/jellyfin-10.9</BaseOutputPath>
   </PropertyGroup>
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
-    <LangVersion>latest</LangVersion>
     <RootNamespace>subbuzz</RootNamespace>
     <AssemblyName>subbuzz</AssemblyName>
-    <DefineConstants>EMBY</DefineConstants>
+    <DefineConstants>JELLYFIN,NO_HTML</DefineConstants>	
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
-    <Nullable>annotations</Nullable>	
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="API\ControllerJellyfin.cs" />
-    <Compile Remove="PluginServiceRegistrator.cs" />
+    <Compile Remove="API\ControllerEmby.cs" />
   </ItemGroup>
 
-  <ItemGroup> 
-    <PackageReference Include="mediabrowser.server.core" Version="4.8.*-*" /> 
-    <PackageReference Include="SharpCompress" Version="0.32.2" /> 
-    <PackageReference Include="System.Memory" Version="4.5.5" />
-    <PackageReference Include="System.Text.Json" Version="6.0.7" />
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="10.8.*-*" />
+    <PackageReference Include="SharpCompress" Version="0.26.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
     <None Remove="Configuration\*.html" />
     <None Remove="Configuration\*.js" />
 	<None Remove="Configuration\**" />
-    <None Remove="thumb.png" />
     <EmbeddedResource Include="Configuration\*.html" />
 	<EmbeddedResource Include="Configuration\*.js" />
-    <EmbeddedResource Include="Configuration\Emby\*.js" />
-    <EmbeddedResource Include="thumb.png" />
+    <EmbeddedResource Include="Configuration\Jellyfin\*.js" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
