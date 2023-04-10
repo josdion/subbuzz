@@ -79,7 +79,7 @@ jobs:
           dotnet-version: 6.0.x
           
       - name: Build for jellyfin-10.8
-        uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
+        uses: oddstr13/jellyfin-plugin-repository-manager@v0.5.1
         id: jprm
         with:
           dotnet-target: net6.0
