@@ -56,7 +56,7 @@ namespace subbuzz.Configuration
     public class CacheCfg
     {
         public bool Subtitle { get; set; } = true;
-        public int SubLifeInMinutes { get; set; } = 24 * 60;
+        public int SubLifeInMinutes { get; set; } = 7 * 24 * 60;
         public bool Search { get; set; } = true;
         public int SearchLifeInMinutes { get; set; } = 4 * 60;
         public string BasePath { get; set; } = string.Empty;
@@ -70,7 +70,7 @@ namespace subbuzz.Configuration
         public bool EnableAddic7ed { get; set; } = true;
         public bool EnableOpenSubtitles { get; set; } = true;
         public bool EnablePodnapisiNet { get; set; } = true;
-        public bool EnableSubf2m { get; set; } = true;
+        public bool EnableSubf2m { get; set; } = false;
         public bool EnableSubscene { get; set; } = true;
         public bool EnableSubssabbz { get; set; } = true;
         public bool EnableSubsunacsNet { get; set; } = true;

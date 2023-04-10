@@ -302,6 +302,9 @@ namespace subbuzz.Providers
                 }
             }
 
+            foreach (var opt in options)
+                options[opt.Key] = opt.Value.ToLowerInvariant();
+
             _logger.LogDebug("Search options: {options}", NAME, options);
 
             var searchResponse = await SearchCachedAsync(options, apiKey, cancellationToken).ConfigureAwait(false);
