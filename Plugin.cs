@@ -25,8 +25,10 @@ namespace subbuzz
         public const string SERVER = "Jellyfin";
 #endif
         public const string NAME = "subbuzz";
-        private FileCache? _cache = null;
         private readonly IApplicationPaths _appPaths;
+
+        private readonly object _cacheSyncLock = new object();
+        private FileCache? _cache = null;
 
         public override string Name => NAME;
         public override string Description => "Download subtitles from various sites";
@@ -35,9 +37,7 @@ namespace subbuzz
         public FileCache? Cache
         {
             get {
-                if (_cache == null)
-                    InitCache();
-                return _cache;
+                return GetCache();
             }
         }
 
@@ -50,43 +50,43 @@ namespace subbuzz
             _appPaths = applicationPaths;
         }
 
-        public void InitCache(PluginConfiguration? conf = null, bool save = true)
+        private FileCache? GetCache()
         {
-            if (conf == null) 
-                conf = base.Configuration;
-
-            if (_cache != null && _cache.CacheDir == conf.Cache.BasePath)
-                return;
-
-            if (conf.Cache.BasePath.IsNotNullOrWhiteSpace())
+            lock (_cacheSyncLock)
             {
+                if (_cache != null && _cache.CacheDir == base.Configuration.Cache.BasePath)
+                    return _cache;
+
+                if (base.Configuration.Cache.BasePath.IsNotNullOrWhiteSpace())
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(base.Configuration.Cache.BasePath);
+                        _cache = new FileCache(base.Configuration.Cache.BasePath);
+                        return _cache;
+                    }
+                    catch
+                    {
+                    }
+                }
+
                 try
                 {
-                    Directory.CreateDirectory(conf.Cache.BasePath);
-                    _cache = new FileCache(conf.Cache.BasePath);
-                    return;
+                    string defaultPath = Path.Combine(_appPaths.CachePath, NAME);
+                    _cache = new FileCache(defaultPath);
+                    base.Configuration.Cache.BasePath = _cache.CacheDir;
+                    base.SaveConfiguration();
+                    return _cache;
                 }
                 catch
                 {
+                    return null;
                 }
-            }
-
-            try
-            {
-                string defaultPath = Path.Combine(_appPaths.CachePath, NAME);
-                _cache = new FileCache(defaultPath);
-                conf.Cache.BasePath = _cache.CacheDir;
-                if (save == true)
-                    base.SaveConfiguration();
-            }
-            catch 
-            {
             }
         }
 
         public override void UpdateConfiguration(BasePluginConfiguration configuration)
         {
-            InitCache((PluginConfiguration)configuration, false);
             base.UpdateConfiguration(configuration);
         }
 

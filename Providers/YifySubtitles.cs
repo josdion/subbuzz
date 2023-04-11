@@ -77,8 +77,7 @@ namespace subbuzz.Providers
             return new SubtitleResponse();
         }
 
-        public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,
-            CancellationToken cancellationToken)
+        public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request, CancellationToken cancellationToken)
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var res = new List<SubtitleInfo>();

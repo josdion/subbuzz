@@ -60,7 +60,7 @@ namespace subbuzz.Helpers
             res.LanguageInfo = localize.FindLanguageInfo(request.Language.AsSpan());
             res.IsForced = request.IsForced ?? false;
 #else
-            res.LanguageInfo = LoadLanguageInfo(localize, request.Language);
+            res.LanguageInfo = LoadLanguageInfo(localize, request);
 #endif
             res.Lang = res.LanguageInfo.TwoLetterISOLanguageName.ToLower();
 
@@ -163,12 +163,16 @@ namespace subbuzz.Helpers
         }
 
 #if JELLYFIN
-        private static CultureDto LoadLanguageInfo(ILocalizationManager localize, string reqLanguage)
+        private static CultureDto LoadLanguageInfo(ILocalizationManager localize, SubtitleSearchRequest request)
         {
-            CultureDto languageInfo = localize.FindLanguageInfo(reqLanguage);
+            CultureDto languageInfo = localize.FindLanguageInfo(request.Language);
+            var twoLetterISOLanguageName = languageInfo.TwoLetterISOLanguageName;
             var threeLetterISOLanguageNames = languageInfo.ThreeLetterISOLanguageNames.ToList();
-            switch (languageInfo.TwoLetterISOLanguageName)
+            switch (twoLetterISOLanguageName.ToLowerInvariant())
             {
+                case "es-mx":
+                    twoLetterISOLanguageName = "es";
+                    break;
                 case "zh": // Chinese Simplified
                     threeLetterISOLanguageNames.Add("chs");
                     break;
@@ -177,7 +181,7 @@ namespace subbuzz.Helpers
                     break;
             }
 
-            return new CultureDto(languageInfo.Name, languageInfo.DisplayName, languageInfo.TwoLetterISOLanguageName, threeLetterISOLanguageNames);
+            return new CultureDto(languageInfo.Name, languageInfo.DisplayName, twoLetterISOLanguageName, threeLetterISOLanguageNames);
         }
 #endif
 
