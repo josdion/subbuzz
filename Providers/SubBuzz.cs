@@ -78,7 +78,7 @@ namespace subbuzz.Providers
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var tasks = new Dictionary<string, Task<IEnumerable<RemoteSubtitleInfo>>>();
 
-            _logger.LogInformation($"Start subtitle search for {request.Name}.");
+            _logger.LogInformation($"Start subtitle search for {request.Name} [{request.Language}].");
 
             foreach (var p in Providers)
             {
@@ -148,7 +148,7 @@ namespace subbuzz.Providers
         private static void FormatInfoNoHtml(SubtitleInfo s, string provider)
         {
             if (s.IsForced ?? false) s.Name = "[Forced] " + s.Name;
-            if (s.Sdh ?? false) s.Name = "[SDH] " + s.Name;
+            if (s.IsSdh ?? false) s.Name = "[SDH] " + s.Name;
 
             var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -163,7 +163,7 @@ namespace subbuzz.Providers
         {
             s.Name = $"<a href='{s.PageLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{s.Name}</a>";
             s.Comment = $"<b>[{provider}]</b> " + s.Comment;
-            if (s.Sdh ?? false)
+            if (s.IsSdh ?? false)
             {
                 s.Name =
                     "<div class=\"inline-flex align-items-center justify-content-center mediaInfoItem\">" +
@@ -185,7 +185,7 @@ namespace subbuzz.Providers
                 tagIcons += "<span class=\"material-icons language secondaryText\" aria-hidden=\"true\" style=\"font-size:1.4em;\"></span>&nbsp;";
             }
 
-            if (s.Sdh ?? false)
+            if (s.IsSdh ?? false)
             {
                 tagIcons += "<span class=\"material-icons hearing_disabled secondaryText\" aria-hidden=\"true\" style=\"font-size:1.4em;\"></span>&nbsp;";
             }

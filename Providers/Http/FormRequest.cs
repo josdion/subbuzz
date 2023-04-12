@@ -22,7 +22,7 @@ namespace subbuzz.Providers.Http
         public string Url { get; set; } = string.Empty;
         public string Referer { get; set; } = string.Empty;
         public RequestType Type { get; set; } = RequestType.GET;
-        public Dictionary<string, string> Params { get; set; } = null;
+        public Dictionary<string, string>? Params { get; set; } = null;
 
         public HttpMethod GetHttpMethod()
         {
@@ -83,7 +83,7 @@ namespace subbuzz.Providers.Http
 
     public class RequestCached : FormRequest
     {
-        public string CacheKey { get; set; } = null;
+        public string? CacheKey { get; set; } = null;
         public string[] CacheRegion { get; set; }
 
         [JsonIgnore]
@@ -101,6 +101,8 @@ namespace subbuzz.Providers.Http
         public string Lang { get; set; } = string.Empty;
         public float? Fps { get; set; } = null;
         public float? FpsVideo { get; set; } = null;
+        public bool? IsForced { get; set; } = null;
+        public bool? IsSdh { get; set; } = null;
 
         [JsonIgnore]
         public string FpsAsString 

@@ -48,7 +48,7 @@ namespace subbuzz.Providers.Http
                         {
                             Language = link.Lang,
                             Format = format,
-                            IsForced = false,
+                            IsForced = link.IsForced ?? false,
                             Stream = fileStream
                         };
                     }

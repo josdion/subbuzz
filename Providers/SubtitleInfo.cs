@@ -26,7 +26,7 @@ namespace subbuzz.Providers
         /// <summary>
         /// Subtitles for the deaf and hard of hearing (SDH) 
         /// </summary>
-        public bool? Sdh { get; set; } = null;
+        public bool? IsSdh { get; set; } = null;
         public float Score { get; set; }
         public string SubBuzzProviderName { get; set; }
 

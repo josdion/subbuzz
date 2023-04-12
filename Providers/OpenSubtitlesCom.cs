@@ -62,6 +62,7 @@ namespace subbuzz.Providers
             public float? Fps { get; set; } = null;
             public float? FpsVideo { get; set; } = null;
             public bool? IsForced { get; set; } = null;
+            public bool? IsSdh { get; set; } = null;
 
             public string GetId()
             {
@@ -352,7 +353,7 @@ namespace subbuzz.Providers
                     var item = new SubtitleInfo
                     {
                         ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                        Id = GetId(file.FileId, si.Lang, subItem.Fps, si.VideoFps, subItem.ForeignPartsOnly),
+                        Id = GetId(file.FileId, si.GetLanguageTag(), subItem.Fps, si.VideoFps, subItem.ForeignPartsOnly, subItem.HearingImpaired),
                         ProviderName = Name,
                         Name = file.FileName ?? "...",
                         PageLink = subItem.Url,
@@ -363,8 +364,8 @@ namespace subbuzz.Providers
                         CommunityRating = subItem.Ratings,
                         DownloadCount = subItem.DownloadCount,
                         IsHashMatch = (score >= Plugin.Instance.Configuration.HashMatchByScore) || (subItem.MovieHashMatch ?? false),
-                        IsForced = subItem.ForeignPartsOnly ?? false,
-                        Sdh = subItem.HearingImpaired,
+                        IsForced = subItem.ForeignPartsOnly,
+                        IsSdh = subItem.HearingImpaired,
                         Score = score,
                     };
 
@@ -510,7 +511,7 @@ namespace subbuzz.Providers
             return string.Empty;
         }
 
-        private static string GetId(int fileId, string lang, float? fps, float? fpsVide, bool? isForced)
+        private static string GetId(int fileId, string lang, float? fps, float? fpsVide, bool? isForced, bool? isSdh)
         {
             var link = new LinkSub 
             { 
@@ -519,6 +520,7 @@ namespace subbuzz.Providers
                 Fps = fps, 
                 FpsVideo = fpsVide,
                 IsForced = isForced,
+                IsSdh = isSdh,
             };
             return link.GetId();
         }

@@ -35,7 +35,7 @@ namespace subbuzz.Providers
         private readonly ILibraryManager _libraryManager;
 
         private PluginConfiguration GetOptions()
-            => Plugin.Instance.Configuration;
+            => Plugin.Instance!.Configuration;
 
         public string Name => $"[{Plugin.NAME}] <b>{NAME}</b>";
 
@@ -173,7 +173,8 @@ namespace subbuzz.Providers
                 Referer = ServerUrl,
                 Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSub,
-                Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                Lang = si.GetLanguageTag(),
+                IsSdh = resItem.HearingImpaired,
             };
 
             string subInfo = $"{resItem.FullTitle}<br>Version: {resItem.Version}";
@@ -201,7 +202,7 @@ namespace subbuzz.Providers
                 DownloadCount = resItem.DownloadCount,
                 IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                 IsForced = null,
-                Sdh = resItem.HearingImpaired,
+                IsSdh = resItem.HearingImpaired,
                 Score = score,
             };
 

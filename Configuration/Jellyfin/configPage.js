@@ -4,6 +4,8 @@
 
         LibraryMenu.setTabs('subbuzz', 0, getTabs);
 
+        $("#SubtitleInfoWithHtmlDescription", this).html('To use this with Jellyfin web interface you need to patch Jellyfin Web Client.')
+
     }
 
     function getTabs() {

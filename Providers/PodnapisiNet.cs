@@ -273,7 +273,7 @@ namespace subbuzz.Providers
                 Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),
-                Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                Lang = si.GetLanguageTag(),
                 FpsAsString = sub.fps,
                 FpsVideo = si.VideoFps,
             };
@@ -291,6 +291,8 @@ namespace subbuzz.Providers
 
                     link.File = file.Name;
                     link.Fps = file.Sub.FpsRequested;
+                    link.IsForced = sub.new_flags?.flag?.ContainsIgnoreCase("foreign_only");
+                    link.IsSdh = sub.new_flags?.flag?.ContainsIgnoreCase("hearing_impaired");
 
                     string subFpsInfo = link.Fps == null ? string.Empty : link.Fps?.ToString(CultureInfo.InvariantCulture);
                     if (file.Sub.FpsRequested != null && file.Sub.FpsDetected != null &&
@@ -331,8 +333,8 @@ namespace subbuzz.Providers
                         CommunityRating = sub.rating,
                         DateCreated = dt,
                         IsHashMatch = false,
-                        IsForced = sub.new_flags?.flag?.ContainsIgnoreCase("foreign_only"),
-                        Sdh = sub.new_flags?.flag?.ContainsIgnoreCase("hearing_impaired"),
+                        IsForced = link.IsForced,
+                        IsSdh = link.IsSdh,
                         Score = score,
                     };
 

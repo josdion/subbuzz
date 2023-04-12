@@ -298,7 +298,7 @@ namespace subbuzz.Providers
                     CacheKey = subLink,
                     CacheRegion = CacheRegionSub,
                     CacheLifespan = GetOptions().Cache.GetSubLife(),
-                    Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                    Lang = si.GetLanguageTag(),
                     FpsAsString = subFps,
                     FpsVideo = si.VideoFps,
                 };
@@ -378,7 +378,7 @@ namespace subbuzz.Providers
                             DownloadCount = int.Parse(subDownloads),
                             IsHashMatch = score >= GetOptions().HashMatchByScore,
                             IsForced = null,
-                            Sdh = null,
+                            IsSdh = null,
                             Score = score,
                         };
 

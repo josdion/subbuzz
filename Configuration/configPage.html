@@ -76,6 +76,18 @@
                     <div class="fieldDescription">Use this encoding in cases where automatic encoding detection is disabled or when automatic detection fails.</div>
                 </div>
 
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="SubtitleInfoWithHtml" name="SubtitleInfoWithHtml" type="checkbox" is="emby-checkbox" />
+                        <span>Subtitle Info with HTML</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Format subtitle information displayed in search dialog using HTML. 
+                        This may cause display issues in clients that doesn't support HTML.
+                        <span id="SubtitleInfoWithHtmlDescription"></span>
+                    </div>
+                </div>
+
                 <div class="verticalSection ">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">Post-Processing</h2>
@@ -199,6 +211,8 @@
 
                 $('#DefaultEncoding', page).html(encodingsHtml).val(config.SubEncoding.DefaultEncoding || '');
 
+                page.querySelector('#SubtitleInfoWithHtml').checked = config.SubtitleInfoWithHtml;
+
                 page.querySelector("#AdjustDuration").checked = config.SubPostProcessing.AdjustDuration;
                 page.querySelector("#AdjustDurationCps").value = config.SubPostProcessing.AdjustDurationCps;
                 page.querySelector("#AdjustDurationExtendOnly").checked = config.SubPostProcessing.AdjustDurationExtendOnly;
@@ -252,6 +266,8 @@
 
                     config.SubEncoding.AutoDetectEncoding = form.querySelector("#AutoDetectEncoding").checked;
                     config.SubEncoding.DefaultEncoding = $('#DefaultEncoding', form).val();
+
+                    config.SubtitleInfoWithHtml = form.querySelector("#SubtitleInfoWithHtml").checked;
 
                     ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);

@@ -426,7 +426,7 @@ namespace subbuzz.Providers
             subInfo += "<br>" + string.Join("<br>", subData.Releases.ToArray());
 
             bool? isForced = null;
-            bool? sdh = null;
+            bool? isSdh = null;
             int numFiles = 0;
             int subDownloads = 0;
             float fps = 0;
@@ -451,7 +451,7 @@ namespace subbuzz.Providers
                             break;
 
                         case "Hearing Impaired":
-                            sdh = match.Groups["val"].Value.EqualsIgnoreCase("yes");
+                            isSdh = match.Groups["val"].Value.EqualsIgnoreCase("yes");
                             break;
 
                         case "Foreign parts":
@@ -491,7 +491,7 @@ namespace subbuzz.Providers
                 CacheKey = urlPage,
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),
-                Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                Lang = si.GetLanguageTag(),
                 Fps = fps < 1 ? null : fps,
                 FpsVideo = si.VideoFps,
             };
@@ -506,6 +506,8 @@ namespace subbuzz.Providers
 
                     link.File = file.Name;
                     link.Fps = file.Sub.FpsRequested;
+                    link.IsSdh = isSdh;
+                    link.IsForced = isForced;
 
                     string subFpsInfo = link.Fps == null ? "" : link.Fps?.ToString(CultureInfo.InvariantCulture);
                     if (file.Sub.FpsRequested != null && file.Sub.FpsDetected != null &&
@@ -544,8 +546,8 @@ namespace subbuzz.Providers
                         DateCreated = dt,
                         DownloadCount = subDownloads,
                         IsHashMatch = score >= GetOptions().HashMatchByScore,
-                        IsForced = isForced,
-                        Sdh = sdh,
+                        IsForced = link.IsForced,
+                        IsSdh = link.IsSdh,
                         Score = score,
                     };
 

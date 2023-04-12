@@ -299,7 +299,7 @@ namespace subbuzz.Providers
                 Params = new Dictionary<string, string> { { "id", subPageInfo["id"] }, { "lng", subPageInfo["lng"] } },
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),
-                Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                Lang = si.GetLanguageTag(),
                 FpsAsString = sritem.Fps,
                 FpsVideo = si.VideoFps,
             };
@@ -385,7 +385,7 @@ namespace subbuzz.Providers
                         DownloadCount = int.Parse(sritem.Downloads),
                         IsHashMatch = score >= GetOptions().HashMatchByScore,
                         IsForced = null,
-                        Sdh = null,
+                        IsSdh = null,
                         Score = score,
                         DateCreated = dt,
                     };

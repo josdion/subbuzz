@@ -218,8 +218,9 @@ namespace subbuzz.Providers
                     Type = Http.RequestType.GET,
                     CacheRegion = CacheRegionSub,
                     CacheLifespan = GetOptions().Cache.GetSubLife(),
-                    Lang = si.LanguageInfo.TwoLetterISOLanguageName,
+                    Lang = si.GetLanguageTag(),
                     FpsVideo = si.VideoFps,
+                    IsSdh = sdh,
                 };
 
                 using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
@@ -252,7 +253,7 @@ namespace subbuzz.Providers
                             //DownloadCount = int.Parse(subDownloads),
                             IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                             IsForced = null,
-                            Sdh = sdh,
+                            IsSdh = sdh,
                             Score = score,
                         };
 
