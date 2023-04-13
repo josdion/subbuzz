@@ -57,6 +57,8 @@ namespace subbuzz.Providers
                 { YifySubtitles.NAME,       new YifySubtitles(_logger.GetLogger<YifySubtitles>(), fileSystem, localizationManager, libraryManager) },
                 { Addic7ed.NAME,            new Addic7ed(_logger.GetLogger<Addic7ed>(), fileSystem, localizationManager, libraryManager) },
             };
+
+            _logger.LogInformation("SubtitleProvider instance created.");
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -69,7 +71,7 @@ namespace subbuzz.Providers
                 }
             }
 
-            return new SubtitleResponse();
+            throw new Exception($"Invalid Id! Provider not found! {id}");
         }
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,

@@ -23,7 +23,7 @@ namespace subbuzz.Helpers
         public float? FpsDetected { get; private set; } = null;
 
 
-        public static Subtitle Load(Stream inStream, SubEncodingCfg encodingCfg, float? fps)
+        public static Subtitle? Load(Stream inStream, SubEncodingCfg encodingCfg, float? fps)
         {
             Encoding encoding = encodingCfg.Get();
             if (encodingCfg.AutoDetectEncoding)
@@ -248,7 +248,7 @@ namespace subbuzz.Helpers
         }
 
         public static Stream ToSupportedFormat(
-            Stream inStream, float? fps, out string format, 
+            Stream? inStream, float? fps, out string format, 
             SubEncodingCfg encoding, SubPostProcessingCfg postProcessing,
             Subtitle sub = null)
         {

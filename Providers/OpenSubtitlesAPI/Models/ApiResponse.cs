@@ -11,7 +11,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models
 
         public string Body { get; } = string.Empty;
 
-        public T Data { get; }
+        public T? Data { get; }
 
         public bool Ok => (int)Code >= 200 && (int)Code < 300;
 
@@ -51,8 +51,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models
 
             try
             {
-                Data = JsonSerializer.Deserialize<T>(Body);
-                if (Data == null) Data = default;
+                Data = JsonSerializer.Deserialize<T>(Body) ?? default;
             }
             catch (Exception e)
             {

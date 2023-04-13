@@ -71,16 +71,7 @@ namespace subbuzz.Providers
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
-            try
-            {
-                return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, $"GetSubtitles error: {e}");
-            }
-
-            return new SubtitleResponse();
+            return await _downloader.GetSubtitles(id, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<IEnumerable<RemoteSubtitleInfo>> Search(SubtitleSearchRequest request,

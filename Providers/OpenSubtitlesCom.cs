@@ -1,4 +1,5 @@
-﻿using MediaBrowser.Controller.Library;
+﻿using MediaBrowser.Common.Extensions;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Subtitles;
 using MediaBrowser.Model.Globalization;
@@ -40,18 +41,20 @@ namespace subbuzz.Providers
             new List<VideoContentType> { VideoContentType.Episode, VideoContentType.Movie };
 
         private static PluginConfiguration GetOptions()
-            => Plugin.Instance?.Configuration;
+            => Plugin.Instance!.Configuration;
+        private static void SaveOptions() 
+            => Plugin.Instance!.SaveConfiguration();
 
-        private static FileCache GetCache(string[] region, int life = 0)
+        private static FileCache? GetCache(string[] region, int life = 0)
             => Plugin.Instance?.Cache?.FromRegion(region, life);
 
-        private static FileCache GetCacheSub()
+        private static FileCache? GetCacheSub()
             => GetCache(CacheRegionSub, GetOptions().Cache.SubLifeInMinutes);
-        private static FileCache GetCacheSub(int life)
+        private static FileCache? GetCacheSub(int life)
             => GetCache(CacheRegionSub, life);
-        private static FileCache GetCacheSearch()
+        private static FileCache? GetCacheSearch()
             => GetCache(CacheRegionSearch, GetOptions().Cache.SearchLifeInMinutes);
-        private static FileCache GetCacheSearch(int life)
+        private static FileCache? GetCacheSearch(int life)
             => GetCache(CacheRegionSearch, life);
 
 
@@ -69,12 +72,12 @@ namespace subbuzz.Providers
                 return Utils.Base64UrlEncode<LinkSub>(this);
             }
 
-            public static LinkSub FromId(string id)
+            public static LinkSub? FromId(string id)
             {
                 if (id.IsNotNullOrWhiteSpace())
                     return Utils.Base64UrlDecode<LinkSub>(id);
 
-                return default;
+                return null;
             }
         }
 
@@ -89,40 +92,42 @@ namespace subbuzz.Providers
             _localizationManager = localizationManager;
             _libraryManager = libraryManager;
 
-            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!.ToString();
             RequestHelper.Instance = new RequestHelper(logger, version);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
         {
+            LinkSub? linkSub = LinkSub.FromId(id) ?? throw new FormatException($"Invalid Id: {id}");
+
+            SubtitleResponse? subResp = GetSubtitlesFromCache(linkSub, GetOptions().Cache.GetSubLife(), out var expired);
+            if (subResp != null && !expired) {
+                _logger.LogDebug($"Subtitles with file id {linkSub.Id} loaded from cache");
+                return subResp;
+            }
+
             try
             {
-                LinkSub linkSub = LinkSub.FromId(id);
-
-                SubtitleResponse subResp = GetSubtitlesFromCache(linkSub, GetOptions().Cache.GetSubLife(), out var expired);
-                if (subResp != null && !expired) {
-                    _logger.LogDebug($"Subtitles with file id {linkSub.Id} loaded from cache");
-                    return subResp;
-                }
-
-                var token = GetOptions().OpenSubToken;
                 var link = await GetDownloadLink(linkSub.Id, cancellationToken).ConfigureAwait(false);
-
                 if (link.IsNullOrWhiteSpace())
                 {
-                    _logger.LogInformation($"Can't get download link for file ID {linkSub.Id}");
-                    return subResp ?? new SubtitleResponse();
+                    throw new Exception($"Can't get download link for file ID {linkSub.Id}");
                 }
 
                 var res = await OpenSubtitles.DownloadSubtitleAsync(link, cancellationToken).ConfigureAwait(false);
                 if (!res.Ok)
                 {
-                    _logger.LogInformation($"Subtitle {link} could not be downloaded: {res.Code}");
-                    return subResp ?? new SubtitleResponse();
+                    throw new Exception($"Subtitle {link} could not be downloaded: {res.Code}");
+                }
+
+                if (res.Data is null)
+                {
+                    throw new Exception("Empty response data!");
                 }
 
                 using (Stream fileStream = new MemoryStream())
-                { 
+                {
+
                     res.Data.CopyTo(fileStream);
                     res.Data.Close();
 
@@ -135,7 +140,7 @@ namespace subbuzz.Providers
                     {
                         try
                         {
-                            GetCacheSub().Add(linkSub.Id, fileStream);
+                            GetCacheSub()!.Add(linkSub.Id, fileStream);
                         }
                         catch (Exception e) 
                         {
@@ -154,13 +159,18 @@ namespace subbuzz.Providers
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"GetSubtitles error: {e}");
+                if (subResp is not null)
+                {
+                    _logger.LogError(e, $"Get response from cache, as it's not able to get the response from server: {e}");
+                    return subResp;
+                }
+
+                throw;
             }
 
-            return new SubtitleResponse();
         }
 
-        protected SubtitleResponse GetSubtitlesFromCache(LinkSub linkSub, int life, out bool expired)
+        protected SubtitleResponse? GetSubtitlesFromCache(LinkSub linkSub, int life, out bool expired)
         {
             expired = false;
             try
@@ -170,11 +180,10 @@ namespace subbuzz.Providers
                     return null;
                 }
 
-                using (Stream fileStream = GetCacheSub(life).Get(linkSub.Id))
+                using (Stream fileStream = GetCacheSub(life)!.Get(linkSub.Id))
                 {
-                    string format;
                     Stream outStream = SubtitleConvert.ToSupportedFormat(
-                        fileStream, linkSub.Fps, out format, 
+                        fileStream, linkSub.Fps, out string format,
                         GetOptions().SubEncoding.GetUtf8(), GetOptions().SubPostProcessing);
 
                     return new SubtitleResponse
@@ -316,6 +325,12 @@ namespace subbuzz.Providers
                 return res;
             }
 
+            if (searchResponse.Data is null)
+            {
+                _logger.LogInformation("Response data is null");
+                return res;
+            }
+
             foreach (ResponseData resItem in searchResponse.Data)
             {
                 var subItem = resItem.Attributes;
@@ -325,7 +340,7 @@ namespace subbuzz.Providers
 
                 string subInfo = $"{itemTitle}<br>{subItem.Release}";
                 subInfo += (subItem.Comments.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comments}" : "";
-                subInfo += String.Format("<br>{0} | {1}", subItem.UploadDate.ToString("g", CultureInfo.CurrentCulture), subItem.Uploader.Name);
+                subInfo += string.Format("<br>{0} | {1}", subItem.UploadDate.ToString("g", CultureInfo.CurrentCulture), subItem.Uploader.Name);
                 if ((subItem.Fps ?? 0.0) > 0) subInfo += $" | {subItem.Fps?.ToString(CultureInfo.InvariantCulture)}";
 
                 var subScoreBase = new SubtitleScore();
@@ -344,7 +359,7 @@ namespace subbuzz.Providers
                 {
                     bool ignorMutliDiscSubs = subItem.Files.Count > 1;
                     float score = si.CaclScore(file.FileName, subScoreBase, false, ignorMutliDiscSubs);
-                    if ((score == 0 || score < Plugin.Instance.Configuration.MinScore) && ((subItem.MovieHashMatch ?? false) == false))
+                    if ((score == 0 || score < GetOptions().MinScore) && ((subItem.MovieHashMatch ?? false) == false))
                     {
                         _logger.LogInformation($"Ignore file: {file.FileName ?? ""} ID: {file.FileId} Score: {score}");
                         continue;
@@ -363,7 +378,7 @@ namespace subbuzz.Providers
                         DateCreated = subItem.UploadDate,
                         CommunityRating = subItem.Ratings,
                         DownloadCount = subItem.DownloadCount,
-                        IsHashMatch = (score >= Plugin.Instance.Configuration.HashMatchByScore) || (subItem.MovieHashMatch ?? false),
+                        IsHashMatch = (score >= GetOptions().HashMatchByScore) || (subItem.MovieHashMatch ?? false),
                         IsForced = subItem.ForeignPartsOnly,
                         IsSdh = subItem.HearingImpaired,
                         Score = score,
@@ -385,8 +400,8 @@ namespace subbuzz.Providers
             {
                 try
                 {
-                    using var stream = GetCacheSearch().Get(cacheKey);
-                    return JsonSerializer.Deserialize<ApiResponse<IReadOnlyList<ResponseData>>>(stream);
+                    using var stream = GetCacheSearch()!.Get(cacheKey);
+                    return JsonSerializer.Deserialize<ApiResponse<IReadOnlyList<ResponseData>>>(stream) ?? throw new Exception("Cache deserialization return null!");
                 }
                 catch (FileCacheItemNotFoundException)
                 {
@@ -409,7 +424,7 @@ namespace subbuzz.Providers
                 {
                     using var stream = new MemoryStream();
                     JsonSerializer.Serialize(stream, resp);
-                    GetCacheSearch().Add(cacheKey, stream);
+                    GetCacheSearch()!.Add(cacheKey, stream);
                 }
                 catch (Exception e)
                 {
@@ -419,8 +434,8 @@ namespace subbuzz.Providers
             else
             if (expiredFound)
             {
-                using var stream = GetCacheSearch(-1).Get(cacheKey);
-                return JsonSerializer.Deserialize<ApiResponse<IReadOnlyList<ResponseData>>>(stream);
+                using var stream = GetCacheSearch(-1)!.Get(cacheKey);
+                return JsonSerializer.Deserialize<ApiResponse<IReadOnlyList<ResponseData>>>(stream) ?? throw new Exception("Cache deserialization return null!");
             }
 
             return resp;
@@ -443,9 +458,9 @@ namespace subbuzz.Providers
             if (!loginResponse.Ok)
                 GetOptions().OpenSubToken = string.Empty;
             else
-                GetOptions().OpenSubToken = loginResponse.Data?.Token;
+                GetOptions().OpenSubToken = loginResponse.Data?.Token ?? string.Empty;
 
-            Plugin.Instance.SaveConfiguration();
+            SaveOptions();
 
             if (GetOptions().OpenSubToken.IsNullOrWhiteSpace())
             {
@@ -470,21 +485,21 @@ namespace subbuzz.Providers
 
             if (link.Ok)
             {
-                return link.Data.Link;
+                return link.Data?.Link ?? string.Empty;
             }
             else
             {
                 switch (link.Code)
                 {
                     case HttpStatusCode.NotAcceptable:
-                        _logger.LogInformation($"OpenSubtitles.com download limit reached.");
-                        break;
+                        throw new RateLimitExceededException("OpenSubtitles.com download limit reached.");
 
                     case HttpStatusCode.Unauthorized:
                         _logger.LogInformation($"JWT token expired, obtain a new one and try again");
 
                         GetOptions().OpenSubToken = string.Empty;
-                        Plugin.Instance.SaveConfiguration();
+                        SaveOptions();
+
                         return await GetDownloadLink(fileId, cancellationToken).ConfigureAwait(false);
                 }
 

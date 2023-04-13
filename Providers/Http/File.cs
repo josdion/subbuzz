@@ -11,7 +11,7 @@ namespace subbuzz.Providers.Http
         public string Name { get; set; }
         public string Ext { get; set; }
         public Stream Content { get; set; }
-        public Subtitle Sub { get; set; } = null;
+        public Subtitle? Sub { get; set; } = null;
         public void Dispose() => Content?.Dispose();
 
         public bool IsSubfile()

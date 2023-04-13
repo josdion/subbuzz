@@ -55,7 +55,7 @@ namespace subbuzz.Providers.Http
                 }
             }
 
-            return new SubtitleResponse();
+            throw new Exception($"File not found! {id}");
         }
 
         public async Task<FileList> GetArchiveFiles(RequestSub link, CancellationToken cancellationToken)
@@ -95,7 +95,7 @@ namespace subbuzz.Providers.Http
             return res;
         }
 
-        public async Task<Response> GetResponse(RequestCached link, CancellationToken cancellationToken)
+        public async Task<Response> GetResponse(RequestCached link, CancellationToken cancellationToken, int? retryIfExpiredFound = null)
         {
             bool expiredFound = false;
 
@@ -126,7 +126,7 @@ namespace subbuzz.Providers.Http
 
             try
             {
-                return await SendFormAsync(link, cancellationToken);
+                return await SendFormAsync(link, expiredFound ? retryIfExpiredFound : null, cancellationToken);
             }
             catch (Exception e)
             {
@@ -206,7 +206,7 @@ namespace subbuzz.Providers.Http
         private async Task<Response> GetResponseForSubtitles(RequestSub link, CancellationToken cancellationToken)
         {
             link.CacheLifespan = GetOptions().Cache.GetSubLife();
-            return await GetResponse(link, cancellationToken);
+            return await GetResponse(link, cancellationToken, 0);
         }
 
     }

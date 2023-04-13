@@ -1,4 +1,5 @@
-﻿using subbuzz.Extensions;
+﻿using MediaBrowser.Common.Extensions;
+using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
 using System.IO;
@@ -59,7 +60,7 @@ namespace subbuzz.Providers.Http
 
         public void AddDefaultRequestHeader(string name, string value) => _httpClient.DefaultRequestHeaders.Add(name, value);
 
-        public async Task<Response> SendFormAsync(FormRequest req, CancellationToken cancellationToken)
+        public async Task<Response> SendFormAsync(FormRequest req, int? maxRetry, CancellationToken cancellationToken)
         {
             int retry = 0;
             int redirect = 0;
@@ -89,12 +90,17 @@ namespace subbuzz.Providers.Http
                         continue;
                     }
 
-                    if (IsRetriable(response.StatusCode) && retry++ < _maxRetries)
+                    if (IsRetriable(response.StatusCode) && retry++ < (maxRetry ?? _maxRetries))
                     {
                         var waitTime = (response.StatusCode == (HttpStatusCode)429) ? 5000 : 1000;
                         _logger.LogInformation($"Response code: {response.StatusCode}, Retry: {reqMsg.RequestUri} after {waitTime/1000} seconds");
                         await Task.Delay(retry * waitTime, cancellationToken).ConfigureAwait(false);
                         continue;
+                    }
+
+                    if (response.StatusCode == (HttpStatusCode)429)
+                    {
+                        throw new RateLimitExceededException($"TooManyRequests from: {reqMsg.RequestUri}");
                     }
 
                     response.EnsureSuccessStatusCode();
