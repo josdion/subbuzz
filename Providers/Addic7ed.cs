@@ -120,9 +120,12 @@ namespace subbuzz.Providers
             var res = new List<SubtitleInfo>();
             
             var (showId, showName) = await GetShowId(si, cancellationToken).ConfigureAwait(false);
-            if (showId.IsNullOrWhiteSpace()) { return res; }
+            if (showId.IsNullOrWhiteSpace() || showName.IsNullOrWhiteSpace()) 
+            { 
+                return res; 
+            }
             
-            var episodes = await GetEpisodes(showId, showName, si, cancellationToken).ConfigureAwait(false);
+            var episodes = await GetEpisodes(showId!, showName!, si, cancellationToken).ConfigureAwait(false);
             foreach (var episode in episodes)
             {
                 if (episode.Season != si.SeasonNumber) continue;
@@ -160,7 +163,7 @@ namespace subbuzz.Providers
 
             var link = new Http.RequestSub
             {
-                Url = resItem.Download,
+                Url = resItem.Download!,
                 Referer = ServerUrl,
                 Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSub,
@@ -184,14 +187,14 @@ namespace subbuzz.Providers
                 Id = link.GetId(),
                 ProviderName = Name,
                 Name = resItem.FileTitle,
-                PageLink = resItem.PageLink,
+                PageLink = resItem.PageLink ?? string.Empty,
                 Format = "srt",
                 Author = resItem.Uploader,
                 Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
                 DateCreated = resItem.LastEdited,
                 CommunityRating = null,
                 DownloadCount = resItem.DownloadCount,
-                IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
+                IsHashMatch = score >= GetOptions().HashMatchByScore,
                 IsForced = null,
                 IsSdh = resItem.HearingImpaired,
                 Score = score,
@@ -233,7 +236,7 @@ namespace subbuzz.Providers
             return shows;
         }
 
-        private async Task<(string, string)> GetShowId(SearchInfo si, CancellationToken cancellationToken)
+        private async Task<(string?, string?)> GetShowId(SearchInfo si, CancellationToken cancellationToken)
         {
             var shows = await GetShows(cancellationToken).ConfigureAwait(false);
 
@@ -299,6 +302,9 @@ namespace subbuzz.Providers
                     Download = GetFullUrl(td[9].QuerySelector("a")?.GetAttribute("href")),
                     Id = td[10].QuerySelector("input")?.GetAttribute("value").Split('/'),
                 };
+
+                if (resItem.Download is null || resItem.PageLink is null || resItem.Id is null)
+                    throw new Exception("Invalid HTML!");
                 
                 resItem.FullTitle = $"{showName} - {resItem.Season:00}x{resItem.Episode:00} - {resItem.Title}";
                 resItem.FileTitle = $"{resItem.FullTitle}.{resItem.Version}";
@@ -314,7 +320,7 @@ namespace subbuzz.Providers
             if (res.Count <= 0) return res;
 
             var pageLinks = new HashSet<string>();
-            foreach (var r in res) pageLinks.Add(r.PageLink);
+            foreach (var r in res) pageLinks.Add(r.PageLink!);
 
             foreach (var pageLink in pageLinks)
             {
@@ -350,9 +356,12 @@ namespace subbuzz.Providers
                         // get version 
 
                         var version = rows[0].QuerySelector("td.NewsTitle")?.TextContent;
-                        var versionMatches = Regex.Match(version, @"Version (.+?), Duration:");
-                        if (versionMatches != null && versionMatches.Groups.Count > 1)
-                            version = versionMatches.Groups[1].Value;
+                        if (version is not null)
+                        {
+                            var versionMatches = Regex.Match(version, @"Version (.+?), Duration:");
+                            if (versionMatches != null && versionMatches.Groups.Count > 1)
+                                version = versionMatches.Groups[1].Value;
+                        }
 
                         // get comment
                         var comment = rows[1].QuerySelector("td.newsDate")?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
@@ -360,13 +369,17 @@ namespace subbuzz.Providers
                         // get uploader info
 
                         DateTime? dtUploaded = null;
+                        string? uploadInfo = null;
                         var tagUploader = rows[0].QuerySelectorAll("td")[1].QuerySelectorAll("a").LastOrDefault();
-                        var uploaderName = tagUploader.TextContent;
-                        var uploadInfo = $"{tagUploader.PreviousSibling.TextContent} {uploaderName} {tagUploader.NextSibling.TextContent}".Trim(new char[] { ' ', '\t', '\n' });
-                        var uploadMatches = Regex.Match(uploadInfo, @"(\d+) days ago");
-                        if (uploadMatches != null && uploadMatches.Groups.Count > 1 && int.TryParse(uploadMatches.Groups[1].Value, out int uploadedBefore))
-                            dtUploaded = DateTime.Now - new TimeSpan(uploadedBefore, 0, 0, 0, 0);
-                        
+                        var uploaderName = tagUploader?.TextContent;
+                        if (tagUploader is not null)
+                        {
+                            uploadInfo = $"{tagUploader.PreviousSibling.TextContent} {uploaderName} {tagUploader.NextSibling.TextContent}".Trim(new char[] { ' ', '\t', '\n' });
+                            var uploadMatches = Regex.Match(uploadInfo, @"(\d+) days ago");
+                            if (uploadMatches != null && uploadMatches.Groups.Count > 1 && int.TryParse(uploadMatches.Groups[1].Value, out int uploadedBefore))
+                                dtUploaded = DateTime.Now - new TimeSpan(uploadedBefore, 0, 0, 0, 0);
+                        }
+
                         // get subtitle for the current version
 
                         for (var rowIndex = 2; (rowIndex + 1) < rows.Length; rowIndex += 2)
@@ -375,27 +388,35 @@ namespace subbuzz.Providers
                             var row1Downloads = rows[rowIndex].QuerySelectorAll("a.buttonDownload");
                             if (row1Downloads.Length < 1) continue;
 
-                            var downloadLink = row1Downloads[row1Downloads.Length-1]?.GetAttribute("href").TrimStart('/');
-                            SearchResultItem resItem = res.Find(x => x.IsIdEqual(downloadLink));
-                            if (resItem == null && addMissing)
-                            {
-                                var row1Language = rows[rowIndex].QuerySelector("td.language");
-                                var lang = row1Language?.FirstChild?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
-                                if (LangMap.ContainsKey(lang)) lang = LangMap[lang];
+                            var row1Language = rows[rowIndex].QuerySelector("td.language");
+                            var lang = row1Language?.FirstChild?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
+                            if (lang is not null && LangMap.ContainsKey(lang)) lang = LangMap[lang];
 
-                                // Add new item
-                                resItem = new SearchResultItem 
+                            var downloadLink = row1Downloads[row1Downloads.Length-1]?.GetAttribute("href").TrimStart('/');
+                            SearchResultItem? resItem = res.Find(x => x.IsIdEqual(downloadLink, lang));
+                            if (resItem is null)
+                            {
+                                if (addMissing)
                                 {
-                                    Title = pageTitle,
-                                    PageLink = pageLink,
-                                    Language = lang,
-                                    Version = version,
-                                    Download = GetFullUrl(downloadLink),
-                                    Id = downloadLink.Substring(downloadLink.IndexOf('/')+1).Split('/'),
-                                    FullTitle = pageTitle,
-                                };
-                                resItem.FileTitle = $"{resItem.FullTitle}.{resItem.Version}";
-                                addItem = true;
+                                    // Add new item
+                                    resItem = new SearchResultItem
+                                    {
+                                        Title = pageTitle,
+                                        PageLink = pageLink,
+                                        Language = lang,
+                                        Version = version,
+                                        Download = GetFullUrl(downloadLink),
+                                        Id = downloadLink?.Substring(downloadLink.IndexOf('/') + 1).Split('/'),
+                                        FullTitle = pageTitle,
+                                    };
+                                    resItem.FileTitle = $"{resItem.FullTitle}.{resItem.Version}";
+                                    addItem = true;
+
+                                    if (resItem.Download is null || resItem.Id is null)
+                                        throw new Exception("Invalid HTML!");
+                                }
+                                else
+                                    continue;
                             }
 
                             resItem.Uploader = uploaderName;
@@ -414,13 +435,19 @@ namespace subbuzz.Providers
                             resItem.DownloadInfo = row2td[0]?.TextContent.Trim(new char[] { ' ', '\t', '\n' });
                             resItem.EditedInfo = row2td[1]?.QuerySelector("a")?.NextSibling?.TextContent?.Trim(new char[] { ' ', '\t', '\n' });
 
-                            var downloadMatches = Regex.Match(resItem.DownloadInfo, @"(\d+) times edited.+?(\d+) Downloads.+?(\d+) sequences");
-                            if (downloadMatches != null && downloadMatches.Groups.Count > 3 && int.TryParse(downloadMatches.Groups[2].Value, out int downloads))
-                                resItem.DownloadCount = downloads;
+                            if (resItem.DownloadInfo is not null)
+                            {
+                                var downloadMatches = Regex.Match(resItem.DownloadInfo, @"(\d+) times edited.+?(\d+) Downloads.+?(\d+) sequences");
+                                if (downloadMatches != null && downloadMatches.Groups.Count > 3 && int.TryParse(downloadMatches.Groups[2].Value, out int downloads))
+                                    resItem.DownloadCount = downloads;
+                            }
 
-                            var editedMatches = Regex.Match(resItem.EditedInfo, @"edited (\d+) days ago");
-                            if (editedMatches != null && editedMatches.Groups.Count > 1 && int.TryParse(editedMatches.Groups[1].Value, out int editedBefore))
-                                resItem.LastEdited = DateTime.Now - new TimeSpan(editedBefore, 0, 0, 0, 0);
+                            if (resItem.EditedInfo is not null)
+                            {
+                                var editedMatches = Regex.Match(resItem.EditedInfo, @"edited (\d+) days ago");
+                                if (editedMatches != null && editedMatches.Groups.Count > 1 && int.TryParse(editedMatches.Groups[1].Value, out int editedBefore))
+                                    resItem.LastEdited = DateTime.Now - new TimeSpan(editedBefore, 0, 0, 0, 0);
+                            }
 
                             if (addItem)
                                 res.Add(resItem);
@@ -456,6 +483,9 @@ namespace subbuzz.Providers
             var htmlDoc = parser.ParseDocument(resp.Content);
 
             var tblRows = htmlDoc.QuerySelector("table.tabel")?.QuerySelectorAll("tr");
+            if (tblRows is null)
+                return res;
+
             foreach (var row in tblRows)
             {
                 var td = row.QuerySelectorAll("td");
@@ -480,12 +510,12 @@ namespace subbuzz.Providers
             return res;
         }
 
-        private string GetFullUrl(string url)
+        private static string? GetFullUrl(string? url)
         {
             if (url.IsNotNullOrWhiteSpace())
             {
-                if (url.StartsWith("https:") || url.StartsWith("http:")) return url;
-                return $"{ServerUrl}/{url.TrimStart('/')}";
+                if (url!.StartsWith("https:") || url!.StartsWith("http:")) return url;
+                return $"{ServerUrl}/{url!.TrimStart('/')}";
             }
             return url;
         }
@@ -494,38 +524,42 @@ namespace subbuzz.Providers
         {
             public int? Season { get; set; }
             public int? Episode { get; set; }
-            public string Title { get; set; }
-            public string Language { get; set; }
-            public string Version { get; set; }
+            public string? Title { get; set; }
+            public string? Language { get; set; }
+            public string? Version { get; set; }
             public bool Completed { get; set; }
             public bool HearingImpaired { get; set; }
             public bool Corrected { get; set; }
             public bool HD { get; set; }
-            public string Download { get; set; }
-            public string[] Id { get; set; } // language/episode id/version
-            public string PageLink { get; set; }
-            public string FullTitle { get; set; }
-            public string FileTitle { get; set; }
-            public string Uploader { get; set; }
+            public string? Download { get; set; }
+
+            // Link ID
+            // original/episodeId/version
+            // updated/language/episodeId/version
+            public string[]? Id { get; set; }
+            public string? PageLink { get; set; }
+            public string? FullTitle { get; set; }
+            public string? FileTitle { get; set; }
+            public string? Uploader { get; set; }
             public int? DownloadCount { get; set; }
-            public string UploadInfo { get; set; }
-            public string EditedInfo { get; set; }
-            public string DownloadInfo { get; set; }
-            public string Comment { get; set; }
+            public string? UploadInfo { get; set; }
+            public string? EditedInfo { get; set; }
+            public string? DownloadInfo { get; set; }
+            public string? Comment { get; set; }
 
             public DateTime? LastEdited { get; set; }
 
-            public bool IsIdEqual(string id)
+            public bool IsIdEqual(string? id, string? lang)
             {
                 if (id.IsNullOrWhiteSpace()) return false;
-                return IsIdEqual(id.Split('/'));
+                return IsIdEqual(id!.Split('/'), lang);
             }
 
-            public bool IsIdEqual(string[] id)
+            public bool IsIdEqual(string[]? id, string? lang)
             {
-                if (Id == null || id == null) return false;
+                if (Id is null || id is null || Language is null || lang is null) return false;
                 if (Id.Length < 2 || id.Length < 2) return false;
-                return Id.Last() == id.Last() && Id[Id.Length - 2] == id[id.Length - 2];
+                return Id.Last() == id.Last() && Id[Id.Length - 2] == id[id.Length - 2] && Language.EqualsIgnoreCase(lang);
             }
         }
 

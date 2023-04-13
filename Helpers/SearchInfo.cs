@@ -206,7 +206,7 @@ namespace subbuzz.Helpers
             return LanguageInfo.TwoLetterISOLanguageName.ToLowerInvariant();
         }
 
-        public float CaclScore(string subFileName, SubtitleScore baseScore, bool scoreVideoFileName, bool ignorMutliDiscSubs = false)
+        public float CaclScore(string? subFileName, SubtitleScore baseScore, bool scoreVideoFileName, bool ignorMutliDiscSubs = false)
         {
             SubtitleScore subScore = baseScore == null ? new SubtitleScore() : (SubtitleScore)baseScore.Clone();
 

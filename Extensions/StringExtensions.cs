@@ -26,12 +26,12 @@ namespace subbuzz.Extensions
             return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
         }
 
-        public static bool IsNullOrWhiteSpace(this string text)
+        public static bool IsNullOrWhiteSpace(this string? text)
         {
             return string.IsNullOrWhiteSpace(text);
         }
 
-        public static bool IsNotNullOrWhiteSpace(this string text)
+        public static bool IsNotNullOrWhiteSpace(this string? text)
         {
             return !string.IsNullOrWhiteSpace(text);
         }
