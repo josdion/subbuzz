@@ -2,6 +2,7 @@
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -22,11 +23,13 @@ namespace subbuzz.Providers.Http
         private int _maxRedirects = 5;
         private readonly SocketsHttpHandler _handler;
         private readonly HttpClient _httpClient;
+        private readonly CookieContainer _cookies;
         protected readonly Logger _logger;
 
         public Client(Logger logger)
         {
             _logger = logger;
+            _cookies = new CookieContainer();
             _handler = new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
@@ -38,6 +41,7 @@ namespace subbuzz.Providers.Http
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),
 #endif
                 UseCookies = true,
+                CookieContainer = _cookies,
             };
 
             _httpClient = new HttpClient(_handler);
@@ -59,6 +63,8 @@ namespace subbuzz.Providers.Http
         public int MaxRedirects { get => _maxRedirects; set => _maxRedirects = value; }
 
         public void AddDefaultRequestHeader(string name, string value) => _httpClient.DefaultRequestHeaders.Add(name, value);
+
+        public void AddCookie(Cookie cookie) => _cookies.Add(cookie);
 
         public async Task<Response> SendFormAsync(FormRequest req, int? maxRetry, CancellationToken cancellationToken)
         {

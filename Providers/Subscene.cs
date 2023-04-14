@@ -24,6 +24,7 @@ namespace subbuzz.Providers
         internal const string NAME = "Subscene";
         private const string ServerUrl = "https://subscene.com";
         private static readonly string[] CacheRegionSub = { "subscene", "sub" };
+        private static readonly string[] CacheRegionSubPage = { "subscene", "subpage" };
         private static readonly string[] CacheRegionSearch = { "subscene", "search" };
 
         private readonly Logger _logger;
@@ -372,8 +373,8 @@ namespace subbuzz.Providers
                     Url = url,
                     Referer = ServerUrl,
                     Type = Http.RequestType.GET,
-                    CacheRegion = CacheRegionSearch,
-                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                    CacheRegion = CacheRegionSubPage,
+                    CacheLifespan = GetOptions().Cache.GetSubLife(),
                 };
 
                 using (var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false))
