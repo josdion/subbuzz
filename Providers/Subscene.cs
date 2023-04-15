@@ -380,7 +380,8 @@ namespace subbuzz.Providers
                 using (var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false))
                 {
                     var res = await ParseSubtitlePage(resp.Content, url, subData, si, cancellationToken);
-                    _downloader.AddResponseToCache(link, resp);
+                    if (res.Count > 0)
+                        _downloader.AddResponseToCache(link, resp);
                     return res;
                 }
             }

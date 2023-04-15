@@ -2,7 +2,6 @@
 using subbuzz.Extensions;
 using subbuzz.Helpers;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -38,6 +37,8 @@ namespace subbuzz.Providers.Http
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
 #else
                 AutomaticDecompression = DecompressionMethods.All,
+                ConnectTimeout = TimeSpan.FromSeconds(10),
+                PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),
 #endif
                 UseCookies = true,

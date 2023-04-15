@@ -24,6 +24,7 @@ namespace subbuzz.Providers
         internal const string NAME = "Subf2m";
         private const string ServerUrl = "https://subf2m.co";
         private static readonly string[] CacheRegionSub = { "subf2m", "sub" };
+        private static readonly string[] CacheRegionSubPage = { "subf2m", "subpage" };
         private static readonly string[] CacheRegionSearch = { "subf2m", "search" };
 
         private readonly Logger _logger;
@@ -76,6 +77,11 @@ namespace subbuzz.Providers
         private PluginConfiguration GetOptions()
             => Plugin.Instance.Configuration;
 
+        public class InvalidHtmlException : Exception
+        {
+            public string Body { get; set; }
+            public InvalidHtmlException(string msg, string body) : base(msg) { Body = body; }
+        }
 
         public Subf2m(
             Logger logger,
@@ -148,7 +154,7 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<List<SubtitleInfo>> SearchUrl(string url, SearchInfo si, string langPage, CancellationToken cancellationToken)
+        protected async Task<List<SubtitleInfo>> SearchUrl(string url, SearchInfo si, string langPage, CancellationToken cancellationToken, int retry = 0)
         {
             try
             {
@@ -168,9 +174,16 @@ namespace subbuzz.Providers
                     return res;
                 }
             }
+            catch (InvalidHtmlException e)
+            {
+                if (retry < 3 && await HandleJavascriptChallenge(e.Body))
+                    return await SearchUrl(url, si, langPage, cancellationToken, retry++);
+
+                throw;
+            }
             catch (Exception e)
             {
-                _logger.LogError(e, $"GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: SearchUrl: {e}");
                 return new List<SubtitleInfo>();
             }
         }
@@ -185,8 +198,8 @@ namespace subbuzz.Providers
             var htmlDoc = parser.ParseDocument(html);
 
             var resDiv = htmlDoc.QuerySelector("div.search-result");
-            if (resDiv == null) 
-                throw new Exception("Invalid HTML, div.search-result not found");
+            if (resDiv == null)
+                throw new InvalidHtmlException("Invalid HTML, div.search-result not found", htmlDoc.Body.TextContent);
 
             var resUl = resDiv.QuerySelector("h2.exact")?.NextElementSibling;
 
@@ -217,7 +230,7 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<List<SubtitleInfo>> GetSubtitlesListPage(string url, SearchInfo si, CancellationToken cancellationToken)
+        protected async Task<List<SubtitleInfo>> GetSubtitlesListPage(string url, SearchInfo si, CancellationToken cancellationToken, int retry = 0)
         {
             try
             {
@@ -237,9 +250,16 @@ namespace subbuzz.Providers
                     return res;
                 }
             }
+            catch (InvalidHtmlException e)
+            {
+                if (retry < 3 && await HandleJavascriptChallenge(e.Body))
+                    return await GetSubtitlesListPage(url, si, cancellationToken, retry++);
+
+                throw;
+            }
             catch (Exception e)
             {
-                _logger.LogError(e, $"GET: {url}: Search error: {e}");
+                _logger.LogError(e, $"GET: {url}: GetSubtitlesListPage: {e}");
                 return new List<SubtitleInfo>();
             }
         }
@@ -262,8 +282,8 @@ namespace subbuzz.Providers
             var htmlDoc = parser.ParseDocument(html);
 
             var imdbTag = htmlDoc.QuerySelector("a.imdb");
-            if (imdbTag == null) 
-                throw new Exception("Invalid HTML, a.imdb not found");
+            if (imdbTag == null)
+                throw new InvalidHtmlException("Invalid HTML, a.imdb not found", htmlDoc.Body.TextContent);
 
             var imdbLink = imdbTag.GetAttribute("href");
             var imdbMatch = ImdbUrlRegex.Match(imdbLink);
@@ -281,11 +301,13 @@ namespace subbuzz.Providers
                 try
                 {
                     var tagInfo = tr.QuerySelector("div.col-info");
-                    if (tagInfo == null) continue;
+                    if (tagInfo == null) 
+                        continue;
 
                     var tagUl = tagInfo.QuerySelector("ul.scrolllist");
                     var tagLi = tagUl?.QuerySelectorAll("li");
-                    if (tagLi == null || tagLi.Length < 1) continue;
+                    if (tagLi == null || tagLi.Length < 1) 
+                        continue;
                     
                     var releases = new List<string>();
                     foreach (var item in tagLi)
@@ -317,6 +339,8 @@ namespace subbuzz.Providers
                     _logger.LogError(e, $"Parsing subtitles list error: {e}");
                 }
             }
+
+            _logger.LogDebug($"Loading subtitle information for {links.Count} items");
 
             foreach (var link in links)
             {
@@ -354,6 +378,11 @@ namespace subbuzz.Providers
 
                     res.AddRange(await GetSubtitlePage(link.Key, link.Value, si, cancellationToken).ConfigureAwait(false));
                 }
+                catch (TaskCanceledException e)
+                {
+                    _logger.LogError(e, $"Parsing subtitles {link.Key} Timeout: {e}");
+                    return res;
+                }
                 catch (Exception e)
                 {
                     _logger.LogError(e, $"Parsing subtitles {link.Key} error: {e}");
@@ -363,7 +392,7 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<List<SubtitleInfo>> GetSubtitlePage(string url, SubData subData, SearchInfo si, CancellationToken cancellationToken)
+        protected async Task<List<SubtitleInfo>> GetSubtitlePage(string url, SubData subData, SearchInfo si, CancellationToken cancellationToken, int retry = 0)
         {
             try
             {
@@ -372,21 +401,28 @@ namespace subbuzz.Providers
                     Url = url,
                     Referer = ServerUrl,
                     Type = Http.RequestType.GET,
-                    CacheRegion = CacheRegionSearch,
-                    CacheLifespan = GetOptions().Cache.GetSearchLife(),
+                    CacheRegion = CacheRegionSubPage,
+                    CacheLifespan = GetOptions().Cache.GetSubLife(),
                 };
 
                 using (var resp = await _downloader.GetResponse(link, cancellationToken).ConfigureAwait(false))
                 {
                     var res = await ParseSubtitlePage(resp.Content, url, subData, si, cancellationToken);
-                    _downloader.AddResponseToCache(link, resp);
+                    if (res.Count > 0)
+                        _downloader.AddResponseToCache(link, resp);
                     return res;
                 }
             }
-            catch (Exception e)
+            catch (InvalidHtmlException e)
             {
-                _logger.LogError(e, $"GET: {url}: subtitle page error: {e}");
-                return new List<SubtitleInfo>();
+                if (retry < 3 && await HandleJavascriptChallenge(e.Body))
+                    return await GetSubtitlePage(url, subData, si, cancellationToken, retry++);
+
+                throw;
+            }
+            catch
+            {
+                throw;
             }
         }
 
@@ -407,8 +443,8 @@ namespace subbuzz.Providers
             var tagDetails = tagSubs?.QuerySelectorAll("div.details ul > li");
 
             var downloadLink = tagHeader?.QuerySelector("div.download")?.QuerySelector("a")?.GetAttribute("href");
-            if (downloadLink.IsNullOrWhiteSpace()) 
-                throw new Exception("Invalid HTML, download link not found");
+            if (downloadLink.IsNullOrWhiteSpace())
+                throw new InvalidHtmlException("Invalid HTML, download link not found", htmlDoc.Body.TextContent);
 
             downloadLink = ServerUrl + downloadLink;
 
@@ -493,7 +529,8 @@ namespace subbuzz.Providers
 
                 foreach (var file in files)
                 {
-                    if (!file.IsSubfile()) continue;
+                    if (!file.IsSubfile()) 
+                        continue;
 
                     link.File = file.Name;
                     link.Fps = file.Sub.FpsRequested;
@@ -547,6 +584,41 @@ namespace subbuzz.Providers
             }
 
             return res;
+        }
+
+        private async Task<bool> HandleJavascriptChallenge(string html)
+        {
+            var match = Regex.Match(html, @"eval\(""(.*?)""\),", RegexOptions.Multiline);
+            if (!match.Success || match.Groups.Count < 2)
+            {
+                _logger.LogInformation($"Javascript challenge not found");
+                return false;
+            }
+
+            _logger.LogDebug("Calculating cookie...");
+
+            var param = $"-e \"console.log('__arcsjs='+eval(\\\"{match.Groups[1].Value}\\\"));\"";
+
+            int exitCode = 0;
+            var stdOut = await SimpleExec.Command.ReadAsync(
+                "node", param, 
+                null, true, null, null, null, null, true, null,
+                (code) => { exitCode = code;  return true; }
+                );
+
+            if (exitCode == 0)
+            {
+                var parts = stdOut.Trim().Split('=');
+                if (parts.Length == 2)
+                {
+                    _downloader.AddCookie(new System.Net.Cookie(parts[0], parts[1], "/", ".subf2m.co"));
+                    _logger.LogDebug($"Cookie set: {parts[0]}={parts[1]}");
+                    return true;
+                }
+            }
+
+            _logger.LogInformation($"Caclulation of javascript challenge failed! Exit: {exitCode}, Output: {stdOut}");
+            return false;
         }
     }
 }
