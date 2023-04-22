@@ -23,7 +23,7 @@ namespace subbuzz.Providers.Http
         {
             AddDefaultRequestHeader("Pragma", "no-cache");
             AddDefaultRequestHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
-            AddDefaultRequestHeader("Accept-Language", "en-US,en;q=0.7,bg;q=0.3");
+            AddDefaultRequestHeader("Accept-Language", "en-US,en;q=0.5");
             AddDefaultRequestHeader("Upgrade-Insecure-Requests", "1");
             AddDefaultRequestHeader("User-Agent", _defaultUserAgent);
             Timeout = 20;

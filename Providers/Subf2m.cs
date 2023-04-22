@@ -341,6 +341,7 @@ namespace subbuzz.Providers
             }
 
             _logger.LogDebug($"Loading subtitle information for {links.Count} items");
+            var tasks = new List<Task<List<SubtitleInfo>>>();
 
             foreach (var link in links)
             {
@@ -376,17 +377,35 @@ namespace subbuzz.Providers
                         }
                     }
 
-                    res.AddRange(await GetSubtitlePage(link.Key, link.Value, si, cancellationToken).ConfigureAwait(false));
-                }
-                catch (TaskCanceledException e)
-                {
-                    _logger.LogError(e, $"Parsing subtitles {link.Key} Timeout: {e}");
-                    return res;
+                    tasks.Add(GetSubtitlePage(link.Key, link.Value, si, cancellationToken));
                 }
                 catch (Exception e)
                 {
                     _logger.LogError(e, $"Parsing subtitles {link.Key} error: {e}");
                 }
+            }
+
+            while (tasks.Count > 0)
+            {
+                var idx = Task.WaitAny(tasks.ToArray());
+                if (idx < 0)
+                    return res;
+
+                try
+                {
+                    res.AddRange(await tasks[idx].ConfigureAwait(false));
+                }
+                catch (TaskCanceledException e)
+                {
+                    _logger.LogError(e, $"ParseSubtitlesList Timeout error: {e}");
+                    return res;
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, $"ParseSubtitlesList wait for task error: {e}");
+                }
+
+                tasks.RemoveAt(idx);
             }
 
             return res;
@@ -529,8 +548,11 @@ namespace subbuzz.Providers
 
                 foreach (var file in files)
                 {
-                    if (!file.IsSubfile()) 
+                    if (!file.IsSubfile())
+                    {
+                        _logger.LogDebug($"Ignoring '{file.Name}' as it's not a subtitle file. Page: {urlPage}");
                         continue;
+                    }
 
                     link.File = file.Name;
                     link.Fps = file.Sub.FpsRequested;

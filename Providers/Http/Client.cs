@@ -16,7 +16,7 @@ using SocketsHttpHandler = System.Net.Http.HttpClientHandler;
 
 namespace subbuzz.Providers.Http
 {
-    public class Client
+    public class Client : IDisposable
     {
         private int _maxRetries = 5;
         private int _maxRedirects = 5;
@@ -33,6 +33,7 @@ namespace subbuzz.Providers.Http
             {
                 AllowAutoRedirect = false,
                 MaxAutomaticRedirections = _maxRedirects,
+                MaxConnectionsPerServer = 32,
 #if EMBY
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
 #else
@@ -193,5 +194,11 @@ namespace subbuzz.Providers.Http
                 || status == (HttpStatusCode)429 // TooManyRequests
                 ;
         }
+
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
+        }
+
     }
 }
