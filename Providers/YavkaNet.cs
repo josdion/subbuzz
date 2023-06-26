@@ -266,11 +266,8 @@ namespace subbuzz.Providers
         {
             var res = new List<SubtitleInfo>();
 
-            var subPageInfo = await GetSubInfoPage(sritem.Link, cancellationToken);
-            if (subPageInfo == null ||
-                !subPageInfo.ContainsKey("action") ||
-                !subPageInfo.ContainsKey("id") ||
-                !subPageInfo.ContainsKey("lng"))
+            (var action, var postParams) = await GetSubInfoPage(sritem.Link, cancellationToken);
+            if (action.IsNullOrWhiteSpace() || postParams.IsNullOrEmpty())
             {
                 _logger.LogInformation($"Invalid information from subtitle page: {sritem.Link}");
                 return res;
@@ -279,7 +276,7 @@ namespace subbuzz.Providers
             var subScoreBase = new SubtitleScore();
             si.MatchTitle(sritem.Title, ref subScoreBase);
 
-            string subLink = subPageInfo["action"];
+            string subLink = action;
             string subInfo = sritem.Title + (string.IsNullOrWhiteSpace(sritem.Info) ? "" : "<br>" + sritem.Info);
 
             var link = new Http.RequestSub
@@ -287,7 +284,7 @@ namespace subbuzz.Providers
                 Url = subLink,
                 Referer = sritem.Link,
                 Type = Http.RequestType.POST,
-                Params = new Dictionary<string, string> { { "id", subPageInfo["id"] }, { "lng", subPageInfo["lng"] } },
+                Params = postParams,
                 CacheRegion = CacheRegionSub,
                 CacheLifespan = GetOptions().Cache.GetSubLife(),
                 Lang = si.GetLanguageTag(),
@@ -388,10 +385,8 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<Dictionary<string, string>> GetSubInfoPage(string url, CancellationToken cancellationToken)
+        protected async Task<(string, Dictionary<string, string>)> GetSubInfoPage(string url, CancellationToken cancellationToken)
         {
-            var res = new Dictionary<string, string>();
-
             var link = new Http.RequestCached
             {
                 Url = url,
@@ -411,21 +406,21 @@ namespace subbuzz.Providers
                 var formNodes = htmlDoc.GetElementsByTagName("form");
                 foreach (var form in formNodes)
                 {
-                    var id = form.QuerySelector("input[name='id']");
-                    if (id == null) continue;
+                    var hidden = form.QuerySelectorAll("input[type='hidden']");
+                    if (hidden == null) continue;
 
-                    var lng = form.QuerySelector("input[name='lng']");
-                    if (lng == null) continue;
+                    var postParams = new Dictionary<string, string>();
+                    foreach (var hiddenItem in hidden)
+                        postParams[hiddenItem.GetAttribute("name")] = hiddenItem.GetAttribute("value");
 
-                    res["action"] = form.GetAttribute("action");
-                    res["id"] = id.GetAttribute("value");
-                    res["lng"] = lng.GetAttribute("value");
+                    if (!postParams.ContainsKey("lng"))
+                        continue;
 
                     _downloader.AddResponseToCache(link, resp);
-                    return res;
+                    return (form.GetAttribute("action"), postParams);
                 }
                 
-                return res;
+                return (string.Empty, new Dictionary<string, string>());
             }
         }
 
