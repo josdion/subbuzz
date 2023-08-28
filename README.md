@@ -1,3 +1,5 @@
+[![Latest release](https://badgen.net/github/release/josdion/subbuzz)](https://github.com/josdion/subbuzz/releases)
+
 # subbuzz
 Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin.org/)
 
