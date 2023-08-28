@@ -3,9 +3,9 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 
 ## Supported subtitles providers:
 * [Addic7ed.com](http://www.addic7ed.com)
-* [Opensubtitles.com](https://www.opensubtitles.com)
 > [!NOTE]
 > Only opensubtitles.com domain is supported and not others.
+* [Opensubtitles.com](https://www.opensubtitles.com)
 * [Podnapisi.NET](http://www.podnapisi.net)
 * [Subf2m.co](http://subf2m.co)
 * [Subscene.com](http://www.subscene.com)
