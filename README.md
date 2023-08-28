@@ -3,8 +3,6 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 
 ## Supported subtitles providers:
 * [Addic7ed.com](http://www.addic7ed.com)
-> [!NOTE]
-> Only opensubtitles.com domain is supported and not others.
 * [Opensubtitles.com](https://www.opensubtitles.com)
 * [Podnapisi.NET](http://www.podnapisi.net)
 * [Subf2m.co](http://subf2m.co)
@@ -13,7 +11,8 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 * [Subsunacs.net](http://subsunacs.net)
 * [Yavka.net](http://www.yavka.net)
 * [YIFY Subtitles](http://yifysubtitles.live)
-
+> [!NOTE]
+> Only opensubtitles.com domain is supported and not others.
 ## Installation
 - Repository (Jellyfin only):
   - Add to the list this URL:
