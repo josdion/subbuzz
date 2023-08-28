@@ -1,5 +1,3 @@
-[![Latest release](https://badgen.net/github/release/josdion/subbuzz)](https://github.com/josdion/subbuzz/releases)
-
 # subbuzz
 Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin.org/)
 
@@ -27,7 +25,7 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
       https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.8.json
       ```
 - Manual:
-  - Download the appropriate archive from [Latest Release](https://github.com/josdion/subbuzz/releases/latest)
+  - Download the appropriate archive from [![Latest release](https://badgen.net/github/release/josdion/subbuzz)](https://github.com/josdion/subbuzz/releases)
   - Extract it and copy the dll to the plugins folder of your server. Then restart the server.    
 
 ## License
