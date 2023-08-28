@@ -12,7 +12,7 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 * [Yavka.net](https://www.yavka.net)
 * [YIFY Subtitles](https://yifysubtitles.live)
 > [!NOTE]
-> Only opensubtitles.com domain is supported and not others.
+> Only the opensubtitles.com domain is supported and not others.
 ## Installation
 - Repository (Jellyfin only):
   - Add to the list this URL:
