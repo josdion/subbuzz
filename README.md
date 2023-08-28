@@ -1,22 +1,32 @@
 # subbuzz
-Subtitles plugin for emby and jellyfin
+Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin.org/)
 
 ## Supported subtitles providers:
-* Addic7ed.com
-* Opensubtitles.com
-* Podnapisi.NET
-* Subf2m.co
-* Subscene.com
-* Subs.sab.bz
-* Subsunacs.net
-* Yavka.net
-* YIFY Subtitles
-
+* [Addic7ed.com](https://www.addic7ed.com)
+* [Opensubtitles.com](https://www.opensubtitles.com)
+* [Podnapisi.NET](https://www.podnapisi.net)
+* [Subf2m.co](https://subf2m.co)
+* [Subscene.com](https://www.subscene.com)
+* [Subs.sab.bz](https://subs.sab.bz)
+* [Subsunacs.net](https://subsunacs.net)
+* [Yavka.net](https://www.yavka.net)
+* [YIFY Subtitles](https://yifysubtitles.live)
+> [!NOTE]
+> Only the opensubtitles.com domain is supported and not others.
 ## Installation
 - Repository (Jellyfin only):
   - Add to the list this URL:
-    - For Jellyfin 10.7 `https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.7.json`
-    - For Jellyfin 10.8 `https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.8.json`
+    - For **Jellyfin 10.7:**
+       ```
+       https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.7.json
+       ```
+    - For **Jellyfin 10.8**
+      ```
+      https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.8.json
+      ```
 - Manual:
-  - Download the appropriate archive from [Latest Release](https://github.com/josdion/subbuzz/releases/latest)
+  - Download the appropriate archive from [![Latest release](https://badgen.net/github/release/josdion/subbuzz)](https://github.com/josdion/subbuzz/releases)
   - Extract it and copy the dll to the plugins folder of your server. Then restart the server.    
+
+## License
+![License](https://img.shields.io/github/license/josdion/subbuzz.svg)
