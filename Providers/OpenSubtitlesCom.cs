@@ -271,28 +271,45 @@ namespace subbuzz.Providers
 
             if (si.VideoType == VideoContentType.Episode)
             {
+                // Search for episodes is no longer working if id, parent_id, season_number and episode_number are all specified in one query.
+                // It used to work before, but not at the moment. Currently it work if only id is specified or parent_id, season and episode.
+                bool useSeasonAndEpisode = true;
+
                 if (si.ImdbIdInt > 0)
                 {
-                    options.Add("parent_imdb_id", si.ImdbIdInt.ToString(CultureInfo.InvariantCulture));
-
                     if (si.ImdbIdEpisodeInt > 0)
+                    {
                         options.Add("imdb_id", si.ImdbIdEpisodeInt.ToString(CultureInfo.InvariantCulture));
+                        useSeasonAndEpisode = false;
+                    }
+                    else
+                    {
+                        options.Add("parent_imdb_id", si.ImdbIdInt.ToString(CultureInfo.InvariantCulture));
+                    }
                 }
                 else
                 if (si.TmdbId.IsNotNullOrWhiteSpace())
                 {
-                    options.Add("parent_tmdb_id", si.TmdbId);
-
                     if (si.TmdbIdEpisode.IsNotNullOrWhiteSpace())
+                    {
                         options.Add("tmdb_id", si.TmdbIdEpisode);
+                        useSeasonAndEpisode = false;
+                    }
+                    else
+                    {
+                        options.Add("parent_tmdb_id", si.TmdbId);
+                    }
                 }
                 else
                 {
                     options.Add("query", si.TitleSeries);
                 }
 
-                if (si.SeasonNumber != null) options.Add("season_number", si.SeasonNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
-                if (si.EpisodeNumber != null) options.Add("episode_number", si.EpisodeNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+                if (useSeasonAndEpisode)
+                {
+                    if (si.SeasonNumber != null) options.Add("season_number", si.SeasonNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+                    if (si.EpisodeNumber != null) options.Add("episode_number", si.EpisodeNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+                }
             }
             else
             {
@@ -315,13 +332,13 @@ namespace subbuzz.Providers
             foreach (var opt in options)
                 options[opt.Key] = opt.Value.ToLowerInvariant();
 
-            _logger.LogDebug("Search options: {options}", NAME, options);
+            _logger.LogDebug($"Search options: {string.Join(" ", options)}");
 
             var searchResponse = await SearchCachedAsync(options, apiKey, cancellationToken).ConfigureAwait(false);
 
             if (!searchResponse.Ok)
             {
-                _logger.LogInformation("Invalid response: {Code} - {Body}", NAME, searchResponse.Code, searchResponse.Body);
+                _logger.LogInformation($"Invalid response: {searchResponse.Code} - {searchResponse.Body}");
                 return res;
             }
 
@@ -464,7 +481,7 @@ namespace subbuzz.Providers
 
             if (GetOptions().OpenSubToken.IsNullOrWhiteSpace())
             {
-                _logger.LogInformation("Login failed: {Code} - {Body}", loginResponse.Code, loginResponse.Body);
+                _logger.LogInformation($"Login failed: {loginResponse.Code} - {loginResponse.Body}");
                 throw new AuthenticationException("Authentication to OpenSubtitles.com failed.");
             }
         }
