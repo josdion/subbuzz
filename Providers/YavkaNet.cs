@@ -23,7 +23,7 @@ namespace subbuzz.Providers
     {
         internal const string NAME = "yavka.net";
         private const string ServerUrl = "https://yavka.net";
-        private const string HttpReferer = "https://yavka.net/subtitles.php";
+        private const string HttpReferer = "https://yavka.net/subtitles/";
         private static readonly List<string> Languages = new List<string> { "bg", "en", "ru", "es", "it" };
         private static readonly string[] CacheRegionSub = { "yavka.net", "sub" };
         private static readonly string[] CacheRegionSearch = { "yavka.net", "search" };
@@ -98,47 +98,42 @@ namespace subbuzz.Providers
 
                 var searchTasks = new List<Task<List<SearchResultItem>>>();
 
-                if (si.ImdbId.IsNotNullOrWhiteSpace())
+                // NOTE: currently the IMDB search ignore language and return results only in Bulgarian
+                if (si.ImdbId.IsNotNullOrWhiteSpace() && si.Lang == "bg")
                 {
                     // search by IMDB Id
-                    string urlImdb = string.Format(
-                        "{0}/subtitles.php?s={1}&y=&c=&u=&l={2}&g=&i={3}",
-                        ServerUrl,
+                    var postParams = GetPostParams(
                         request.ContentType == VideoContentType.Episode ?
                             string.Format("s{0:D2}e{1:D2}", request.ParentIndexNumber ?? 0, request.IndexNumber ?? 0) : "",
-                        si.Lang.ToUpper(),
-                        si.ImdbId
-                        );
-
-                    searchTasks.Add(SearchUrl(urlImdb, cancellationToken));
+                        "", 
+                        si.Lang.ToUpper(), 
+                        si.ImdbId);
+                    
+                    searchTasks.Add(SearchUrl($"{ServerUrl}/search", postParams, cancellationToken));
                 }
 
                 if (si.SearchText.IsNotNullOrWhiteSpace())
                 {
                     // search for movies/series by title
-                    string url = string.Format(
-                            "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
-                            ServerUrl,
-                            HttpUtility.UrlEncode(si.SearchText),
-                            request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "",
-                            si.Lang.ToUpper()
-                            );
+                    var postParams = GetPostParams(
+                        si.SearchText,
+                        request.ContentType == VideoContentType.Movie ? Convert.ToString(request.ProductionYear) : "",
+                        si.Lang.ToUpper(),
+                        "");
 
-                    searchTasks.Add(SearchUrl(url, cancellationToken));
+                    searchTasks.Add(SearchUrl($"{ServerUrl}/search", postParams, cancellationToken));
                 }
 
                 if (request.ContentType == VideoContentType.Episode && si.SearchSeason.IsNotNullOrWhiteSpace() && (si.SeasonNumber ?? 0) > 0)
                 {
                     // search for episodes in season packs
-                    string urlSeason = string.Format(
-                            "{0}/subtitles.php?s={1}&y={2}&c=&u=&l={3}&g=&i=",
-                            ServerUrl,
-                            HttpUtility.UrlEncode(si.SearchSeason),
-                            "",
-                            si.Lang.ToUpper()
-                            );
+                    var postParams = GetPostParams(
+                        si.SearchSeason,
+                        "",
+                        si.Lang.ToUpper(),
+                        "");
 
-                    searchTasks.Add(SearchUrl(urlSeason, cancellationToken));
+                    searchTasks.Add(SearchUrl($"{ServerUrl}/search", postParams, cancellationToken));
                 }
 
                 var sr = new List<SearchResultItem>();
@@ -173,7 +168,22 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<List<SearchResultItem>> SearchUrl(string url, CancellationToken cancellationToken)
+        protected Dictionary<string, string> GetPostParams(string query, string year, string lang, string imdb)
+        {
+            return new Dictionary<string, string>
+                {
+                    { "s", query }, // search text
+                    { "y", year },  // year
+                    { "c", "" },    // season
+                    { "u", "" },    // uploader
+                    { "l", lang },  // language
+                    { "g", "" },    // genre
+                    { "i", imdb },  // iMDB ID ttXXXXX
+                    { "search", "\uf002+Търсене" },
+                };
+        }
+
+        protected async Task<List<SearchResultItem>> SearchUrl(string url, Dictionary<string, string> post_params, CancellationToken cancellationToken)
         {
             try
             {
@@ -181,7 +191,9 @@ namespace subbuzz.Providers
                 {
                     Url = url,
                     Referer = HttpReferer,
-                    Type = Http.RequestType.GET,
+                    Type = post_params == null ? Http.RequestType.GET : Http.RequestType.POST,
+                    Params = post_params,
+                    CacheKey = post_params == null ? null : url + $":post={{{string.Join(",", post_params)}}}",
                     CacheRegion = CacheRegionSearch,
                     CacheLifespan = GetOptions().Cache.GetSearchLife(),
                 };
