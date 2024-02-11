@@ -51,6 +51,9 @@ namespace subbuzz.Providers
             public string Fps;
             public string Uploader;
             public string Downloads;
+            public int ImdbId = 0;
+            public DateTime? UploadedAt = null;
+            public DateTime? UpdatedAt = null;
         }
 
         private PluginConfiguration GetOptions()
@@ -278,7 +281,7 @@ namespace subbuzz.Providers
         {
             var res = new List<SubtitleInfo>();
 
-            (var action, var postParams) = await GetSubInfoPage(sritem.Link, cancellationToken);
+            (var action, var postParams, sritem) = await GetSubInfoPage(sritem, cancellationToken);
             if (action.IsNullOrWhiteSpace() || postParams.IsNullOrEmpty())
             {
                 _logger.LogInformation($"Invalid information from subtitle page: {sritem.Link}");
@@ -306,31 +309,40 @@ namespace subbuzz.Providers
 
             using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
             {
-                int imdbId = 0;
-                string subImdb = "";
-                DateTime? dt = null;
+                int imdbId = sritem.ImdbId;
+                DateTime? dt = sritem.UpdatedAt ?? sritem.UploadedAt;
 
-                foreach (var fitem in files)
+                if (imdbId == 0 || dt == null)
                 {
-                    if (fitem.Name == "YavkA.net.txt")
+                    foreach (var fitem in files)
                     {
-                        fitem.Content.Seek(0, System.IO.SeekOrigin.Begin);
-                        var reader = new System.IO.StreamReader(fitem.Content, Encoding.UTF8, true);
-                        string info_text = reader.ReadToEnd();
-                        var regexDate = new Regex(@"Качени на: (\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)");
-                        var match = regexDate.Match(info_text);
-                        if (match.Success && match.Groups.Count > 0)
-                            dt = DateTime.Parse(match.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
-
-                        var regexImdbId = new Regex(@"iMDB ID: (tt(\d+))");
-                        match = regexImdbId.Match(info_text);
-                        if (match.Success && match.Groups.Count > 2)
+                        if (fitem.Name == "YavkA.net.txt")
                         {
-                            subImdb = match.Groups[1].ToString();
-                            imdbId = int.Parse(match.Groups[2].ToString());
-                        }
+                            fitem.Content.Seek(0, System.IO.SeekOrigin.Begin);
+                            var reader = new System.IO.StreamReader(fitem.Content, Encoding.UTF8, true);
+                            string info_text = reader.ReadToEnd();
 
-                        break;
+                            if (dt == null)
+                            {
+                                var regexDate = new Regex(@"Качени на: (\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)");
+                                var matchDate = regexDate.Match(info_text);
+                                if (matchDate.Success && matchDate.Groups.Count > 0)
+                                    dt = DateTime.Parse(matchDate.Groups[1].ToString(), System.Globalization.CultureInfo.InvariantCulture);
+                            }
+
+                            if (imdbId == 0)
+                            {
+                                var regexImdbId = new Regex(@"iMDB ID: (tt(\d+))");
+                                var matchImdb = regexImdbId.Match(info_text);
+                                if (matchImdb.Success && matchImdb.Groups.Count > 2)
+                                {
+                                    var subImdb = matchImdb.Groups[1].ToString();
+                                    imdbId = int.Parse(matchImdb.Groups[2].ToString());
+                                }
+                            }
+
+                            break;
+                        }
                     }
                 }
 
@@ -397,11 +409,11 @@ namespace subbuzz.Providers
             return res;
         }
 
-        protected async Task<(string, Dictionary<string, string>)> GetSubInfoPage(string url, CancellationToken cancellationToken)
+        protected async Task<(string, Dictionary<string, string>, SearchResultItem)> GetSubInfoPage(SearchResultItem sritem, CancellationToken cancellationToken)
         {
             var link = new Http.RequestCached
             {
-                Url = url,
+                Url = sritem.Link,
                 Referer = HttpReferer,
                 Type = Http.RequestType.GET,
                 CacheRegion = CacheRegionSearch,
@@ -414,6 +426,55 @@ namespace subbuzz.Providers
                 var context = AngleSharp.BrowsingContext.New(config);
                 var parser = new AngleSharp.Html.Parser.HtmlParser(context);
                 var htmlDoc = parser.ParseDocument(resp.Content);
+
+                // Parse updloaded and updated date time
+                var calendars = htmlDoc.QuerySelectorAll("i[class='fa fa-calendar']");
+                foreach (var cal in calendars)
+                {
+                    try
+                    {
+                        var calType = cal.NextSibling?.TextContent.Trim();
+                        switch (calType)
+                        {
+                            case "Качени на:":
+                            case "Обновени на:":
+                                DateTime? dt = null;
+                                var td = cal.ParentElement?.ParentElement; // get parent <td> element
+                                var dateVal = td?.NextElementSibling?.QuerySelector("font")?.TextContent;
+                                if (dateVal.IsNotNullOrWhiteSpace())
+                                {
+                                    dt = DateTime.ParseExact(dateVal, "HH:mm:ss dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                                    if (calType == "Качени на:") sritem.UploadedAt = dt;
+                                    if (calType == "Обновени на:") sritem.UpdatedAt = dt;
+                                }
+                                break;
+
+                            default:
+                                break;
+                        }
+                    }
+                    catch { }
+                }
+
+                // Parse IMDB ID
+                try
+                {
+                    var imdbTag = htmlDoc.QuerySelector("i[class='fab fa-imdb']");
+                    var imdbLink = imdbTag?.ParentElement?.GetAttribute("href").Trim();
+                    if (imdbLink.IsNotNullOrWhiteSpace())
+                    {
+                        var reg = new Regex(@"imdb.com/title/(tt(\d+))/?");
+                        var match = reg.Match(imdbLink);
+                        if (match != null && match.Groups.Count > 2)
+                        {
+                            var subImdb = match.Groups[1].Value;
+                            sritem.ImdbId = int.Parse(match.Groups[2].ToString());
+                        }
+                    }
+                }
+                catch { }
+
+                // Parse download POST parameters
 
                 var formNodes = htmlDoc.GetElementsByTagName("form");
                 foreach (var form in formNodes)
@@ -429,10 +490,10 @@ namespace subbuzz.Providers
                         continue;
 
                     _downloader.AddResponseToCache(link, resp);
-                    return (form.GetAttribute("action"), postParams);
+                    return (form.GetAttribute("action"), postParams, sritem);
                 }
                 
-                return (string.Empty, new Dictionary<string, string>());
+                return (string.Empty, new Dictionary<string, string>(), sritem);
             }
         }
 
