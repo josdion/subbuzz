@@ -1,7 +1,7 @@
 name: "subbuzz"
 guid: "5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4"
 imageUrl: "https://raw.githubusercontent.com/josdion/subbuzz/master/thumb.png"
-version: "1.0.5.0"
+version: "1.0.7.0"
 targetAbi: "10.9.0.0"
 framework: "net7.0"
 owner: "josdion"
