@@ -16,6 +16,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
     <Nullable>annotations</Nullable>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,10 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.9.*-*" />
-    <PackageReference Include="SharpCompress" Version="0.36.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="2.2.8" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.9.*-*" IncludeAssets="compile" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" IncludeAssets="compile" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="2.2.8" IncludeAssets="compile" />
+    <PackageReference Include="SharpCompress" Version="0.37.2" />
   </ItemGroup>
 
   <ItemGroup>
