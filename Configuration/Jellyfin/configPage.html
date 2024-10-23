@@ -1,0 +1,318 @@
+﻿
+<div id="SubbuzzConfigPage"
+     data-role="page"
+     data-title="SubBuzz"
+     class="page type-interior withTabs pluginConfigurationPage SubbuzzConfigPage"
+     data-require="emby-input,emby-button,emby-select,emby-checkbox"
+     data-helpurl="https://github.com/josdion/subbuzz"
+     data-controller="__plugin/SubbuzzConfigPageJs">
+
+    <div data-role="content">
+        <div class="content-primary">
+
+            <form id="SubbuzzConfigForm" class="SubbuzzConfigForm">
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Providers</h2>
+                    </div>
+                </div>
+
+                <div class="paperList checkboxList checkboxList-paperList">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableAddic7ed" id="EnableAddic7ed" />
+                        <span>Addic7ed.com</span>
+                    </label>
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableOpenSubtitles" id="EnableOpenSubtitles" />
+                        <span>OpenSubtitles.com</span>
+                    </label>
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnablePodnapisiNet" id="EnablePodnapisiNet" />
+                        <span>Podnapisi.NET</span>
+                    </label>
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableSubf2m" id="EnableSubf2m" />
+                        <span>Subf2me.co</span>
+                    </label>
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
+                        <span>Subs.sab.bz</span>
+                    </label>
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableSubsunacsNet" id="EnableSubsunacsNet" />
+                        <span>Subsunacs.net</span>
+                    </label>
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableYavkaNet" id="EnableYavkaNet" />
+                        <span>Yavka.net</span>
+                    </label>
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles" id="EnableYifySubtitles" />
+                        <span>YIFY Subtitles</span>
+                    </label>
+                </div>
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Settings</h2>
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="AutoDetectEncoding" name="AutoDetectEncoding" type="checkbox" is="emby-checkbox" />
+                        <span>Auto-Detect Encoding</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription"></div>
+                </div>
+
+                <div class="selectContainer">
+                    <select is="emby-select" id="DefaultEncoding" name="DefaultEncoding" label="Default Encoding:"></select>
+                    <div class="fieldDescription">Use this encoding in cases where automatic encoding detection is disabled or when automatic detection fails.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="SubtitleInfoWithHtml" name="SubtitleInfoWithHtml" type="checkbox" is="emby-checkbox" />
+                        <span>Subtitle Info with HTML</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Format subtitle information displayed in search dialog using HTML. 
+                        This may cause display issues in clients that doesn't support HTML.
+                        <span id="SubtitleInfoWithHtmlDescription"></span>
+                    </div>
+                </div>
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Post-Processing</h2>
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="EncodeSubtitlesToUTF8" name="EncodeSubtitlesToUTF8" type="checkbox" is="emby-checkbox" />
+                        <span>Encode Subtitles To UTF8</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">Re-encode downloaded Subtitles to UTF8.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="AdjustDuration" name="AdjustDuration" type="checkbox" is="emby-checkbox" />
+                        <span>Adjust Durations</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">Correct subtitles reading speed when saving.</div>
+                </div>
+
+                <div class="inputContainer" style="margin-left: 2.3em;">
+                    <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1" label="Characters per second (CPS):" />
+                    <div class="fieldDescription">Select the optimal reading speed for subtitles adjustment.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription" style="margin-left: 2.3em;">
+                    <label class="emby-checkbox-label">
+                        <input id="AdjustDurationExtendOnly" name="AdjustDurationExtendOnly" type="checkbox" is="emby-checkbox" />
+                        <span>Extend Only</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not decrease the original duration.</div>
+                </div>
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">OpenSubtitles.com Account</h2>
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="text" id="OpenSubUserName" label="Username or email" />
+                    <div class="fieldDescription">
+                        If you don't have an account yet, go to
+                        <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com">
+                            opensubtitles.com
+                        </a>
+                        to create one.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="password" id="OpenSubPassword" label="Password" />
+                    <div class="fieldDescription"></div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="password" id="OpenSubApiKey" label="API Key (Optional):" />
+                    <div class="fieldDescription">
+                        You can provide an <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers">API Key</a> for doing API requests, if left empty the default API key will be used.
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="OpenSubUseHash" name="OpenSubUseHash" type="checkbox" is="emby-checkbox" />
+                        <span>Use Hash</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        When enabled, the hash of the video file will be sent in the search requests to opensubtitles.com
+                    </div>
+                </div>
+
+                <p>
+                    <div class="fieldDescription" id="ossresponse"></div>
+                </p>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block">
+                        <span>Save</span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        //# sourceURL=subbuzz_config_page.js
+        var SubbuzzConfig = {
+            pluginUniqueId: '5aeab01b-2ef8-45c6-bb6b-16ce9cb268d4'
+        };
+
+        $('.SubbuzzConfigPage').on('pageshow', function () {
+            Dashboard.showLoadingMsg();
+            var page = this;
+
+            ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
+                page.querySelector("#EnableAddic7ed").checked = config.EnableAddic7ed;
+                page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
+                page.querySelector("#EnablePodnapisiNet").checked = config.EnablePodnapisiNet;
+                page.querySelector("#EnableSubf2m").checked = config.EnableSubf2m;
+                page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
+                page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
+                page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
+                page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
+
+                page.querySelector('#OpenSubUserName').value = config.OpenSubUserName || '';
+                page.querySelector('#OpenSubPassword').value = config.OpenSubPassword || '';
+                page.querySelector('#OpenSubApiKey').value = config.OpenSubApiKey || '';
+                page.querySelector('#OpenSubUseHash').checked = config.OpenSubUseHash;
+
+                page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
+                page.querySelector('#AutoDetectEncoding').checked = config.SubEncoding.AutoDetectEncoding;
+
+                var encodingsHtml = config.SubEncoding.Encodings.map(function (e) {
+                    return '<option value="' + e + '">' + e + '</option>';
+                }).join('');
+
+                $('#DefaultEncoding', page).html(encodingsHtml).val(config.SubEncoding.DefaultEncoding || '');
+
+                page.querySelector('#SubtitleInfoWithHtml').checked = config.SubtitleInfoWithHtml;
+
+                page.querySelector("#AdjustDuration").checked = config.SubPostProcessing.AdjustDuration;
+                page.querySelector("#AdjustDurationCps").value = config.SubPostProcessing.AdjustDurationCps;
+                page.querySelector("#AdjustDurationExtendOnly").checked = config.SubPostProcessing.AdjustDurationExtendOnly;
+                page.querySelector('#AdjustDurationCps').disabled = !config.SubPostProcessing.AdjustDuration;
+                page.querySelector('#AdjustDurationExtendOnly').disabled = !config.SubPostProcessing.AdjustDuration;
+
+                Dashboard.hideLoadingMsg();
+            });
+        });
+
+        $('.SubbuzzConfigForm').on('submit', function (e) {
+            Dashboard.showLoadingMsg();
+            var form = this;
+
+            ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
+
+                const username = form.querySelector('#OpenSubUserName').value;
+                const password = form.querySelector('#OpenSubPassword').value;
+                const apiKey = form.querySelector('#OpenSubApiKey').value;
+                var token = config.OpenSubToken || '';
+
+                if ((username || password) && (!username || !password)) {
+                    Dashboard.processErrorResponse({ statusText: "OpenSubtitles.com account info is incomplete!" });
+                    return;
+                }
+
+                if (config.OpenSubUserName != username || config.OpenSubPassword != password || config.OpenSubApiKey != apiKey) {
+                    token = '';
+                }
+
+                var saveConfig = function () {
+                    config.EnableAddic7ed = form.querySelector("#EnableAddic7ed").checked;
+                    config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;
+                    config.EnablePodnapisiNet = form.querySelector("#EnablePodnapisiNet").checked;
+                    config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;
+                    config.EnableSubssabbz = form.querySelector("#EnableSubssabbz").checked;
+                    config.EnableSubsunacsNet = form.querySelector("#EnableSubsunacsNet").checked;
+                    config.EnableYavkaNet = form.querySelector("#EnableYavkaNet").checked;
+                    config.EnableYifySubtitles = form.querySelector("#EnableYifySubtitles").checked;
+                    config.OpenSubUseHash = form.querySelector("#OpenSubUseHash").checked;
+                    config.OpenSubUserName = username;
+                    config.OpenSubPassword = password;
+                    config.OpenSubApiKey = apiKey;
+                    config.OpenSubToken = token;
+
+                    config.SubPostProcessing.EncodeSubtitlesToUTF8 = form.querySelector("#EncodeSubtitlesToUTF8").checked;
+                    config.SubPostProcessing.AdjustDuration = form.querySelector("#AdjustDuration").checked;
+                    config.SubPostProcessing.AdjustDurationCps = form.querySelector("#AdjustDurationCps").value;
+                    config.SubPostProcessing.AdjustDurationExtendOnly = form.querySelector("#AdjustDurationExtendOnly").checked;
+
+                    config.SubEncoding.AutoDetectEncoding = form.querySelector("#AutoDetectEncoding").checked;
+                    config.SubEncoding.DefaultEncoding = $('#DefaultEncoding', form).val();
+
+                    config.SubtitleInfoWithHtml = form.querySelector("#SubtitleInfoWithHtml").checked;
+
+                    ApiClient.updatePluginConfiguration(SubbuzzConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                }
+
+                if (username && !token) {
+                    const el = form.querySelector('#ossresponse');
+                    const data = JSON.stringify({ Username: username, Password: password, ApiKey: apiKey });
+                    const url = ApiClient.getUrl('subbuzz/ValidateOpenSubtitlesLoginInfo');
+
+                    const handler = response => response.json().then(res => {
+                        if (response.ok && !res.Message) {
+                            token = res.Token;
+                            saveConfig()
+                            if (res.Token && res.Downloads) {
+                                el.innerText = "OpenSubtitles.com account validated. You can download " + res.Downloads + " subtitles per day.";
+                            }
+                        }
+                        else {
+                            let msg = res.Message ?? JSON.stringify(res, null, 2);
+                            if (msg == 'You cannot consume this service') {
+                                msg = 'Invalid API key provided.';
+                            }
+
+                            el.innerText = "";
+                            Dashboard.processErrorResponse({ statusText: "Request failed - " + msg });
+                            return;
+                        }
+                    });
+
+                    ApiClient.ajax({ type: 'POST', url, data, contentType: 'application/json' }).then(handler).catch(handler);
+                }
+                else {
+                    form.querySelector('#ossresponse').innerText = "";
+                    saveConfig()
+                }
+
+            });
+
+            // Disable default form submission
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+
+        $('.SubbuzzConfigForm').on('change', '#AdjustDuration', function(e) {
+            this.form.querySelector('#AdjustDurationCps').disabled = !this.checked;
+            this.form.querySelector('#AdjustDurationExtendOnly').disabled = !this.checked;
+        });
+
+    </script>
+
+</div>

@@ -114,7 +114,7 @@ namespace subbuzz
                 {
                     DisplayName = "SubBuzz",
                     Name = "SubbuzzConfigPage",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html",
+                    EmbeddedResourcePath = GetType().Namespace + $".Configuration.{SERVER}.configPage.html",
                     EnableInMainMenu = true,
                     MenuSection = "server",
                     MenuIcon = "subtitles",
@@ -128,7 +128,7 @@ namespace subbuzz
                 new PluginPageInfo
                 {
                     Name = "SubbuzzConfigCachePage",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configCachePage.html",
+                    EmbeddedResourcePath = GetType().Namespace + $".Configuration.{SERVER}.configCachePage.html",
                     MenuIcon = "closed_caption"
                 },
                 new PluginPageInfo

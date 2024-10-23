@@ -37,6 +37,7 @@
     <EmbeddedResource Include="Configuration\*.html" />
 	<EmbeddedResource Include="Configuration\*.js" />
     <EmbeddedResource Include="Configuration\Jellyfin\*.js" />
+	<EmbeddedResource Include="Configuration\Jellyfin\*.html" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

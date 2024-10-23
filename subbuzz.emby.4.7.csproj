@@ -28,7 +28,7 @@
     <PackageReference Include="mediabrowser.server.core" Version="4.7.*" /> 
     <PackageReference Include="SharpCompress" Version="0.32.1" /> 
     <PackageReference Include="System.Memory" Version="4.5.5" />
-    <PackageReference Include="System.Text.Json" Version="6.0.7" />
+    <PackageReference Include="System.Text.Json" Version="6.0.10" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,6 +39,7 @@
     <EmbeddedResource Include="Configuration\*.html" />
 	<EmbeddedResource Include="Configuration\*.js" />
     <EmbeddedResource Include="Configuration\Emby\*.js" />
+	<EmbeddedResource Include="Configuration\Emby\*.html" />
     <EmbeddedResource Include="thumb.png" />
   </ItemGroup>
 
