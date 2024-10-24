@@ -80,6 +80,14 @@ namespace subbuzz.Providers
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var tasks = new Dictionary<string, Task<IEnumerable<RemoteSubtitleInfo>>>();
 
+#if JELLYFIN
+            // Jellyfin search request times out after 30 seconds, so ignore searches not completed in time.
+            var maxDuration = 29000;
+#else
+            // For emby use 3 minutes timeout
+            var maxDuration = 3 * 60 * 1000;
+#endif
+
             _logger.LogInformation($"Start subtitle search for {request.Name} [{request.Language}].");
 
             foreach (var p in Providers)
@@ -92,15 +100,13 @@ namespace subbuzz.Providers
 
             foreach (var task in tasks)
             {
-#if JELLYFIN
-                // Jellyfin search request times out after 30 seconds, so ignore searches not completed in time.
                 var elapsedTime = watch.ElapsedMilliseconds;
-                if (!task.Value.Wait((int)(elapsedTime >= 29000 ? 1 : 29000 - elapsedTime), cancellationToken))
+                if (!task.Value.Wait((int)(elapsedTime >= maxDuration ? 1 : maxDuration - elapsedTime), cancellationToken))
                 {
                     _logger.LogInformation($"The response from {task.Key} is ignored because it did not complete in time.");
                     continue;
                 }
-#endif
+
 
                 List<SubtitleInfo> subs = (List<SubtitleInfo>)await task.Value;
 
