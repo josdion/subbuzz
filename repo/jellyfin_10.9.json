@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/josdion/subbuzz/master/thumb.png",
     "versions": [
       {
+        "version": "1.2.0.0",
+        "changelog": "- Add Subf2m.co\n",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.2.0.0/subbuzz_1.2.0.0_jellyfin_10.9.zip",
+        "checksum": "5c245b549ceeedc9ece19810cc8fd5ec",
+        "timestamp": "2024-10-24T04:24:18Z"
+      },
+      {
         "version": "1.1.0.0",
         "changelog": "- Fix issue with Jellyfin 10.9 not able to download subtitles\n",
         "targetAbi": "10.9.0.0",
