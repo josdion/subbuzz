@@ -12,13 +12,13 @@ using System.Threading.Tasks;
 
 namespace subbuzz.Providers
 {
-    public class SubDivx : ISubBuzzProvider
+    public class SubDl : ISubBuzzProvider
     {
-        internal const string NAME = "subdivx";
-        private const string ServerUrl = "https://subdivx.com";
-        private static readonly string[] CacheRegionSub = { "subdivx", "sub" };
-        private static readonly string[] CacheRegionSubPage = { "subdivx", "subpage" };
-        private static readonly string[] CacheRegionSearch = { "subdivx", "search" };
+        internal const string NAME = "subdl";
+        private const string ServerUrl = "https://api.subdl.com";
+        private static readonly string[] CacheRegionSub = { "subdl", "sub" };
+        private static readonly string[] CacheRegionSubPage = { "subdl", "subpage" };
+        private static readonly string[] CacheRegionSearch = { "subdl", "search" };
 
         private readonly Logger _logger;
         private readonly Http.Download _downloader;
@@ -34,7 +34,7 @@ namespace subbuzz.Providers
         private PluginConfiguration GetOptions()
             => Plugin.Instance.Configuration;
 
-        public SubDivx(
+        public SubDl(
             Logger logger,
             IFileSystem fileSystem,
             ILocalizationManager localizationManager,
