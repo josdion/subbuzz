@@ -244,7 +244,7 @@ namespace subbuzz.Providers
                             //DownloadCount = int.Parse(subDownloads),
                             IsHashMatch = score >= Plugin.Instance.Configuration.HashMatchByScore,
                             IsForced = null,
-                            IsSdh = sdh,
+                            IsHearingImpaired = sdh,
                             Score = score,
                         };
 

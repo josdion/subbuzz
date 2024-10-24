@@ -155,8 +155,14 @@ namespace subbuzz.Providers
 
         private static void FormatInfoNoHtml(SubtitleInfo s, string provider)
         {
+#if EMBY_47 || JELLYFIN_108
             if (s.IsForced ?? false) s.Name = "[Forced] " + s.Name;
-            if (s.IsSdh ?? false) s.Name = "[SDH] " + s.Name;
+            if (s.IsHearingImpaired ?? false) s.Name = "[HI/SDH] " + s.Name;
+#endif
+#if EMBY || JELLYFIN_108
+            if (s.MachineTranslated ?? false) s.Name = "[MT] " + s.Name;
+            if (s.AiTranslated ?? false) s.Name = "[AI] " + s.Name;
+#endif
 
             var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -171,12 +177,31 @@ namespace subbuzz.Providers
         {
             s.Name = $"<a href='{s.PageLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;'>{s.Name}</a>";
             s.Comment = $"<b>[{provider}]</b> " + s.Comment;
-            if (s.IsSdh ?? false)
+
+            var tagIcons = string.Empty;
+
+#if EMBY_47
+            if (s.IsHearingImpaired ?? false)
+            {
+                tagIcons += "<i class=\"md-icon button-icon button-icon-left secondaryText\" style=\"font-size:1.4em;\" title=\"HI/SDH\">hearing_disabled</i>";
+            }
+#endif
+
+            if (s.AiTranslated ?? false)
+            {
+                tagIcons += "<i class=\"md-icon button-icon button-icon-left secondaryText\" style=\"font-size:1.4em;\" title=\"AI Translated\">hdr_auto</i>";
+            }
+
+            if (s.MachineTranslated ?? false)
+            {
+                tagIcons += "<i class=\"md-icon button-icon button-icon-left secondaryText\" style=\"font-size:1.4em;\" title=\"Machine Translated\">android</i>";
+            }
+
+            if (tagIcons.IsNotNullOrWhiteSpace())
             {
                 s.Name =
                     "<div class=\"inline-flex align-items-center justify-content-center mediaInfoItem\">" +
-                    "<i class=\"md-icon button-icon button-icon-left secondaryText\" style=\"font-size:1.4em;\">hearing_disabled</i>" +
-                    s.Name +
+                    tagIcons + s.Name +
                     "</div>";
             }
         }
@@ -186,6 +211,7 @@ namespace subbuzz.Providers
             s.Name = $"<a href='{s.PageLink}' target='_blank' is='emby-linkbutton' class='button-link' style='margin:0;text-align:start;'>{s.Name}</a>";
             s.Comment = $"<b>[{provider}]</b> " + s.Comment;
 
+#if JELLYFIN_108
             var tagIcons = string.Empty;
 
             if (s.IsForced ?? false)
@@ -193,7 +219,7 @@ namespace subbuzz.Providers
                 tagIcons += "<span class=\"material-icons language secondaryText\" aria-hidden=\"true\" style=\"font-size:1.4em;\"></span>&nbsp;";
             }
 
-            if (s.IsSdh ?? false)
+            if (s.IsHearingImpaired ?? false)
             {
                 tagIcons += "<span class=\"material-icons hearing_disabled secondaryText\" aria-hidden=\"true\" style=\"font-size:1.4em;\"></span>&nbsp;";
             }
@@ -205,6 +231,7 @@ namespace subbuzz.Providers
                     tagIcons + s.Name +
                     "</div>";
             }
+#endif
         }
     }
 }

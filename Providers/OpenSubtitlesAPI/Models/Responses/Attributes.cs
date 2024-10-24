@@ -53,5 +53,11 @@ namespace subbuzz.Providers.OpenSubtitlesAPI.Models.Responses
 
         [JsonPropertyName("moviehash_match")]
         public bool? MovieHashMatch { get; set; }
+
+        [JsonPropertyName("ai_translated")]
+        public bool? AiTranslated { get; set; }
+
+        [JsonPropertyName("machine_translated")]
+        public bool? MachineTranslated { get; set; }
     }
 }

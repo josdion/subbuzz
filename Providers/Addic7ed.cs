@@ -196,7 +196,7 @@ namespace subbuzz.Providers
                 DownloadCount = resItem.DownloadCount,
                 IsHashMatch = score >= GetOptions().HashMatchByScore,
                 IsForced = null,
-                IsSdh = resItem.HearingImpaired,
+                IsHearingImpaired = resItem.HearingImpaired,
                 Score = score,
             };
 

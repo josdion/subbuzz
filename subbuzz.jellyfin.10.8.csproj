@@ -11,7 +11,7 @@
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
     <RootNamespace>subbuzz</RootNamespace>
     <AssemblyName>subbuzz</AssemblyName>
-    <DefineConstants>JELLYFIN,NO_HTML</DefineConstants>	
+    <DefineConstants>JELLYFIN,JELLYFIN_108,NO_HTML</DefineConstants>	
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>

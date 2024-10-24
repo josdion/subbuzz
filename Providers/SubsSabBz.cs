@@ -371,7 +371,7 @@ namespace subbuzz.Providers
                             DownloadCount = Convert.ToInt32(subDownloads),
                             IsHashMatch = score >= GetOptions().HashMatchByScore,
                             IsForced = null,
-                            IsSdh = null,
+                            IsHearingImpaired = null,
                             Score = score,
                         };
 

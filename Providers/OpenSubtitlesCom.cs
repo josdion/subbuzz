@@ -397,7 +397,9 @@ namespace subbuzz.Providers
                         DownloadCount = subItem.DownloadCount,
                         IsHashMatch = (score >= GetOptions().HashMatchByScore) || (subItem.MovieHashMatch ?? false),
                         IsForced = subItem.ForeignPartsOnly,
-                        IsSdh = subItem.HearingImpaired,
+                        IsHearingImpaired = subItem.HearingImpaired,
+                        AiTranslated = subItem.AiTranslated,
+                        MachineTranslated = subItem.MachineTranslated,
                         Score = score,
                     };
 

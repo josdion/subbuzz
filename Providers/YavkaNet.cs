@@ -397,7 +397,7 @@ namespace subbuzz.Providers
                         DownloadCount = int.Parse(sritem.Downloads),
                         IsHashMatch = score >= GetOptions().HashMatchByScore,
                         IsForced = null,
-                        IsSdh = null,
+                        IsHearingImpaired = null,
                         Score = score,
                         DateCreated = dt,
                     };
