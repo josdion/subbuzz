@@ -8,6 +8,7 @@ using MediaBrowser.Model.Providers;
 using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
+using subbuzz.Providers.Http;
 using subbuzz.Providers.OpenSubtitlesAPI;
 using subbuzz.Providers.OpenSubtitlesAPI.Models;
 using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
@@ -93,7 +94,7 @@ namespace subbuzz.Providers
             _libraryManager = libraryManager;
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!.ToString();
-            RequestHelper.Instance = new RequestHelper(logger, version);
+            OpenSubtitles.RequestHelperInstance = new RequestHelper(logger, version);
         }
 
         public async Task<SubtitleResponse> GetSubtitles(string id, CancellationToken cancellationToken)
@@ -534,7 +535,7 @@ namespace subbuzz.Providers
             {
                 using (var fileStream = System.IO.File.OpenRead(path))
                 {
-                    return RequestHelper.ComputeHash(fileStream);
+                    return Hash.ComputeHash(fileStream);
                 }
             }
             catch (Exception e)

@@ -36,6 +36,10 @@
                         <span>Subf2me.co</span>
                     </label>
                     <label class="emby-checkbox-label" style="z-index: 0;">
+                        <input is="emby-checkbox" type="checkbox" class="EnableSubdlCom" id="EnableSubdlCom" />
+                        <span>Subdl.com</span>
+                    </label>
+                    <label class="emby-checkbox-label" style="z-index: 0;">
                         <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
                         <span>Subs.sab.bz</span>
                     </label>
@@ -52,6 +56,8 @@
                         <span>YIFY Subtitles</span>
                     </label>
                 </div>
+
+                <br />
 
                 <div class="verticalSection ">
                     <div class="sectionTitleContainer flex align-items-center">
@@ -78,11 +84,13 @@
                         <span>Subtitle Info with HTML</span>
                     </label>
                     <div class="fieldDescription checkboxFieldDescription">
-                        Format subtitle information displayed in search dialog using HTML. 
+                        Format subtitle information displayed in search dialog using HTML.
                         This may cause display issues in clients that doesn't support HTML.
                         <span id="SubtitleInfoWithHtmlDescription"></span>
                     </div>
                 </div>
+
+                <br />
 
                 <div class="verticalSection ">
                     <div class="sectionTitleContainer flex align-items-center">
@@ -119,6 +127,8 @@
                     <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not decrease the original duration.</div>
                 </div>
 
+                <br />
+
                 <div class="verticalSection ">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">OpenSubtitles.com Account</h2>
@@ -141,13 +151,6 @@
                     <div class="fieldDescription"></div>
                 </div>
 
-                <div class="inputContainer">
-                    <input is="emby-input" type="password" id="OpenSubApiKey" label="API Key (Optional):" />
-                    <div class="fieldDescription">
-                        You can provide an <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers">API Key</a> for doing API requests, if left empty the default API key will be used.
-                    </div>
-                </div>
-
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label" style="z-index: 0;">
                         <input id="OpenSubUseHash" name="OpenSubUseHash" type="checkbox" is="emby-checkbox" />
@@ -159,8 +162,23 @@
                 </div>
 
                 <p>
-                    <div class="fieldDescription" id="ossresponse"></div>
+                    <div class="fieldDescription" id="ossresponse">&nbsp;</div>
                 </p>
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Subdl.com Account</h2>
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="password" id="SubdlApiKey" label="API Key (Required):" />
+                    <div class="fieldDescription">
+                        Provide your <a is="emby-linkbutton" class="button-link" target="_blank" href="https://subdl.com/panel/api">API Key</a> for doing API requests, if left empty provider will be disabled.
+                    </div>
+                </div>
+
+                <br />
 
                 <div>
                     <button is="emby-button" type="submit" class="raised button-submit block">

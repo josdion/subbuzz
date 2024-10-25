@@ -36,6 +36,10 @@
                         <span>Subf2me.co</span>
                     </label>
                     <label>
+                        <input is="emby-checkbox" type="checkbox" class="EnableSubdlCom" id="EnableSubdlCom" />
+                        <span>Subdl.com</span>
+                    </label>
+                    <label>
                         <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
                         <span>Subs.sab.bz</span>
                     </label>
@@ -52,6 +56,8 @@
                         <span>YIFY Subtitles</span>
                     </label>
                 </div>
+
+                <br />
 
                 <div class="verticalSection ">
                     <div class="sectionTitleContainer flex align-items-center">
@@ -83,6 +89,8 @@
                         <span id="SubtitleInfoWithHtmlDescription"></span>
                     </div>
                 </div>
+
+                <br />
 
                 <div class="verticalSection ">
                     <div class="sectionTitleContainer flex align-items-center">
@@ -119,6 +127,8 @@
                     <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not decrease the original duration.</div>
                 </div>
 
+                <br />
+
                 <div class="verticalSection ">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">OpenSubtitles.com Account</h2>
@@ -141,13 +151,6 @@
                     <div class="fieldDescription"></div>
                 </div>
 
-                <div class="inputContainer">
-                    <input is="emby-input" type="password" id="OpenSubApiKey" label="API Key (Optional):" />
-                    <div class="fieldDescription">
-                        You can provide an <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com/en/consumers">API Key</a> for doing API requests, if left empty the default API key will be used.
-                    </div>
-                </div>
-
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
                         <input id="OpenSubUseHash" name="OpenSubUseHash" type="checkbox" is="emby-checkbox" />
@@ -159,8 +162,23 @@
                 </div>
 
                 <p>
-                    <div class="fieldDescription" id="ossresponse"></div>
+                    <div class="fieldDescription" id="ossresponse">&nbsp;</div>
                 </p>
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Subdl.com Account</h2>
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="password" id="SubdlApiKey" label="API Key (Required):" />
+                    <div class="fieldDescription">
+                        Provide your <a is="emby-linkbutton" class="button-link" target="_blank" href="https://subdl.com/panel/api">API Key</a> for doing API requests, if left empty provider will be disabled.
+                    </div>
+                </div>
+
+                <br />
 
                 <div>
                     <button is="emby-button" type="submit" class="raised button-submit block">
@@ -184,7 +202,6 @@
 
             ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
                 page.querySelector("#EnableAddic7ed").checked = config.EnableAddic7ed;
-                page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
                 page.querySelector("#EnablePodnapisiNet").checked = config.EnablePodnapisiNet;
                 page.querySelector("#EnableSubf2m").checked = config.EnableSubf2m;
                 page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
@@ -192,10 +209,13 @@
                 page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
                 page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
 
+                page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
                 page.querySelector('#OpenSubUserName').value = config.OpenSubUserName || '';
                 page.querySelector('#OpenSubPassword').value = config.OpenSubPassword || '';
-                page.querySelector('#OpenSubApiKey').value = config.OpenSubApiKey || '';
                 page.querySelector('#OpenSubUseHash').checked = config.OpenSubUseHash;
+
+                page.querySelector("#EnableSubdlCom").checked = config.EnableSubdlCom;
+                page.querySelector('#SubdlApiKey').value = config.SubdlApiKey || '';
 
                 page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
                 page.querySelector('#AutoDetectEncoding').checked = config.SubEncoding.AutoDetectEncoding;
@@ -226,7 +246,7 @@
 
                 const username = form.querySelector('#OpenSubUserName').value;
                 const password = form.querySelector('#OpenSubPassword').value;
-                const apiKey = form.querySelector('#OpenSubApiKey').value;
+                const apiKey = "";
                 var token = config.OpenSubToken || '';
 
                 if ((username || password) && (!username || !password)) {
@@ -240,18 +260,22 @@
 
                 var saveConfig = function () {
                     config.EnableAddic7ed = form.querySelector("#EnableAddic7ed").checked;
-                    config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;
                     config.EnablePodnapisiNet = form.querySelector("#EnablePodnapisiNet").checked;
                     config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;
                     config.EnableSubssabbz = form.querySelector("#EnableSubssabbz").checked;
                     config.EnableSubsunacsNet = form.querySelector("#EnableSubsunacsNet").checked;
                     config.EnableYavkaNet = form.querySelector("#EnableYavkaNet").checked;
                     config.EnableYifySubtitles = form.querySelector("#EnableYifySubtitles").checked;
+
+                    config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;
                     config.OpenSubUseHash = form.querySelector("#OpenSubUseHash").checked;
                     config.OpenSubUserName = username;
                     config.OpenSubPassword = password;
                     config.OpenSubApiKey = apiKey;
                     config.OpenSubToken = token;
+
+                    page.querySelector("#EnableSubdlCom").checked = config.EnableSubdlCom;
+                    page.querySelector('#SubdlApiKey').value = config.SubdlApiKey || '';
 
                     config.SubPostProcessing.EncodeSubtitlesToUTF8 = form.querySelector("#EncodeSubtitlesToUTF8").checked;
                     config.SubPostProcessing.AdjustDuration = form.querySelector("#AdjustDuration").checked;
@@ -287,7 +311,7 @@
                                 msg = 'Invalid API key provided.';
                             }
 
-                            el.innerText = "";
+                            el.innerHtml = "&nbsp;";
                             Dashboard.processErrorResponse({ statusText: "Request failed - " + msg });
                             return;
                         }
@@ -296,7 +320,7 @@
                     ApiClient.ajax({ type: 'POST', url, data, contentType: 'application/json' }).then(handler).catch(handler);
                 }
                 else {
-                    form.querySelector('#ossresponse').innerText = "";
+                    form.querySelector('#ossresponse').innerHtml = "&nbsp;";
                     saveConfig()
                 }
 

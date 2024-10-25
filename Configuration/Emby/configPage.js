@@ -10,7 +10,6 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
 
         ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
             page.querySelector("#EnableAddic7ed").checked = config.EnableAddic7ed;
-            page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
             page.querySelector("#EnablePodnapisiNet").checked = config.EnablePodnapisiNet;
             page.querySelector("#EnableSubf2m").checked = config.EnableSubf2m;
             page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
@@ -18,10 +17,13 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
             page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
             page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
 
+            page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
             page.querySelector('#OpenSubUserName').value = config.OpenSubUserName || '';
             page.querySelector('#OpenSubPassword').value = config.OpenSubPassword || '';
-            page.querySelector('#OpenSubApiKey').value = config.OpenSubApiKey || '';
             page.querySelector('#OpenSubUseHash').checked = config.OpenSubUseHash;
+
+            page.querySelector("#EnableSubdlCom").checked = config.EnableSubdlCom;
+            page.querySelector('#SubdlApiKey').value = config.SubdlApiKey || '';
 
             page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
             page.querySelector('#AutoDetectEncoding').checked = config.SubEncoding.AutoDetectEncoding;
@@ -54,7 +56,7 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
 
             const username = form.querySelector('#OpenSubUserName').value;
             const password = form.querySelector('#OpenSubPassword').value;
-            const apiKey = form.querySelector('#OpenSubApiKey').value;
+            const apiKey = "";
             var token = config.OpenSubToken || '';
 
             if ((username || password) && (!username || !password)) {
@@ -68,18 +70,22 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
 
             var saveConfig = function () {
                 config.EnableAddic7ed = form.querySelector("#EnableAddic7ed").checked;
-                config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;
                 config.EnablePodnapisiNet = form.querySelector("#EnablePodnapisiNet").checked;
                 config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;
                 config.EnableSubssabbz = form.querySelector("#EnableSubssabbz").checked;
                 config.EnableSubsunacsNet = form.querySelector("#EnableSubsunacsNet").checked;
                 config.EnableYavkaNet = form.querySelector("#EnableYavkaNet").checked;
                 config.EnableYifySubtitles = form.querySelector("#EnableYifySubtitles").checked;
+
+                config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;
                 config.OpenSubUseHash = form.querySelector("#OpenSubUseHash").checked;
                 config.OpenSubUserName = username;
                 config.OpenSubPassword = password;
                 config.OpenSubApiKey = apiKey;
                 config.OpenSubToken = token;
+
+                config.EnableSubdlCom = form.querySelector("#EnableSubdlCom").checked;
+                config.SubdlApiKey = form.querySelector('#SubdlApiKey').value;
 
                 config.SubPostProcessing.EncodeSubtitlesToUTF8 = form.querySelector("#EncodeSubtitlesToUTF8").checked;
                 config.SubPostProcessing.AdjustDuration = form.querySelector("#AdjustDuration").checked;
@@ -115,7 +121,7 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
                             msg = 'Invalid API key provided.';
                         }
 
-                        el.innerText = "";
+                        el.innerHtml = "&nbsp;";
                         Dashboard.processErrorResponse({ statusText: "Request failed - " + msg });
                         return;
                     }
@@ -124,7 +130,7 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
                 ApiClient.ajax({ type: 'POST', url, data, contentType: 'application/json' }).then(handler).catch(handler);
             }
             else {
-                form.querySelector('#ossresponse').innerText = "";
+                form.querySelector('#ossresponse').innerHtml = "&nbsp;";
                 saveConfig()
             }
 

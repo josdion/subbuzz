@@ -347,6 +347,11 @@ namespace subbuzz.Helpers
             return true; // no IMDB info
         }
 
+        public bool MatchImdbId(string imdb, ref SubtitleScore score)
+        {
+            return MatchImdbId(int.Parse(imdb.TrimStart('t')), ref score);
+        }
+
         public bool MatchFps(string fpsText, ref SubtitleScore score)
         {
             try

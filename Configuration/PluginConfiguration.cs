@@ -71,6 +71,7 @@ namespace subbuzz.Configuration
         public bool EnableOpenSubtitles { get; set; } = true;
         public bool EnablePodnapisiNet { get; set; } = true;
         public bool EnableSubf2m { get; set; } = false;
+        public bool EnableSubdlCom { get; set; } = false;
         public bool EnableSubscene { get; set; } = true;
         public bool EnableSubssabbz { get; set; } = true;
         public bool EnableSubsunacsNet { get; set; } = true;
@@ -88,6 +89,8 @@ namespace subbuzz.Configuration
         public SubEncodingCfg SubEncoding { get; set; }
         public SubPostProcessingCfg SubPostProcessing { get; set; }
         public CacheCfg Cache { get; set; }
+
+        public string SubdlApiKey { get; set; } = string.Empty;
 
         public PluginConfiguration()
         {

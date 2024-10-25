@@ -1,3 +1,4 @@
+using subbuzz.Providers.Http;
 using subbuzz.Providers.OpenSubtitlesAPI.Models;
 using subbuzz.Providers.OpenSubtitlesAPI.Models.Responses;
 using System;
@@ -25,6 +26,9 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
         // 40/10s limits
         private static DateTime _windowStart = DateTime.MinValue;
         private static int _requestCount;
+
+        public static RequestHelper RequestHelperInstance { get; set; }
+
 
         public static async Task<ApiResponse<LoginInfo>> LogInAsync(string username, string password, string apiKey, CancellationToken cancellationToken)
         {
@@ -79,7 +83,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
 
         public static async Task<ApiResponse<Stream>> DownloadSubtitleAsync(string url, CancellationToken cancellationToken)
         {
-            var (stream, _, httpStatusCode) = await RequestHelper.Instance.SendRequestAsyncStream(url, HttpMethod.Get, null, null, cancellationToken).ConfigureAwait(false);
+            var (stream, _, httpStatusCode) = await RequestHelperInstance.SendRequestAsyncStream(url, HttpMethod.Get, null, null, cancellationToken).ConfigureAwait(false);
 
             return new ApiResponse<Stream>(stream, new HttpResponse { Code = httpStatusCode });
         }
@@ -177,7 +181,7 @@ namespace subbuzz.Providers.OpenSubtitlesAPI
                 _requestCount = 0;
             }
 
-            var (response, responseHeaders, httpStatusCode) = await RequestHelper.Instance.SendRequestAsync(BaseApiUrl + endpoint, method, body, headers, cancellationToken).ConfigureAwait(false);
+            var (response, responseHeaders, httpStatusCode) = await RequestHelperInstance.SendRequestAsync(BaseApiUrl + endpoint, method, body, headers, cancellationToken).ConfigureAwait(false);
 
             _requestCount++;
 
