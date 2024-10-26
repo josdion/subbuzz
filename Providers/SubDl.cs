@@ -222,6 +222,11 @@ namespace subbuzz.Providers
                 string subInfoBase = ((resItem.Year ?? 0) > 0) ?  
                     $"{resItem.Name} ({resItem.Year})<br>{subItem.Release}" : $"{resItem.Name}<br>{subItem.Release}";
 
+                // remove extension from subtitle download link
+                int fileExtPos = subItem.Url.LastIndexOf(".");
+                if (fileExtPos >= 0)
+                    subItem.Url = subItem.Url.Substring(0, fileExtPos);
+
                 var link = new Http.RequestSub
                 {
                     Url = DownloadUrl + subItem.Url,
