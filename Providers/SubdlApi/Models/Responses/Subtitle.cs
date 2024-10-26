@@ -40,7 +40,7 @@ namespace subbuzz.Providers.SubdlApi.Models.Responses
         public string Comment { get; set; }
 
         [JsonPropertyName("releases")]
-        public IReadOnlyList<string> Files { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<string> Releases { get; set; } = Array.Empty<string>();
 
         [JsonPropertyName("episode_from")]
         public int? EpisodeFrom {  get; set; }

@@ -23,11 +23,10 @@ namespace subbuzz.Providers
 {
     public class SubDl : ISubBuzzProvider
     {
-        internal const string NAME = "subdl";
+        internal const string NAME = "subdl.com";
         private const string ServerUrl = "https://subdl.com";
         private const string DownloadUrl = "https://dl.subdl.com";
         private static readonly string[] CacheRegionSub = { "subdl", "sub" };
-        private static readonly string[] CacheRegionSubPage = { "subdl", "subpage" };
         private static readonly string[] CacheRegionSearch = { "subdl", "search" };
 
         private readonly Logger _logger;
@@ -47,12 +46,9 @@ namespace subbuzz.Providers
         private static FileCache? GetCache(string[] region, int life = 0)
             => Plugin.Instance?.Cache?.FromRegion(region, life);
 
-        private static FileCache? GetCacheSub()
-            => GetCache(CacheRegionSub, GetOptions().Cache.SubLifeInMinutes);
-        private static FileCache? GetCacheSub(int life)
-            => GetCache(CacheRegionSub, life);
         private static FileCache? GetCacheSearch()
             => GetCache(CacheRegionSearch, GetOptions().Cache.SearchLifeInMinutes);
+
         private static FileCache? GetCacheSearch(int life)
             => GetCache(CacheRegionSearch, life);
 
@@ -93,6 +89,8 @@ namespace subbuzz.Providers
                 }
 
                 SearchInfo si = SearchInfo.GetSearchInfo(request, _localizationManager, _libraryManager, "{0}");
+
+                if (si.Lang == "pt-br") si.Lang = "br_pt";
 
                 _logger.LogInformation($"Request subtitle for '{si.SearchText}', language={si.Lang}, year={request.ProductionYear}, IMDB={si.ImdbId}");
 
@@ -217,38 +215,76 @@ namespace subbuzz.Providers
 
             foreach (var subItem in searchResponse.Data.Subtitles)
             {
-                float score = si.CaclScore(subItem.Release, subScoreBase, false, false);
-                if (score == 0 || score < GetOptions().MinScore)
-                {
-                    _logger.LogInformation($"Ignore file: {subItem.Release ?? ""} ID: {subItem.Name} Score: {score}");
-                    continue;
-                }
+                subItem.Release = subItem.Release.Trim();
+                SubtitleScore subScore = (SubtitleScore)subScoreBase.Clone();
+                si.MatchTitle(subItem.Release, ref subScore);
 
-                string subInfo = $"{subItem.Release}<br>";
-                subInfo += (subItem.Comment.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comment}" : "";
-                subInfo += "<br>" + subItem.Author;
+                string subInfoBase = ((resItem.Year ?? 0) > 0) ?  
+                    $"{resItem.Name} ({resItem.Year})<br>{subItem.Release}" : $"{resItem.Name}<br>{subItem.Release}";
 
-                var item = new SubtitleInfo
+                var link = new Http.RequestSub
                 {
-                    ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
-                    //Id = GetId(file.FileId, si.GetLanguageTag(), subItem.Fps, si.VideoFps, subItem.ForeignPartsOnly, subItem.HearingImpaired),
-                    Id = subItem.Url,
-                    ProviderName = Name,
-                    Name = subItem.Release ?? "...",
-                    PageLink = ServerUrl + subItem.SubPage,
-                    Format = "srt", // SubtitleConvert.GetExtSupportedByEmby(subItem.Format),
-                    Author = subItem.Author,
-                    Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
-                    //DateCreated = subItem.UploadDate,
-                    //CommunityRating = subItem.Ratings,
-                    //DownloadCount = subItem.DownloadCount,
-                    //IsHashMatch = (score >= GetOptions().HashMatchByScore) || (subItem.MovieHashMatch ?? false),
-                    //IsForced = subItem.ForeignPartsOnly,
-                    IsHearingImpaired = subItem.HearingImpaired,
-                    Score = score,
+                    Url = DownloadUrl + subItem.Url,
+                    Referer = ServerUrl + subItem.SubPage,
+                    Type = Http.RequestType.GET,
+                    CacheRegion = CacheRegionSub,
+                    CacheLifespan = GetOptions().Cache.GetSubLife(),
+                    Lang = si.GetLanguageTag(),
+                    FpsVideo = si.VideoFps,
                 };
 
-                res.Add(item);
+                using (var files = await _downloader.GetArchiveFiles(link, cancellationToken).ConfigureAwait(false))
+                {
+                    int subFilesCount = files.SubCount;
+                    foreach (var file in files)
+                    {
+                        if (!file.IsSubfile())
+                        {
+                            _logger.LogDebug($"Ignoring '{file.Name}' as it's not a subtitle file. Page: {link.Referer}. Link: {link.Url}");
+                            continue;
+                        }
+
+                        link.File = file.Name;
+                        link.IsSdh = subItem.HearingImpaired;
+
+                        float score = si.CaclScore(file.Name, subScore, false, false);
+                        if (score == 0 || score < GetOptions().MinScore)
+                        {
+                            _logger.LogInformation($"Ignore file: {subItem.Release ?? ""} ID: {subItem.Name} Score: {score}");
+                            continue;
+                        }
+
+                        string subInfo = subInfoBase;
+                        foreach(var relName in subItem.Releases)
+                        {
+                            if (relName.Trim() != subItem.Release)
+                                subInfo += "<br>" + relName;
+                        }
+                        subInfo += (subItem.Comment.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comment}" : "";
+                        subInfo += "<br>" + subItem.Author;
+
+                        var item = new SubtitleInfo
+                        {
+                            ThreeLetterISOLanguageName = si.LanguageInfo.ThreeLetterISOLanguageName,
+                            Id = link.GetId(),
+                            ProviderName = Name,
+                            Name = file.Name ?? "...",
+                            PageLink = ServerUrl + subItem.SubPage,
+                            Format = file.GetExtSupportedByEmby(),
+                            Author = subItem.Author,
+                            Comment = subInfo + " | Score: " + score.ToString("0.00", CultureInfo.InvariantCulture) + " %",
+                            //DateCreated = subItem.UploadDate,
+                            //CommunityRating = subItem.Ratings,
+                            //DownloadCount = subItem.DownloadCount,
+                            //IsHashMatch = (score >= GetOptions().HashMatchByScore) || (subItem.MovieHashMatch ?? false),
+                            //IsForced = subItem.ForeignPartsOnly,
+                            IsHearingImpaired = subItem.HearingImpaired,
+                            Score = score,
+                        };
+
+                        res.Add(item);
+                    }
+                }
             }
 
             return res;
