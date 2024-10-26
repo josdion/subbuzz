@@ -255,7 +255,7 @@ namespace subbuzz.Providers
                         float score = si.CaclScore(file.Name, subScore, false, false);
                         if (score == 0 || score < GetOptions().MinScore)
                         {
-                            _logger.LogInformation($"Ignore file: {subItem.Release ?? ""} ID: {subItem.Name} Score: {score}");
+                            _logger.LogInformation($"Ignore file: {file.Name} Page: {link.Referer} Link: {link.Url} Score: {score}");
                             continue;
                         }
 
