@@ -6,6 +6,7 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 * [Opensubtitles.com](https://www.opensubtitles.com)
 * [Podnapisi.NET](https://www.podnapisi.net)
 * [Subf2m.co](https://subf2m.co)
+* [SubDL.com](https://subdl.com)
 * [Subs.sab.bz](https://subs.sab.bz)
 * [Subsunacs.net](https://subsunacs.net)
 * [Yavka.net](https://www.yavka.net)
