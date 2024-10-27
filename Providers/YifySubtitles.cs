@@ -198,7 +198,7 @@ namespace subbuzz.Providers
 
                 string subInfoBase = linkTag.InnerHtml;
                 var regexInfo = new Regex(@"<span.*/span>");
-                subInfoBase = regexInfo.Replace(subInfoBase, "").Trim().Replace("\n", " ");
+                subInfoBase = regexInfo.Replace(subInfoBase, "").Trim();
                 string subInfo = subTitle + (subInfoBase.IsNullOrWhiteSpace() ? "" : "<br>" + subInfoBase);
                 subInfo += string.Format("<br>{0}", subUploader);
 

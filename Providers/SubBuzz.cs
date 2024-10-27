@@ -169,7 +169,7 @@ namespace subbuzz.Providers
 
             var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            s.Comment = regex.Replace(s.Comment, brRepl);
+            s.Comment = regex.Replace(s.Comment, brRepl).Replace(brRepl+ brRepl, brRepl).Replace(brRepl + brRepl, brRepl);
 
             var parser = new AngleSharp.Html.Parser.HtmlParser();
             var nodeList = parser.ParseFragment(s.Comment, null);
