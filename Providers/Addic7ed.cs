@@ -385,7 +385,7 @@ namespace subbuzz.Providers
                         for (var rowIndex = 2; (rowIndex + 1) < rows.Length; rowIndex += 2)
                         {
                             bool addItem = false;
-                            var row1Downloads = rows[rowIndex].QuerySelectorAll("a.buttonDownload");
+                            var row1Downloads = rows[rowIndex].QuerySelectorAll("a.face-button");
                             if (row1Downloads.Length < 1) continue;
 
                             var row1Language = rows[rowIndex].QuerySelector("td.language");
