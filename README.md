@@ -16,13 +16,13 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 ## Installation
 - Repository (Jellyfin only):
   - Add to the list this URL:
+    - For **Jellyfin 10.10**
+      ```
+      https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.10.json
+      ```
     - For **Jellyfin 10.9**
       ```
       https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.9.json
-      ```
-    - For **Jellyfin 10.8**
-      ```
-      https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.8.json
       ```
 - Manual:
   - Download the appropriate archive from [![Latest release](https://badgen.net/github/release/josdion/subbuzz)](https://github.com/josdion/subbuzz/releases)
