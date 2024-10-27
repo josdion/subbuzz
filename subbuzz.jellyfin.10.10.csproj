@@ -1,0 +1,45 @@
+﻿<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>obj/jellyfin-10.10</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/jellyfin-10.10</BaseOutputPath>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <RootNamespace>subbuzz</RootNamespace>
+    <AssemblyName>subbuzz</AssemblyName>
+    <DefineConstants>JELLYFIN,NO_HTML</DefineConstants>	
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PackageProjectUrl>https://github.com/josdion/subbuzz</PackageProjectUrl>
+    <Nullable>annotations</Nullable>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="API\ControllerEmby.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="10.10.*-*" IncludeAssets="compile" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" IncludeAssets="compile" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" Version="2.2.8" IncludeAssets="compile" />
+    <PackageReference Include="SharpCompress" Version="0.37.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\*.html" />
+    <None Remove="Configuration\*.js" />
+	<None Remove="Configuration\**" />
+    <EmbeddedResource Include="Configuration\*.html" />
+	<EmbeddedResource Include="Configuration\*.js" />
+    <EmbeddedResource Include="Configuration\Jellyfin\*.js" />
+	<EmbeddedResource Include="Configuration\Jellyfin\*.html" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+</Project>

@@ -274,8 +274,8 @@
                     config.OpenSubApiKey = apiKey;
                     config.OpenSubToken = token;
 
-                    page.querySelector("#EnableSubdlCom").checked = config.EnableSubdlCom;
-                    page.querySelector('#SubdlApiKey').value = config.SubdlApiKey || '';
+                    config.EnableSubdlCom = form.querySelector("#EnableSubdlCom").checked;
+                    config.SubdlApiKey = form.querySelector('#SubdlApiKey').value;
 
                     config.SubPostProcessing.EncodeSubtitlesToUTF8 = form.querySelector("#EncodeSubtitlesToUTF8").checked;
                     config.SubPostProcessing.AdjustDuration = form.querySelector("#AdjustDuration").checked;
@@ -312,7 +312,7 @@
                             }
 
                             el.innerHtml = "&nbsp;";
-                            Dashboard.processErrorResponse({ statusText: "Request failed - " + msg });
+                            Dashboard.processErrorResponse({ statusText: "Validate OpenSubtitles Account: Request failed - " + msg });
                             return;
                         }
                     });

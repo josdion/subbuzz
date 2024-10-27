@@ -265,7 +265,12 @@ namespace subbuzz.Providers
                             if (relName.Trim() != subItem.Release)
                                 subInfo += "<br>" + relName;
                         }
-                        subInfo += (subItem.Comment.IsNotNullOrWhiteSpace()) ? $"<br>{subItem.Comment}" : "";
+                        if (subItem.Comment.IsNotNullOrWhiteSpace())
+                        {
+                            var comment = Utils.TrimString(subItem.Comment, "\n").Replace("\n\n", "\n").Replace("\n\n", "\n").Replace("\n", "<br>");
+                            subInfo += $"<br>{comment}";
+                        }
+
                         subInfo += "<br>" + subItem.Author;
 
                         var item = new SubtitleInfo

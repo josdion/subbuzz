@@ -54,7 +54,6 @@ namespace subbuzz.Providers
                 { PodnapisiNet.NAME,        new PodnapisiNet(_logger.GetLogger<PodnapisiNet>(), fileSystem, localizationManager, libraryManager) },
                 { Subf2m.NAME,              new Subf2m(_logger.GetLogger<Subf2m>(), fileSystem, localizationManager, libraryManager) },
                 { SubDl.NAME,               new SubDl(_logger.GetLogger<SubDl>(), fileSystem, localizationManager, libraryManager) },
-                //{ Subscene.NAME,            new Subscene(_logger.GetLogger<Subscene>(), fileSystem, localizationManager, libraryManager) },
                 { YifySubtitles.NAME,       new YifySubtitles(_logger.GetLogger<YifySubtitles>(), fileSystem, localizationManager, libraryManager) },
                 { Addic7ed.NAME,            new Addic7ed(_logger.GetLogger<Addic7ed>(), fileSystem, localizationManager, libraryManager) },
             };
@@ -161,13 +160,16 @@ namespace subbuzz.Providers
             if (s.IsHearingImpaired ?? false) s.Name = "[HI/SDH] " + s.Name;
 #endif
 #if EMBY || JELLYFIN_108
+            var brRepl = " &#9734; ";
             if (s.MachineTranslated ?? false) s.Name = "[MT] " + s.Name;
             if (s.AiTranslated ?? false) s.Name = "[AI] " + s.Name;
+#else
+            var brRepl = "\n";
 #endif
 
             var regex = new System.Text.RegularExpressions.Regex(@"<br.*?>",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            s.Comment = regex.Replace(s.Comment, " &#9734; ");
+            s.Comment = regex.Replace(s.Comment, brRepl);
 
             var parser = new AngleSharp.Html.Parser.HtmlParser();
             var nodeList = parser.ParseFragment(s.Comment, null);
