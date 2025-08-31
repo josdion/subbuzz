@@ -1,5 +1,6 @@
 ﻿using MediaBrowser.Controller.Subtitles;
 using SharpCompress.Archives;
+using SharpCompress.Common;
 using subbuzz.Configuration;
 using subbuzz.Extensions;
 using subbuzz.Helpers;
@@ -66,7 +67,7 @@ namespace subbuzz.Providers.Http
             {
                 try
                 {
-                    res.AddRange(ReadArchive(resp.Content));
+                    res.AddRange(ReadArchive(resp.Content, resp.Info.FileName.GetPathExtension()));
                 }
                 catch
                 {
@@ -157,12 +158,16 @@ namespace subbuzz.Providers.Http
             }
         }
 
-        private FileList ReadArchive(Stream content, string baseKey = null)
+        private FileList ReadArchive(Stream content, string ext, string baseKey = null)
         {
             var res = new FileList();
 
             using (IArchive arcreader = ArchiveFactory.Open(content))
             {
+                // NOTE: fix issue with sharpcompress not able to detect properly tar archives
+                if (arcreader.Type == ArchiveType.Tar && ext.ToLower() != "tar")
+                    throw new InvalidOperationException("Decompress only tar files with tar extension");
+
                 foreach (IArchiveEntry entry in arcreader.Entries)
                 {
                     if (!entry.IsDirectory)
@@ -181,7 +186,7 @@ namespace subbuzz.Providers.Http
                         try
                         {
                             // try to extract internal archives
-                            res.AddRange(ReadArchive(info.Content, info.Name));
+                            res.AddRange(ReadArchive(info.Content, info.Ext, info.Name));
                             info.Dispose();
                         }
                         catch
