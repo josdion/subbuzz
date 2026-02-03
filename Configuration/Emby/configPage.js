@@ -25,6 +25,9 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
             page.querySelector("#EnableSubdlCom").checked = config.EnableSubdlCom;
             page.querySelector('#SubdlApiKey').value = config.SubdlApiKey || '';
 
+            page.querySelector("#EnableSubSource").checked = config.EnableSubSource;
+            page.querySelector('#SubSourceApiKey').value = config.SubSourceApiKey || '';
+
             page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
             page.querySelector('#AutoDetectEncoding').checked = config.SubEncoding.AutoDetectEncoding;
 
@@ -86,6 +89,9 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
 
                 config.EnableSubdlCom = form.querySelector("#EnableSubdlCom").checked;
                 config.SubdlApiKey = form.querySelector('#SubdlApiKey').value;
+
+                config.EnableSubSource = form.querySelector("#EnableSubSource").checked;
+                config.SubSourceApiKey = form.querySelector('#SubSourceApiKey').value;
 
                 config.SubPostProcessing.EncodeSubtitlesToUTF8 = form.querySelector("#EncodeSubtitlesToUTF8").checked;
                 config.SubPostProcessing.AdjustDuration = form.querySelector("#AdjustDuration").checked;
