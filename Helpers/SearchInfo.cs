@@ -57,7 +57,11 @@ namespace subbuzz.Helpers
             res.VideoType = request.ContentType;
 
 #if EMBY
+#if EMBY_4_9
+            res.LanguageInfo = localize.FindLanguageInfo(request.Language);
+#else
             res.LanguageInfo = localize.FindLanguageInfo(request.Language.AsSpan());
+#endif
             res.IsForced = request.IsForced ?? false;
 #else
             res.LanguageInfo = LoadLanguageInfo(localize, request);

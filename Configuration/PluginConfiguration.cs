@@ -67,16 +67,18 @@ namespace subbuzz.Configuration
 
     public class PluginConfiguration : BasePluginConfiguration
     {
-        public bool EnableAddic7ed { get; set; } = true;
+        public bool EnableAddic7ed { get; set; } = false;
         public bool EnableOpenSubtitles { get; set; } = true;
-        public bool EnablePodnapisiNet { get; set; } = true;
+        public bool EnablePodnapisiNet { get; set; } = false;
         public bool EnableSubf2m { get; set; } = false;
         public bool EnableSubdlCom { get; set; } = false;
-        public bool EnableSubscene { get; set; } = true;
-        public bool EnableSubssabbz { get; set; } = true;
-        public bool EnableSubsunacsNet { get; set; } = true;
-        public bool EnableYavkaNet { get; set; } = true;
+        public bool EnableSubscene { get; set; } = false;
+        public bool EnableSubSource { get; set; } = false;
+        public bool EnableSubssabbz { get; set; } = false;
+        public bool EnableSubsunacsNet { get; set; } = false;
+        public bool EnableYavkaNet { get; set; } = false;
         public bool EnableYifySubtitles { get; set; } = true;
+
         public float HashMatchByScore { get; set; } = 100;
         public float MinScore { get; set; } = 50;
 
@@ -92,7 +94,6 @@ namespace subbuzz.Configuration
 
         public string SubdlApiKey { get; set; } = string.Empty;
 
-        public bool EnableSubSource { get; set; } = false;
         public string SubSourceApiKey { get; set; } = string.Empty;
 
         public PluginConfiguration()

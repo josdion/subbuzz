@@ -49,10 +49,6 @@
                         <span>Subsunacs.net</span>
                     </label>
                     <label>
-                        <input is="emby-checkbox" type="checkbox" class="EnableYavkaNet" id="EnableYavkaNet" />
-                        <span>Yavka.net</span>
-                    </label>
-                    <label>
                         <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles"
                             id="EnableYifySubtitles" />
                         <span>YIFY Subtitles</span>
@@ -237,7 +233,6 @@
                 page.querySelector("#EnableSubf2m").checked = config.EnableSubf2m;
                 page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
                 page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
-                page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
                 page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
 
                 page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
@@ -298,7 +293,6 @@
                     config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;
                     config.EnableSubssabbz = form.querySelector("#EnableSubssabbz").checked;
                     config.EnableSubsunacsNet = form.querySelector("#EnableSubsunacsNet").checked;
-                    config.EnableYavkaNet = form.querySelector("#EnableYavkaNet").checked;
                     config.EnableYifySubtitles = form.querySelector("#EnableYifySubtitles").checked;
 
                     config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;

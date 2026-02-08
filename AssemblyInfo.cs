@@ -2,11 +2,11 @@ using System;
 using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("subbuzz")]
-[assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright © josdion, 2025")]
+[assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright © josdion, 2026")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Subtitles plugin for emby and jellyfin")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.3.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.3.0.0")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.4.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.4.0.0")]
 [assembly: System.Reflection.AssemblyProductAttribute("subbuzz")]
 [assembly: System.Reflection.AssemblyTitleAttribute("subbuzz")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.3.0.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.4.0.0")]
 

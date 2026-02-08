@@ -14,7 +14,6 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
             page.querySelector("#EnableSubf2m").checked = config.EnableSubf2m;
             page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
             page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
-            page.querySelector("#EnableYavkaNet").checked = config.EnableYavkaNet;
             page.querySelector("#EnableYifySubtitles").checked = config.EnableYifySubtitles;
 
             page.querySelector("#EnableOpenSubtitles").checked = config.EnableOpenSubtitles;
@@ -77,7 +76,6 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
                 config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;
                 config.EnableSubssabbz = form.querySelector("#EnableSubssabbz").checked;
                 config.EnableSubsunacsNet = form.querySelector("#EnableSubsunacsNet").checked;
-                config.EnableYavkaNet = form.querySelector("#EnableYavkaNet").checked;
                 config.EnableYifySubtitles = form.querySelector("#EnableYifySubtitles").checked;
 
                 config.EnableOpenSubtitles = form.querySelector("#EnableOpenSubtitles").checked;
