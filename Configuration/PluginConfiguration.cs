@@ -92,6 +92,9 @@ namespace subbuzz.Configuration
 
         public string SubdlApiKey { get; set; } = string.Empty;
 
+        public bool EnableSubSource { get; set; } = false;
+        public string SubSourceApiKey { get; set; } = string.Empty;
+
         public PluginConfiguration()
         {
             SubEncoding = new SubEncodingCfg();

@@ -23,6 +23,7 @@ namespace subbuzz.Providers.Http
         public string Referer { get; set; } = string.Empty;
         public RequestType Type { get; set; } = RequestType.GET;
         public Dictionary<string, string>? Params { get; set; } = null;
+        public Dictionary<string, string>? Headers { get; set; } = null;
 
         public HttpMethod GetHttpMethod()
         {
@@ -58,6 +59,14 @@ namespace subbuzz.Providers.Http
 
             if (Referer.IsNotNullOrWhiteSpace()) 
                 reqMsg.Headers.Add("Referer", Referer);
+
+            if (Headers.IsNotNullOrEmpty())
+            {
+                foreach (var hdr in Headers)
+                {
+                    reqMsg.Headers.TryAddWithoutValidation(hdr.Key, hdr.Value);
+                }
+            }
             
             return reqMsg;
         }

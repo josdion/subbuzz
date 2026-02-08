@@ -1,11 +1,7 @@
-﻿
-<div id="SubbuzzConfigPage"
-     data-role="page"
-     data-title="SubBuzz"
-     class="page type-interior withTabs pluginConfigurationPage SubbuzzConfigPage"
-     data-require="emby-input,emby-button,emby-select,emby-checkbox"
-     data-helpurl="https://github.com/josdion/subbuzz"
-     data-controller="__plugin/SubbuzzConfigPageJs">
+﻿<div id="SubbuzzConfigPage" data-role="page" data-title="SubBuzz"
+    class="page type-interior withTabs pluginConfigurationPage SubbuzzConfigPage"
+    data-require="emby-input,emby-button,emby-select,emby-checkbox" data-helpurl="https://github.com/josdion/subbuzz"
+    data-controller="__plugin/SubbuzzConfigPageJs">
 
     <div data-role="content">
         <div class="content-primary">
@@ -24,7 +20,8 @@
                         <span>Addic7ed.com</span>
                     </label>
                     <label class="emby-checkbox-label" style="z-index: 0;">
-                        <input is="emby-checkbox" type="checkbox" class="EnableOpenSubtitles" id="EnableOpenSubtitles" />
+                        <input is="emby-checkbox" type="checkbox" class="EnableOpenSubtitles"
+                            id="EnableOpenSubtitles" />
                         <span>OpenSubtitles.com</span>
                     </label>
                     <label class="emby-checkbox-label" style="z-index: 0;">
@@ -40,6 +37,10 @@
                         <span>Subdl.com</span>
                     </label>
                     <label class="emby-checkbox-label" style="z-index: 0;">
+                        <input is="emby-checkbox" type="checkbox" class="EnableSubSource" id="EnableSubSource" />
+                        <span>SubSource.net</span>
+                    </label>
+                    <label class="emby-checkbox-label" style="z-index: 0;">
                         <input is="emby-checkbox" type="checkbox" class="EnableSubssabbz" id="EnableSubssabbz" />
                         <span>Subs.sab.bz</span>
                     </label>
@@ -52,7 +53,8 @@
                         <span>Yavka.net</span>
                     </label>
                     <label class="emby-checkbox-label" style="z-index: 0;">
-                        <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles" id="EnableYifySubtitles" />
+                        <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles"
+                            id="EnableYifySubtitles" />
                         <span>YIFY Subtitles</span>
                     </label>
                 </div>
@@ -74,13 +76,16 @@
                 </div>
 
                 <div class="selectContainer">
-                    <select is="emby-select" id="DefaultEncoding" name="DefaultEncoding" label="Default Encoding:"></select>
-                    <div class="fieldDescription">Use this encoding in cases where automatic encoding detection is disabled or when automatic detection fails.</div>
+                    <select is="emby-select" id="DefaultEncoding" name="DefaultEncoding"
+                        label="Default Encoding:"></select>
+                    <div class="fieldDescription">Use this encoding in cases where automatic encoding detection is
+                        disabled or when automatic detection fails.</div>
                 </div>
 
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label" style="z-index: 0;">
-                        <input id="SubtitleInfoWithHtml" name="SubtitleInfoWithHtml" type="checkbox" is="emby-checkbox" />
+                        <input id="SubtitleInfoWithHtml" name="SubtitleInfoWithHtml" type="checkbox"
+                            is="emby-checkbox" />
                         <span>Subtitle Info with HTML</span>
                     </label>
                     <div class="fieldDescription checkboxFieldDescription">
@@ -100,7 +105,8 @@
 
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label" style="z-index: 0;">
-                        <input id="EncodeSubtitlesToUTF8" name="EncodeSubtitlesToUTF8" type="checkbox" is="emby-checkbox" />
+                        <input id="EncodeSubtitlesToUTF8" name="EncodeSubtitlesToUTF8" type="checkbox"
+                            is="emby-checkbox" />
                         <span>Encode Subtitles To UTF8</span>
                     </label>
                     <div class="fieldDescription checkboxFieldDescription">Re-encode downloaded Subtitles to UTF8.</div>
@@ -111,20 +117,24 @@
                         <input id="AdjustDuration" name="AdjustDuration" type="checkbox" is="emby-checkbox" />
                         <span>Adjust Durations</span>
                     </label>
-                    <div class="fieldDescription checkboxFieldDescription">Correct subtitles reading speed when saving.</div>
+                    <div class="fieldDescription checkboxFieldDescription">Correct subtitles reading speed when saving.
+                    </div>
                 </div>
 
                 <div class="inputContainer" style="margin-left: 2.3em;">
-                    <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1" label="Characters per second (CPS):" />
+                    <input is="emby-input" type="number" id="AdjustDurationCps" min="2" max="100" step="0.1"
+                        label="Characters per second (CPS):" />
                     <div class="fieldDescription">Select the optimal reading speed for subtitles adjustment.</div>
                 </div>
 
                 <div class="checkboxContainer checkboxContainer-withDescription" style="margin-left: 2.3em;">
                     <label class="emby-checkbox-label" style="z-index: 0;">
-                        <input id="AdjustDurationExtendOnly" name="AdjustDurationExtendOnly" type="checkbox" is="emby-checkbox" />
+                        <input id="AdjustDurationExtendOnly" name="AdjustDurationExtendOnly" type="checkbox"
+                            is="emby-checkbox" />
                         <span>Extend Only</span>
                     </label>
-                    <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not decrease the original duration.</div>
+                    <div class="fieldDescription checkboxFieldDescription">When adjusting subtitles do not decrease the
+                        original duration.</div>
                 </div>
 
                 <br />
@@ -139,7 +149,8 @@
                     <input is="emby-input" type="text" id="OpenSubUserName" label="Username or email" />
                     <div class="fieldDescription">
                         If you don't have an account yet, go to
-                        <a is="emby-linkbutton" class="button-link" target="_blank" href="https://www.opensubtitles.com">
+                        <a is="emby-linkbutton" class="button-link" target="_blank"
+                            href="https://www.opensubtitles.com">
                             opensubtitles.com
                         </a>
                         to create one.
@@ -157,12 +168,13 @@
                         <span>Use Hash</span>
                     </label>
                     <div class="fieldDescription checkboxFieldDescription">
-                        When enabled, the hash of the video file will be sent in the search requests to opensubtitles.com
+                        When enabled, the hash of the video file will be sent in the search requests to
+                        opensubtitles.com
                     </div>
                 </div>
 
                 <p>
-                    <div class="fieldDescription" id="ossresponse">&nbsp;</div>
+                <div class="fieldDescription" id="ossresponse">&nbsp;</div>
                 </p>
 
                 <div class="verticalSection ">
@@ -174,7 +186,27 @@
                 <div class="inputContainer">
                     <input is="emby-input" type="password" id="SubdlApiKey" label="API Key (Required):" />
                     <div class="fieldDescription">
-                        Provide your <a is="emby-linkbutton" class="button-link" target="_blank" href="https://subdl.com/panel/api">API Key</a> for doing API requests, if left empty provider will be disabled.
+                        Provide your <a is="emby-linkbutton" class="button-link" target="_blank"
+                            href="https://subdl.com/panel/api">API Key</a> for doing API requests, if left empty
+                        provider will be disabled.
+                    </div>
+                </div>
+
+                <br />
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">SubSource.net Account</h2>
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="password" id="SubSourceApiKey" label="API Key (Required):" />
+                    <div class="fieldDescription">
+                        Provide your <a is="emby-linkbutton" class="button-link" target="_blank"
+                            href="https://subsource.net/dashboard/profile">API Key</a> for doing API requests, if left
+                        empty
+                        provider will be disabled.
                     </div>
                 </div>
 

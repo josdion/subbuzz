@@ -54,6 +54,7 @@ namespace subbuzz.Providers
                 { PodnapisiNet.NAME,        new PodnapisiNet(_logger.GetLogger<PodnapisiNet>(), fileSystem, localizationManager, libraryManager) },
                 { Subf2m.NAME,              new Subf2m(_logger.GetLogger<Subf2m>(), fileSystem, localizationManager, libraryManager) },
                 { SubDl.NAME,               new SubDl(_logger.GetLogger<SubDl>(), fileSystem, localizationManager, libraryManager) },
+                { SubSource.NAME,           new SubSource(_logger.GetLogger<SubSource>(), fileSystem, localizationManager, libraryManager) },
                 { YifySubtitles.NAME,       new YifySubtitles(_logger.GetLogger<YifySubtitles>(), fileSystem, localizationManager, libraryManager) },
                 { Addic7ed.NAME,            new Addic7ed(_logger.GetLogger<Addic7ed>(), fileSystem, localizationManager, libraryManager) },
             };
