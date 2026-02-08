@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/josdion/subbuzz/master/thumb.png",
     "versions": [
       {
+        "version": "1.4.0.0",
+        "changelog": "- Add new provider: Subsource.net\n- Remove Yavka.net\n",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.4.0.0/subbuzz_1.4.0.0_jellyfin_10.10.zip",
+        "checksum": "61fac098326a40f06865de9e47d43cf8",
+        "timestamp": "2026-02-08T11:41:00Z"
+      },	
+      {
         "version": "1.2.1.0",
         "changelog": "- Added new provider: SubDL.com\n",
         "targetAbi": "10.10.0.0",
