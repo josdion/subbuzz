@@ -10,7 +10,6 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
 
         ApiClient.getPluginConfiguration(SubbuzzConfig.pluginUniqueId).then(function (config) {
             page.querySelector("#EnableAddic7ed").checked = config.EnableAddic7ed;
-            page.querySelector("#EnablePodnapisiNet").checked = config.EnablePodnapisiNet;
             page.querySelector("#EnableSubf2m").checked = config.EnableSubf2m;
             page.querySelector("#EnableSubssabbz").checked = config.EnableSubssabbz;
             page.querySelector("#EnableSubsunacsNet").checked = config.EnableSubsunacsNet;
@@ -72,7 +71,6 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
 
             var saveConfig = function () {
                 config.EnableAddic7ed = form.querySelector("#EnableAddic7ed").checked;
-                config.EnablePodnapisiNet = form.querySelector("#EnablePodnapisiNet").checked;
                 config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;
                 config.EnableSubssabbz = form.querySelector("#EnableSubssabbz").checked;
                 config.EnableSubsunacsNet = form.querySelector("#EnableSubsunacsNet").checked;

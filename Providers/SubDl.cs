@@ -18,6 +18,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using subbuzz.Providers.SubdlApi.Models;
 using subbuzz.Providers.SubdlApi.Models.Responses;
+// Jellyfin 12 introduced MediaBrowser.Controller.Library.SearchResult, so pin the SubDL type explicitly.
+using SearchResult = subbuzz.Providers.SubdlApi.Models.Responses.SearchResult;
 
 namespace subbuzz.Providers
 {

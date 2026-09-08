@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32014.148
+# Visual Studio Version 18
+VisualStudioVersion = 18.5.11716.220 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "subbuzz.jellyfin.10.8", "subbuzz.jellyfin.10.8.csproj", "{5FEDFD9D-9986-4547-BE19-D606840C7D8A}"
 EndProject
@@ -16,6 +16,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "subbuzz.jellyfin.10.10", "subbuzz.jellyfin.10.10.csproj", "{D64C04CA-0585-4943-BF19-DCF2CABDE7FE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "subbuzz.jellyfin.10.11", "subbuzz.jellyfin.10.11.csproj", "{F0DB823C-AE2D-9CFC-D797-943366B6E434}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "subbuzz.jellyfin.12", "subbuzz.jellyfin.12.csproj", "{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{F0DB823C-AE2D-9CFC-D797-943366B6E434}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0DB823C-AE2D-9CFC-D797-943366B6E434}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0DB823C-AE2D-9CFC-D797-943366B6E434}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

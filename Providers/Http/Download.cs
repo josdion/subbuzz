@@ -162,7 +162,12 @@ namespace subbuzz.Providers.Http
         {
             var res = new FileList();
 
+#if SHARPCOMPRESS_050
+            // SharpCompress 0.50+ renamed ArchiveFactory.Open to OpenArchive
+            using (IArchive arcreader = ArchiveFactory.OpenArchive(content))
+#else
             using (IArchive arcreader = ArchiveFactory.Open(content))
+#endif
             {
                 // NOTE: fix issue with sharpcompress not able to detect properly tar archives
                 if (arcreader.Type == ArchiveType.Tar && ext.ToLower() != "tar")

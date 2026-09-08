@@ -50,7 +50,8 @@ namespace subbuzz.Providers
                 { SubsSabBz.NAME,           new SubsSabBz(_logger.GetLogger<SubsSabBz>(), fileSystem, localizationManager, libraryManager) },
                 { SubsUnacsNet.NAME,        new SubsUnacsNet(_logger.GetLogger<SubsUnacsNet>(), fileSystem, localizationManager, libraryManager) },
                 { OpenSubtitlesCom.NAME,    new OpenSubtitlesCom(_logger.GetLogger<OpenSubtitlesCom>(), fileSystem, localizationManager, libraryManager) },
-                { PodnapisiNet.NAME,        new PodnapisiNet(_logger.GetLogger<PodnapisiNet>(), fileSystem, localizationManager, libraryManager) },
+                // Podnapisi.NET is no longer working, so the provider is disabled but the code is kept.
+                //{ PodnapisiNet.NAME,        new PodnapisiNet(_logger.GetLogger<PodnapisiNet>(), fileSystem, localizationManager, libraryManager) },
                 { Subf2m.NAME,              new Subf2m(_logger.GetLogger<Subf2m>(), fileSystem, localizationManager, libraryManager) },
                 { SubDl.NAME,               new SubDl(_logger.GetLogger<SubDl>(), fileSystem, localizationManager, libraryManager) },
                 { SubSource.NAME,           new SubSource(_logger.GetLogger<SubSource>(), fileSystem, localizationManager, libraryManager) },
