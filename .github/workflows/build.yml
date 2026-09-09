@@ -58,6 +58,32 @@ jobs:
           name: build-artifact-emby-4.8
           if-no-files-found: error
           path: ./bin/emby-4.8/Release/netstandard2.0/subbuzz.dll
+
+  build_emby_4_9:
+    name: Build for emby-4.9
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install dependencies
+        run: dotnet restore subbuzz.emby.4.9.csproj
+
+      - name: Build for emby-4.9
+        run: dotnet build subbuzz.emby.4.9.csproj --configuration Release --no-restore
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-emby-4.9
+          if-no-files-found: error
+          path: ./bin/emby-4.9/Release/netstandard2.0/subbuzz.dll
           
   build_jellyfin_10_8:
     name: Build for jellyfin-10.8
@@ -120,6 +146,70 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact-jellyfin-10.9
+          if-no-files-found: error
+          path: ${{ steps.jprm.outputs.artifact }}
+
+  build_jellyfin_10_10:
+    name: Build for jellyfin-10.10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Remove unused files
+        run: |
+          rm *.sln
+          find *.csproj -not -name 'subbuzz.jellyfin.10.10.csproj' -delete
+          mv build.jellyfin.10.10.yaml build.yaml
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build for jellyfin-10.10
+        uses: oddstr13/jellyfin-plugin-repository-manager@v1.1.1
+        id: jprm
+        with:
+          dotnet-target: net8.0
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-jellyfin-10.10
+          if-no-files-found: error
+          path: ${{ steps.jprm.outputs.artifact }}
+
+  build_jellyfin_10_11:
+    name: Build for jellyfin-10.11
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Remove unused files
+        run: |
+          rm *.sln
+          find *.csproj -not -name 'subbuzz.jellyfin.10.11.csproj' -delete
+          mv build.jellyfin.10.11.yaml build.yaml
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build for jellyfin-10.11
+        uses: oddstr13/jellyfin-plugin-repository-manager@v1.1.1
+        id: jprm
+        with:
+          dotnet-target: net9.0
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-jellyfin-10.11
           if-no-files-found: error
           path: ${{ steps.jprm.outputs.artifact }}
 

@@ -15,6 +15,10 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 ## Installation
 - Repository (Jellyfin only):
   - Add to the list this URL:
+    - For **Jellyfin 12**
+      ```
+      https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_12.json
+      ```
     - For **Jellyfin 10.11**
       ```
       https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.11.json
