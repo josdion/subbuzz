@@ -244,3 +244,19 @@ jobs:
           name: build-artifact-jellyfin-12
           if-no-files-found: error
           path: ${{ steps.jprm.outputs.artifact }}
+
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run unit tests
+        run: dotnet test tests/subbuzz.tests/subbuzz.tests.csproj --configuration Release

@@ -22,6 +22,7 @@
   <ItemGroup>
     <Compile Remove="API\ControllerJellyfin.cs" />
     <Compile Remove="PluginServiceRegistrator.cs" />
+    <Compile Remove="tests\**" />
   </ItemGroup>
 
   <ItemGroup> 

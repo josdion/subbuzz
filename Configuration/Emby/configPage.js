@@ -26,6 +26,10 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
             page.querySelector("#EnableSubSource").checked = config.EnableSubSource;
             page.querySelector('#SubSourceApiKey').value = config.SubSourceApiKey || '';
 
+            page.querySelector("#EnableTitloviCom").checked = config.EnableTitloviCom;
+            page.querySelector('#TitloviUserName').value = config.TitloviUserName || '';
+            page.querySelector('#TitloviPassword').value = config.TitloviPassword || '';
+
             page.querySelector("#EncodeSubtitlesToUTF8").checked = config.SubPostProcessing.EncodeSubtitlesToUTF8;
             page.querySelector('#AutoDetectEncoding').checked = config.SubEncoding.AutoDetectEncoding;
 
@@ -69,6 +73,19 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
                 token = '';
             }
 
+            const titloviUsername = form.querySelector('#TitloviUserName').value;
+            const titloviPassword = form.querySelector('#TitloviPassword').value;
+            var titloviToken = config.TitloviToken || '';
+
+            if ((titloviUsername || titloviPassword) && (!titloviUsername || !titloviPassword)) {
+                Dashboard.processErrorResponse({ statusText: "Titlovi.com account info is incomplete!" });
+                return;
+            }
+
+            if (config.TitloviUserName != titloviUsername || config.TitloviPassword != titloviPassword) {
+                titloviToken = '';
+            }
+
             var saveConfig = function () {
                 config.EnableAddic7ed = form.querySelector("#EnableAddic7ed").checked;
                 config.EnableSubf2m = form.querySelector("#EnableSubf2m").checked;
@@ -89,6 +106,15 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
                 config.EnableSubSource = form.querySelector("#EnableSubSource").checked;
                 config.SubSourceApiKey = form.querySelector('#SubSourceApiKey').value;
 
+                config.EnableTitloviCom = form.querySelector("#EnableTitloviCom").checked;
+                config.TitloviUserName = titloviUsername;
+                config.TitloviPassword = titloviPassword;
+                if (!titloviToken) {
+                    config.TitloviToken = '';
+                    config.TitloviUserId = 0;
+                    config.TitloviTokenExpiration = '';
+                }
+
                 config.SubPostProcessing.EncodeSubtitlesToUTF8 = form.querySelector("#EncodeSubtitlesToUTF8").checked;
                 config.SubPostProcessing.AdjustDuration = form.querySelector("#AdjustDuration").checked;
                 config.SubPostProcessing.AdjustDurationCps = form.querySelector("#AdjustDurationCps").value;
@@ -104,6 +130,36 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
                 });
             }
 
+            // Validate the titlovi.com account and store the token before saving the configuration
+            var validateTitlovi = function (next) {
+                const el = form.querySelector('#titloviresponse');
+                if (!titloviUsername || titloviToken) {
+                    el.innerHTML = "&nbsp;";
+                    next();
+                    return;
+                }
+
+                const data = JSON.stringify({ Username: titloviUsername, Password: titloviPassword });
+                const url = ApiClient.getUrl('subbuzz/ValidateTitloviLoginInfo');
+
+                const handler = response => response.json().then(res => {
+                    if (response.ok && !res.Message) {
+                        titloviToken = res.Token;
+                        config.TitloviToken = res.Token;
+                        config.TitloviUserId = res.UserId;
+                        config.TitloviTokenExpiration = res.ExpirationDate;
+                        el.innerText = "Titlovi.com account validated.";
+                        next();
+                    }
+                    else {
+                        el.innerHTML = "&nbsp;";
+                        Dashboard.processErrorResponse({ statusText: "Validate Titlovi.com Account: Request failed - " + (res.Message ?? JSON.stringify(res, null, 2)) });
+                    }
+                });
+
+                ApiClient.ajax({ type: 'POST', url, data, contentType: 'application/json' }).then(handler).catch(handler);
+            };
+
             if (username && !token) {
                 const el = form.querySelector('#ossresponse');
                 const data = JSON.stringify({ Username: username, Password: password, ApiKey: apiKey });
@@ -112,7 +168,7 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
                 const handler = response => response.json().then(res => {
                     if (response.ok && !res.Message) {
                         token = res.Token;
-                        saveConfig()
+                        validateTitlovi(saveConfig);
                         if (res.Token && res.Downloads) {
                             el.innerText = "OpenSubtitles.com account validated. You can download " + res.Downloads + " subtitles per day.";
                         }
@@ -133,7 +189,7 @@ define(['jQuery', 'loading', 'mainTabsManager', 'globalize'], function ($, loadi
             }
             else {
                 form.querySelector('#ossresponse').innerHtml = "&nbsp;";
-                saveConfig()
+                validateTitlovi(saveConfig);
             }
 
         });

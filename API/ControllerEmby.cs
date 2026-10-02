@@ -2,6 +2,7 @@
 using subbuzz.Extensions;
 using subbuzz.Providers.OpenSubtitlesAPI;
 using subbuzz.Providers.OpenSubtitlesAPI.Models;
+using subbuzz.Providers.TitloviAPI;
 using System;
 using System.Text.Json;
 using System.Threading;
@@ -15,6 +16,13 @@ namespace subbuzz.API
         public string Username { get; set; }
         public string Password { get; set; }
         public string ApiKey { get; set; }
+    }
+
+    [Route("/subbuzz/ValidateTitloviLoginInfo", "POST")]
+    public class TitloviLoginInfoRequest : IReturn<object>
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
     }
 
     public class ControllerEmby : IService
@@ -57,6 +65,37 @@ namespace subbuzz.API
                 return new
                 {
                     Message = "Unable to verify OpenSubtitles.com account"
+                };
+            }
+        }
+
+        public async Task<object> Post(TitloviLoginInfoRequest body)
+        {
+            try
+            {
+                var response = await Titlovi.LogInAsync(body.Username, body.Password, CancellationToken.None).ConfigureAwait(false);
+
+                if (!response.Ok || string.IsNullOrWhiteSpace(response.Data?.Token))
+                {
+                    return new
+                    {
+                        Message = Titlovi.GetLoginErrorMessage(response)
+                    };
+                }
+
+                return new
+                {
+                    Token = response.Data.Token,
+                    UserId = response.Data.UserId,
+                    UserName = response.Data.UserName,
+                    ExpirationDate = response.Data.ExpirationDate
+                };
+            }
+            catch
+            {
+                return new
+                {
+                    Message = "Unable to verify titlovi.com account"
                 };
             }
         }
