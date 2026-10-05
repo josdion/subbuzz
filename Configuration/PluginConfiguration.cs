@@ -76,6 +76,7 @@ namespace subbuzz.Configuration
         public bool EnableSubSource { get; set; } = false;
         public bool EnableSubssabbz { get; set; } = false;
         public bool EnableSubsunacsNet { get; set; } = false;
+        public bool EnableTitloviCom { get; set; } = false;
         public bool EnableYavkaNet { get; set; } = false;
         public bool EnableYifySubtitles { get; set; } = true;
 
@@ -95,6 +96,12 @@ namespace subbuzz.Configuration
         public string SubdlApiKey { get; set; } = string.Empty;
 
         public string SubSourceApiKey { get; set; } = string.Empty;
+
+        public string TitloviUserName { get; set; } = string.Empty;
+        public string TitloviPassword { get; set; } = string.Empty;
+        public string TitloviToken { get; set; } = string.Empty;
+        public int TitloviUserId { get; set; } = 0;
+        public string TitloviTokenExpiration { get; set; } = string.Empty;
 
         public PluginConfiguration()
         {

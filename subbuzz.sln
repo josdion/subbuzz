@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "subbuzz.jellyfin.10.11", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "subbuzz.jellyfin.12", "subbuzz.jellyfin.12.csproj", "{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "subbuzz.tests", "tests\subbuzz.tests\subbuzz.tests.csproj", "{E79D9BD0-C02C-468D-AAC4-9899D75494E8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +59,10 @@ Global
 		{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B3E6A1D-2C94-4F5B-8E7A-1D9C4B6F3A28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E79D9BD0-C02C-468D-AAC4-9899D75494E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E79D9BD0-C02C-468D-AAC4-9899D75494E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E79D9BD0-C02C-468D-AAC4-9899D75494E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E79D9BD0-C02C-468D-AAC4-9899D75494E8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

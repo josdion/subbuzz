@@ -45,6 +45,10 @@
                         <span>Subsunacs.net</span>
                     </label>
                     <label class="emby-checkbox-label" style="z-index: 0;">
+                        <input is="emby-checkbox" type="checkbox" class="EnableTitloviCom" id="EnableTitloviCom" />
+                        <span>Titlovi.com</span>
+                    </label>
+                    <label class="emby-checkbox-label" style="z-index: 0;">
                         <input is="emby-checkbox" type="checkbox" class="EnableYifySubtitles"
                             id="EnableYifySubtitles" />
                         <span>YIFY Subtitles</span>
@@ -201,6 +205,33 @@
                         provider will be disabled.
                     </div>
                 </div>
+
+                <br />
+
+                <div class="verticalSection ">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Titlovi.com Account</h2>
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="text" id="TitloviUserName" label="Username (Required):" />
+                    <div class="fieldDescription">
+                        A <a is="emby-linkbutton" class="button-link" target="_blank"
+                            href="https://titlovi.com">titlovi.com</a> account with API access is required.
+                        API access is free for the first 30 days after registration, afterwards an active
+                        supporter subscription is needed. If left empty provider will be disabled.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="password" id="TitloviPassword" label="Password (Required):" />
+                    <div class="fieldDescription"></div>
+                </div>
+
+                <p>
+                <div class="fieldDescription" id="titloviresponse">&nbsp;</div>
+                </p>
 
                 <br />
 

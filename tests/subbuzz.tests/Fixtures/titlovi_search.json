@@ -1,0 +1,37 @@
+{
+  "ResultsFound": 2,
+  "PagesAvailable": 1,
+  "CurrentPage": 1,
+  "SubtitleResults": [
+    {
+      "Id": 415854,
+      "Title": "Avatar",
+      "Year": 2009,
+      "Type": 1,
+      "Link": "https://titlovi.com/download/?type=1&mediaid=415854",
+      "Season": -1,
+      "Episode": -1,
+      "Special": -1,
+      "Lang": "Slovenski",
+      "Date": "2025-09-14T18:22:41.73",
+      "DownloadCount": 128,
+      "Rating": 5.0,
+      "Release": "Extended Collectors Edition UHD BluRay 2160p HDR10+ DV HEVC DTS-HD MA 5.1 x265-E"
+    },
+    {
+      "Id": 318842,
+      "Title": "The Wire",
+      "Year": 2002,
+      "Type": 2,
+      "Link": "https://titlovi.com/download/?type=2&mediaid=318842",
+      "Season": 5,
+      "Episode": 3,
+      "Special": 0,
+      "Lang": "Cirilica",
+      "Date": "2019-03-02T21:05:00",
+      "DownloadCount": 2048,
+      "Rating": 0,
+      "Release": "720p BluRay x264-DEMAND"
+    }
+  ]
+}

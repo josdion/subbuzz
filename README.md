@@ -9,6 +9,7 @@ Subtitles plugin for [Emby](https://emby.media/) and [Jellyfin](https://jellyfin
 * [SubSource.net](https://subsource.net)
 * [Subs.sab.bz](http://subs.sab.bz)
 * [Subsunacs.net](https://subsunacs.net)
+* [Titlovi.com](https://titlovi.com)
 * [YIFY Subtitles](https://yifysubtitles.live)
 > [!NOTE]
 > Only the opensubtitles.com domain is supported and not others.

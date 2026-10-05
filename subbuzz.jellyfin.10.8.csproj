@@ -21,6 +21,7 @@
   <ItemGroup>
     <Compile Remove="API\ControllerEmby.cs" />
     <Compile Remove="PluginServiceRegistrator.cs" />
+    <Compile Remove="tests\**" />
   </ItemGroup>
 
   <ItemGroup>
