@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/josdion/subbuzz/master/thumb.png",
     "versions": [
       {
+        "version": "1.5.1.0",
+        "changelog": "- Add new provider: Titlovi.com\n",
+        "targetAbi": "10.11.11.0",
+        "sourceUrl": "https://github.com/josdion/subbuzz/releases/download/v1.5.1.0/subbuzz_1.5.1.0_jellyfin_10.11.zip",
+        "checksum": "a7c6c2721a4089ae837b7420fbc6c489",
+        "timestamp": "2026-10-17T06:32:20Z"
+      },
+      {
         "version": "1.5.0.0",
         "changelog": "- Remove Podnapisi.NET\n",
         "targetAbi": "10.11.11.0",
